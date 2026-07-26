@@ -33,8 +33,14 @@ For most users, **no Git, Node.js, terminal, or programming setup is required.**
 > [!TIP]
 > If you've never used GitHub before, don't worry. This project is designed so that you can manage everything directly from the GitHub website.
 
-### Step 1 — Fork this Repository
-Click the **Fork** button in the top-right corner of this page. This creates your own copy of the project.
+### Step 1 — Create Your Copy
+
+If you're starting a new Programming Lab Record, click **Use this template** at the top of this repository.
+
+This creates a brand-new repository in your GitHub account with all of LabRecord's files, ready for you to customize.
+
+> [!NOTE]
+> If you prefer, you can also **Fork** this repository. Using the template is recommended because it creates an independent repository without a fork relationship.
 
 ### Step 2 — Deploy with Vercel
 1. Sign in to Vercel with GitHub.

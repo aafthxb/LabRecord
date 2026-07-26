@@ -1,7 +1,7 @@
 {
-  "name": "Interactive C & Java Lab Record",
-  "short_name": "C & Java Lab",
-  "description": "Browse, search, copy, and run C & Java lab programs online.",
+  "name": "LabRecord – Interactive Programming Lab Record",
+  "short_name": "LabRecord",
+  "description": "Browse, search, copy, and run programming lab examples online.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

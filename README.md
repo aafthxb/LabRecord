@@ -10,7 +10,7 @@ from a modern, responsive website.
 ⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done
 </div>
 
-------------------------------------------------------------------------
+---
 
 ## 🌟 Why This Project?
 
@@ -32,9 +32,9 @@ happens automatically.
 For most users, **no Git, Node.js, terminal, or programming setup is
 required.**
 
-------------------------------------------------------------------------
+---
 
-# 🚀 Create Your Own Programming Lab Record
+## 🚀 Create Your Own Programming Lab Record
 
 > \[!TIP\] If you've never used GitHub before, don't worry. This project
 > is designed so that you can manage everything directly from the GitHub
@@ -66,9 +66,9 @@ Whenever you upload, edit, or remove programs and commit the changes:
 
 No manual build steps are required.
 
-------------------------------------------------------------------------
+---
 
-# 💡 Understanding How the Project Works
+## 💡 Understanding How the Project Works
 
 Everything is generated from one folder:
 
@@ -104,9 +104,9 @@ You only manage your program files.
 
 The project manages everything else.
 
-------------------------------------------------------------------------
+---
 
-# ✅ Built-in Programming Languages
+## ✅ Built-in Programming Languages
 
 The following languages are already configured.
 
@@ -124,9 +124,9 @@ The following languages are already configured.
 > Simply create (or use) the corresponding folder, upload your source
 > files, commit the changes, and the website updates automatically.
 
-------------------------------------------------------------------------
+---
 
-# 📂 Adding Programs
+## 📂 Adding Programs
 
 Example:
 
@@ -145,9 +145,9 @@ After committing:
 -   Syntax highlighting is updated.
 -   The website is redeployed.
 
-------------------------------------------------------------------------
+---
 
-# 📝 Program Card Titles & Descriptions
+## 📝 Program Card Titles & Descriptions
 
 Every program card gets its title and description from the **first two
 comment lines** of the source file.
@@ -175,9 +175,9 @@ Example:
 > \[!IMPORTANT\] Always keep these two comment lines at the top of every
 > source file.
 
-------------------------------------------------------------------------
+---
 
-# ➕ Adding Another Programming Language
+## ➕ Adding Another Programming Language
 
 Only do this if the language is **not** already listed above.
 
@@ -197,9 +197,9 @@ Steps:
 
 The homepage automatically gains a new language button.
 
-------------------------------------------------------------------------
+---
 
-# 🗑️ Removing Programs or Languages
+## 🗑️ Removing Programs or Languages
 
 Removing content is just as easy.
 
@@ -219,9 +219,9 @@ Delete an entire language folder.
 
 No additional cleanup is required.
 
-------------------------------------------------------------------------
+---
 
-# 🔢 Changing the Program Order
+## 🔢 Changing the Program Order
 
 Edit:
 
@@ -233,9 +233,9 @@ Move filenames up or down.
 
 The website displays cards in the same order.
 
-------------------------------------------------------------------------
+---
 
-# 📁 Project Structure
+## 📁 Project Structure
 
 ``` text
 .
@@ -255,9 +255,9 @@ The website displays cards in the same order.
 └── README.md
 ```
 
-------------------------------------------------------------------------
+---
 
-# 💻 Local Development (Optional)
+## 💻 Local Development (Optional)
 
 Only needed if you want to modify the project itself.
 
@@ -267,9 +267,9 @@ npm install
 npm run generate
 ```
 
-------------------------------------------------------------------------
+---
 
-# 🤝 Contributing
+## 🤝 Contributing
 
 Contributions are welcome!
 
@@ -283,13 +283,13 @@ Whether it's:
 
 feel free to open an Issue or Pull Request.
 
-------------------------------------------------------------------------
+---
 
-# 📄 License
+## 📄 License
 
 Licensed under the MIT License.
 
-------------------------------------------------------------------------
+---
 
 <div align="center">
 

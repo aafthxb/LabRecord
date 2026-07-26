@@ -1,0 +1,41 @@
+{
+  "c": {
+    "displayName": "C",
+    "aliases": ["c"],
+    "extensions": [".c"],
+    "compiler": "c",
+    "prism": "c"
+  },
+
+  "cpp": {
+    "displayName": "C++",
+    "aliases": ["cpp", "c++"],
+    "extensions": [".cpp", ".cc", ".cxx"],
+    "compiler": "cpp",
+    "prism": "cpp"
+  },
+
+  "java": {
+    "displayName": "Java",
+    "aliases": ["java"],
+    "extensions": [".java"],
+    "compiler": "java",
+    "prism": "java"
+  },
+
+  "python": {
+    "displayName": "Python",
+    "aliases": ["python", "py"],
+    "extensions": [".py"],
+    "compiler": "python",
+    "prism": "python"
+  },
+
+  "javascript": {
+    "displayName": "JavaScript",
+    "aliases": ["javascript", "js"],
+    "extensions": [".js"],
+    "compiler": "javascript",
+    "prism": "javascript"
+  }
+}

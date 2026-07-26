@@ -1,0 +1,89 @@
+{
+  "Java": [],
+  "C": [
+    {
+      "number": 1,
+      "file": "1.c",
+      "path": "C/1.c",
+      "code": "//Positive or Negative\r\n//C program to check whether the number is positive, negative or zero\r\n\r\n#include <stdio.h>\r\n\r\nint main() \r\n{\r\n    int a;\r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    if(a > 0) \r\n    {\r\n        printf(\"given number is positive\");\r\n    } \r\n    else if(a < 0) \r\n    {\r\n        printf(\"number is negative\");\r\n    } \r\n    else \r\n    {\r\n        printf(\"number is zero\");\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "positive or negative c program to check whether the number is positive negative or zero include stdio h int main int a printf enter a number scanf d a if a 0 printf given number is positive else if a 0 printf number is negative else printf number is zero return 0"
+    },
+    {
+      "number": 2,
+      "file": "2.c",
+      "path": "C/2.c",
+      "code": "//Largest of three numbers\r\n//C program to find the largest of three numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n    \r\n    printf(\"enter 3 numbers:\");\r\n    scanf(\"%d %d %d\", &a, &b, &c);\r\n    \r\n    if(a > b && a > c)\r\n    {\r\n        printf(\"first number is greater\");\r\n    }\r\n    else if(b > c && b > a)\r\n    {\r\n        printf(\"second number is greater\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"third is greater\");\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "largest of three numbers c program to find the largest of three numbers include stdio h int main int a b c printf enter 3 numbers scanf d d d a b c if a b a c printf first number is greater else if b c b a printf second number is greater else printf third is greater return 0"
+    },
+    {
+      "number": 3,
+      "file": "3.c",
+      "path": "C/3.c",
+      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    for(i = 1; i <= 10; i++)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "multiplication table c program to print multiplication table of a given number using for loop include stdio h int main int i a printf enter a number scanf d a for i 1 i 10 i printf d d d n i a i a return 0"
+    },
+    {
+      "number": 4,
+      "file": "4.c",
+      "path": "C/4.c",
+      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using while loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    i = 1;\r\n    while(i <= 10)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n        i++;\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "multiplication table c program to print multiplication table of a given number using while loop include stdio h int main int i a printf enter a number scanf d a i 1 while i 10 printf d d d n i a i a i return 0"
+    },
+    {
+      "number": 5,
+      "file": "5.c",
+      "path": "C/5.c",
+      "code": "//Simple Calculator\r\n//C program to implement a simple calculator using switch case\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers:\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    printf(\"1=addition,2=substraction,3=production\\n\");\r\n    printf(\"enter your choice:1,2,3:\");\r\n    scanf(\"%d\", &c);\r\n\r\n    switch(c)\r\n    {\r\n        case 1:\r\n            c = a + b;\r\n            printf(\"sum of two number is:%d\", c);\r\n            break;\r\n\r\n        case 2:\r\n            c = a - b;\r\n            printf(\"substration of numbers is:%d\", c);\r\n            break;\r\n\r\n        case 3:\r\n            c = a * b;\r\n            printf(\"multiplication of numbers:%d\", c);\r\n            break;\r\n    }\r\n\r\n    return 0;\r\n}",
+      "search": "simple calculator c program to implement a simple calculator using switch case include stdio h int main int a b c printf enter two numbers scanf d d a b printf 1 addition 2 substraction 3 production n printf enter your choice 1 2 3 scanf d c switch c case 1 c a b printf sum of two number is d c break case 2 c a b printf substration of numbers is d c break case 3 c a b printf multiplication of numbers d c break return 0"
+    },
+    {
+      "number": 6,
+      "file": "6.c",
+      "path": "C/6.c",
+      "code": "//Addition of two numbers\r\n//C program to add two numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers to add:\\n\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    c = a + b;\r\n    printf(\"sum of two numbers:%d\", c);\r\n\r\n    return 0;\r\n}",
+      "search": "addition of two numbers c program to add two numbers include stdio h int main int a b c printf enter two numbers to add n scanf d d a b c a b printf sum of two numbers d c return 0"
+    },
+    {
+      "number": 7,
+      "file": "7.c",
+      "path": "C/7.c",
+      "code": "//Even or Odd\r\n//C program to check whether the number is even or odd\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a;\r\n\r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n\r\n    if (a % 2 == 0)\r\n    {\r\n        printf(\"number is even\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"number is odd\");\r\n    }\r\n\r\n    return 0;\r\n}",
+      "search": "even or odd c program to check whether the number is even or odd include stdio h int main int a printf enter a number scanf d a if a 2 0 printf number is even else printf number is odd return 0"
+    },
+    {
+      "number": 8,
+      "file": "8.c",
+      "path": "C/8.c",
+      "code": "//Pyramid Pattern\r\n//C program to print pyramid pattern using nested for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, j, rows = 4;\r\n\r\n    for (i = rows; i >= 1; i--)\r\n    {\r\n        for (j = 0; j < rows - i; j++)\r\n        {\r\n            printf(\" \");\r\n        }\r\n        for (j = 1; j <= i; j++)\r\n        {\r\n            printf(\"* \");\r\n        }\r\n        printf(\"\\n\");\r\n    }\r\n\r\n    return 0;\r\n}",
+      "search": "pyramid pattern c program to print pyramid pattern using nested for loop include stdio h int main int i j rows 4 for i rows i 1 i for j 0 j rows i j printf for j 1 j i j printf printf n return 0"
+    },
+    {
+      "number": 9,
+      "file": "9.c",
+      "path": "C/9.c",
+      "code": "//Addition using function\r\n//C program to add two numbers using function with parameters\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}",
+      "search": "addition using function c program to add two numbers using function with parameters include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
+    },
+    {
+      "number": 10,
+      "file": "10.c",
+      "path": "C/10.c",
+      "code": "//Addition using function\r\n//C program to add two numbers using function without parameters\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum();\r\n\r\nint main()\r\n{\r\n    sum();\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum()\r\n{\r\n    int a, b, c;\r\n    a = 10;\r\n    b = 20;\r\n    c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}",
+      "search": "addition using function c program to add two numbers using function without parameters include stdio h void sum int main sum return 0 void sum int a b c a 10 b 20 c a b printf sum is d c"
+    },
+    {
+      "number": 11,
+      "file": "11.c",
+      "path": "C/11.c",
+      "code": "//Addition using function\r\n//C program to add two numbers using function and return the sum\r\n\r\n#include <stdio.h>\r\n\r\nint sum();\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum();\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum()\r\n{\r\n    int a, b, c;\r\n    a = 17;\r\n    b = 27;\r\n    c = a + b;\r\n    \r\n    return c;\r\n}",
+      "search": "addition using function c program to add two numbers using function and return the sum include stdio h int sum int main int r r sum printf sum is d r return 0 int sum int a b c a 17 b 27 c a b return c"
+    },
+    {
+      "number": 12,
+      "file": "12.c",
+      "path": "C/12.c",
+      "code": "//Addition using function\r\n//C program to add two numbers using function and return the sum with parameters\r\n\r\n#include <stdio.h>\r\n\r\nint sum(int, int);\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum(4, 7);\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum(int a, int b)\r\n{\r\n    int c;\r\n    c = a + b;\r\n\r\n    return c;\r\n}",
+      "search": "addition using function c program to add two numbers using function and return the sum with parameters include stdio h int sum int int int main int r r sum 4 7 printf sum is d r return 0 int sum int a int b int c c a b return c"
+    }
+  ]
+}

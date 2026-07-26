@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive C & Java Lab Record</title>
+  <link
+    rel="icon"
+    type="image/png"
+    href="/assets/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+  <meta
+    name="description"
+    content="Browse, search, copy, and run C & Java lab programs online with syntax highlighting and an interactive code runner."
+>
+<meta
+    name="keywords"
+    content="C Lab Record, Java Lab Record, C Programs, Java Programs, Programming Lab, OneCompiler, Interactive Lab Record"
+>
+<meta name="author" content="Aafthab">
+
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="light dark">
+  
+<meta property="og:image" content="https://c-java.vercel.app/assets/og-image.png">
+
+<meta property="og:image:width" content="1200">
+
+<meta property="og:image:height" content="630">
+
+<meta
+    property="og:image:alt"
+    content="Interactive C & Java Lab Record"
+>
+
+<meta
+    name="twitter:image:alt"
+    content="Interactive C & Java Lab Record"
+>
+
+<meta property="og:type" content="website">
+
+<meta
+    property="og:title"
+    content="Interactive C & Java Lab Record"
+>
+
+<meta
+    property="og:description"
+    content="Run, search and explore C & Java lab programs directly in your browser."
+>
+
+<meta
+    property="og:url"
+    content="https://c-java.vercel.app/"
+>
+
+<meta property="og:site_name" content="Interactive C & Java Lab Record">
+
+<meta name="twitter:card" content="summary_large_image">
+
+<meta
+    name="twitter:title"
+    content="Interactive C & Java Lab Record"
+>
+
+<meta
+    name="twitter:description"
+    content="Run C & Java lab programs online."
+>
+
+<meta
+    name="twitter:image"
+    content="https://c-java.vercel.app/assets/og-image.png"
+>
+
+<meta
+    name="twitter:url"
+    content="https://c-java.vercel.app/"
+>
+
+<meta name="theme-color" content="#F4EBCF">
+
+<link
+    rel="canonical"
+    href="https://c-java.vercel.app/"
+>
+
+<link rel="manifest" href="/site.webmanifest">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js Dark Theme for Syntax Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  
+  <script>
+(() => {
+    const theme = localStorage.getItem("theme");
+
+    if (theme === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+    }
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+
+    if (meta) {
+        meta.setAttribute(
+            "content",
+            theme === "dark"
+                ? "#161616"
+                : "#F4EBCF"
+        );
+    }
+})();
+</script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="brutalist-wrapper">
+      <header class="app-header">
+        <div class="header-bar">
+
+    <div>
+        <h1 class="app-title" id="page-title">INTERACTIVE C & JAVA LAB RECORD!</h1>
+        <p class="app-subtitle" id="page-subtitle">
+            select a folder to view and run programs.
+        </p>
+    </div>
+
+    <div class="header-actions-right">
+
+        <button id="theme-btn" class="theme-btn" title="Toggle theme">
+    🌙
+</button>
+
+        <button class="back-btn"
+                id="back-btn"
+                onclick="showHome(event)">
+            [ BACK ]
+        </button>
+
+    </div>
+
+</div>
+      </header>
+
+      <!-- Home View -->
+      <div id="home-view" class="home-grid">
+        <div class="folder-card" onclick="openFolder('c', event)">
+          <h2 class="folder-card-title">C PROGRAMS</h2>
+          <p class="folder-card-desc">standard c algorithms and lab record experiments.</p>
+        </div>
+
+        <div class="folder-card" onclick="openFolder('java', event)">
+          <h2 class="folder-card-title">JAVA PROGRAMS</h2>
+          <p class="folder-card-desc">object-oriented java programs and practical record exercises.</p>
+        </div>
+      </div>
+
+      <!-- Program Containers -->
+      <div id="c-container" class="view-container"></div>
+      <div id="java-container" class="view-container"></div>
+      <footer class="app-footer">
+    Powered by Vercel · Created by Aafthab
+</footer>
+    </div>
+  </div>
+
+  <!-- Prism.js Scripts for Syntax Highlighting -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+
+<script defer src="script.js"></script>
+
+</body>
+
+</html>

@@ -93,14 +93,5 @@
       "code": "// Hello World\r\n// Print \"Hello, World!\" to the console.\r\n\r\npublic class HelloWorld {\r\n    public static void main(String[] args) {\r\n        System.out.println(\"Hello, World!\");\r\n    }\r\n}",
       "search": "hello world print hello world to the console public class helloworld public static void main string args system out println hello world"
     }
-  ],
-  "Python": [
-    {
-      "number": 1,
-      "file": "hello.py",
-      "path": "programs/Python/hello.py",
-      "code": "# Hello World\n# Prints Hello World\n\nprint(\"Hello World\")\n",
-      "search": "hello world prints hello world print hello world"
-    }
   ]
 }

@@ -1,8 +1,7 @@
 
 [
   "c",
-  "java",
-  "python"
+  "java"
 ].forEach(language => {
   const script = document.createElement("script");
 

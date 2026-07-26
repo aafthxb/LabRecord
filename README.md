@@ -3,7 +3,7 @@
 # 📚 LabRecord
 
 **Interactive Programming Lab Record**<br>
-A beautiful, searchable, and interactive Programming Lab Record template for students, educators, and institutions.
+Organize programs by language, search instantly, copy code, and run programs online — all from a modern, responsive website.
 
 ⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done
 

@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "generate": "node scripts/generate-index.js"
-  }
-}

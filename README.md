@@ -1,9 +1,9 @@
 <div align="center">
 
-# 📚 Interactive Programming Lab Record
+# 📚 LabRecord
 
-**A beautiful, searchable, and interactive Programming Lab Record.**<br>
-Organize programs by language, search instantly, copy code, and run programs online — all from a modern, responsive website.
+**Interactive Programming Lab Record**<br>
+A beautiful, searchable, and interactive Programming Lab Record template for students, educators, and institutions.
 
 ⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done
 

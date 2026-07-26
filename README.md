@@ -2,7 +2,7 @@
 
 # 📚 LabRecord
 
-**Interactive Programming Lab Record**<br>
+### Interactive Programming Lab Record<br>
 Organize programs by language, search instantly, copy code, and run programs online — all from a modern, responsive website.
 
 ⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done

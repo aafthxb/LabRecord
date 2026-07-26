@@ -61,6 +61,7 @@ function runWithTactileDelay(event, callback, targetOverride = null) {
 
   callback();
 }
+const SEARCH_ANIMATION_DURATION = 220;
 
 function applyTheme(theme) {
 
@@ -171,7 +172,7 @@ home.addEventListener("animationend", () => {
     "LABRECORD";
 
 document.getElementById("page-subtitle").innerHTML =
-    "Interactive Programming Lab Record<br>Browse, view, and run programs by language.";
+    "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -379,6 +380,29 @@ function highlightText(text, keywords) {
 
     return highlighted;
 }
+function animateCard(card, show) {
+
+    if (show) {
+
+        card.style.display = "";
+
+        requestAnimationFrame(() => {
+            card.classList.remove("search-hidden");
+        });
+
+    } else {
+
+        card.classList.add("search-hidden");
+
+        setTimeout(() => {
+            if (card.classList.contains("search-hidden")) {
+                card.style.display = "none";
+            }
+        }, SEARCH_ANIMATION_DURATION);
+
+    }
+
+}
 function setupSearch(search, folder) {
 
     const { input, clearBtn, status, noResults } = search;
@@ -408,7 +432,7 @@ function setupSearch(search, folder) {
                 );
             }
 
-            card.style.display = match ? "" : "none";
+            animateCard(card, match);
 
             const titleText = card.querySelector(".program-title-text");
             const fileBadge = card.querySelector(".file-badge");
@@ -489,14 +513,14 @@ function setupSearch(search, folder) {
 
                 if (codeMatch) {
 
-                    card.style.display = "";
+                    animateCard(card, codeMatch);
                     card.dataset.codeMatch = "true";
                     badge.style.display = "inline-block";
                     visible++;
 
                 } else {
 
-                    card.style.display = "none";
+                    animateCard(card, false);
                     card.dataset.codeMatch = "false";
                     badge.style.display = "none";
                 }

@@ -35,6 +35,11 @@
     --skeleton-dark:#252525;
     --skeleton-light:#3a3a3a;
 
+    /* Animation */
+--transition-fast: 80ms;
+--transition-normal: 120ms;
+--search-animation-duration: 220ms;
+
 }
 
 [data-theme="dark"]{
@@ -368,9 +373,9 @@ box-shadow:var(--shadow-sm);
     box-shadow: var(--shadow-md);
   position: relative;
   transition:
-    opacity .22s ease,
-    transform .22s ease,
-    box-shadow .08s ease;
+    opacity var(--search-animation-duration) ease,
+    transform var(--search-animation-duration) ease,
+    box-shadow var(--transition-fast) ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }

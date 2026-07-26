@@ -1,6 +1,8 @@
 {
   "c": {
     "displayName": "C",
+    "description": "Classic procedural programming and lab experiments.",
+    "searchPlaceholder": "Search C programs...",
     "aliases": ["c"],
     "extensions": [".c"],
     "compiler": "c",
@@ -9,6 +11,8 @@
 
   "cpp": {
     "displayName": "C++",
+    "description": "Object-oriented and STL-based C++ programs.",
+    "searchPlaceholder": "Search C++ programs...",
     "aliases": ["cpp", "c++"],
     "extensions": [".cpp", ".cc", ".cxx"],
     "compiler": "cpp",
@@ -17,6 +21,8 @@
 
   "java": {
     "displayName": "Java",
+    "description": "Object-oriented Java programs and practical exercises.",
+    "searchPlaceholder": "Search Java programs...",
     "aliases": ["java"],
     "extensions": [".java"],
     "compiler": "java",
@@ -25,6 +31,8 @@
 
   "python": {
     "displayName": "Python",
+    "description": "Python programs for scripting, algorithms, and automation.",
+    "searchPlaceholder": "Search Python programs...",
     "aliases": ["python", "py"],
     "extensions": [".py"],
     "compiler": "python",
@@ -33,6 +41,8 @@
 
   "javascript": {
     "displayName": "JavaScript",
+    "description": "JavaScript programs for browser and Node.js development.",
+    "searchPlaceholder": "Search JavaScript programs...",
     "aliases": ["javascript", "js"],
     "extensions": [".js"],
     "compiler": "javascript",

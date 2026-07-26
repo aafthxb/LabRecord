@@ -1,11 +1,38 @@
-let javaCount = 0;
-let cCount = 0;
 const fs = require("fs");
 const path = require("path");
 
-const orderFilePath = path.join("./", "order.json");
-const searchIndexPath = path.join("./", "search-index.json");
-const codeIndexPath = path.join("./", "code-index.json");
+const { execSync } = require("child_process");
+const generatedDir = path.join("./", "generated");
+
+const languageIndexPath = path.join(
+  generatedDir,
+  "language-index.json"
+);
+
+const orderFilePath = path.join(
+  generatedDir,
+  "order.json"
+);
+
+const searchIndexPath = path.join(
+  generatedDir,
+  "search-index.json"
+);
+
+const codeIndexPath = path.join(
+  generatedDir,
+  "code-index.json"
+);
+
+const prismLoaderPath = path.join(
+  generatedDir,
+  "prism-loader.js"
+);
+
+const siteInfoPath = path.join(
+  generatedDir,
+  "site-info.json"
+);
 
 // Load supported languages
 const languages = JSON.parse(
@@ -14,12 +41,45 @@ const languages = JSON.parse(
     "utf8"
   )
 );
-// Build folders object from languages.json
-const folders = {};
 
-for (const language of Object.values(languages)) {
-  folders[language.displayName] = language.extensions;
+function getLanguageConfig(folderName) {
+  const normalized = folderName.toLowerCase();
+
+  for (const [id, language] of Object.entries(languages)) {
+    if (language.aliases.includes(normalized)) {
+      return {
+        id,
+        folder: folderName,
+        ...language
+      };
+    }
+  }
+
+  return null;
 }
+function discoverLanguages() {
+  const root = "./programs";
+
+  return fs
+    .readdirSync(root, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => getLanguageConfig(entry.name))
+    .filter(Boolean);
+}
+const discoveredLanguages = discoverLanguages();
+
+fs.mkdirSync(generatedDir, {
+  recursive: true
+});
+
+const prismLanguages = [
+  ...new Set(
+    discoveredLanguages.map(
+      language => language.prism
+    )
+  )
+];
+
 function normalizeSearchText(text) {
   return text
     .toLowerCase()
@@ -45,35 +105,114 @@ function writeJsonIfChanged(filePath, data) {
   return true;
 }
 
-// Load existing order.json or initialize empty structure
-let orderData = { Java: [], C: [] };
+function writeTextIfChanged(filePath, content) {
+  if (fs.existsSync(filePath)) {
+    const current = fs.readFileSync(filePath, "utf8");
+
+    if (current === content) {
+      console.log(`✓ ${path.basename(filePath)} is already up to date.`);
+      return;
+    }
+  }
+
+  fs.writeFileSync(filePath, content);
+  console.log(`✓ ${path.basename(filePath)} updated.`);
+}
+
+function getGitHubInfo() {
+  try {
+    const remote = execSync(
+      "git config --get remote.origin.url",
+      { encoding: "utf8" }
+    ).trim();
+
+    let match =
+      remote.match(
+        /^https:\/\/github\.com\/([^/]+)\/([^/.]+?)(?:\.git)?$/
+      ) ||
+      remote.match(
+        /^git@github\.com:([^/]+)\/([^/.]+?)(?:\.git)?$/
+      );
+
+    if (!match) {
+      throw new Error("Unsupported Git remote.");
+    }
+
+    return {
+      username: match[1],
+      repository: match[2],
+      url: `https://github.com/${match[1]}`
+    };
+
+  } catch {
+
+    return {
+      username: "Aafthab",
+      repository: "",
+      url: "https://github.com/aafthxb"
+    };
+
+  }
+}
+
+// Load existing order.json while preserving custom order
+let loadedData = {};
 
 if (fs.existsSync(orderFilePath)) {
   try {
-    const loadedData = JSON.parse(fs.readFileSync(orderFilePath, "utf8"));
-    orderData = { Java: [], C: [], ...loadedData };
+    loadedData = JSON.parse(
+      fs.readFileSync(orderFilePath, "utf8")
+    );
   } catch (e) {
     console.warn("⚠ Unable to parse order.json. Creating a new one.");
   }
 }
 
-let isUpdated = false;
+// Initialize order data using only currently discovered languages
+const orderData = {};
+
+for (const language of discoveredLanguages) {
+  orderData[language.folder] = Array.isArray(
+    loadedData[language.folder]
+  )
+    ? loadedData[language.folder]
+    : [];
+}
+
+const programCounts = {};
 
 // Search index
-const searchIndex = {
-  Java: [],
-  C: []
-};
+const searchIndex = {};
 
-const codeIndex = {
-  Java: [],
-  C: []
-};
+for (const language of discoveredLanguages) {
+  searchIndex[language.folder] = [];
+}
+
+const codeIndex = {};
+
+for (const language of discoveredLanguages) {
+  codeIndex[language.folder] = [];
+}
+
+const languageIndex = [];
 
 // Scan each folder
-for (const [folder, exts] of Object.entries(folders)) {
+for (const language of discoveredLanguages) {
 
-  const folderPath = path.join("./", folder);
+  const folder = language.folder;
+  const exts = language.extensions;
+
+  languageIndex.push({
+    id: language.id,
+    displayName: language.displayName,
+    folder: language.folder,
+    compiler: language.compiler,
+    prism: language.prism,
+    description: language.description,
+    searchPlaceholder: language.searchPlaceholder
+});
+
+  const folderPath = path.join("./programs", folder);
 
   if (!fs.existsSync(folderPath)) continue;
 
@@ -92,7 +231,6 @@ for (const [folder, exts] of Object.entries(folders)) {
     if (!existingList.includes(file)) {
       existingList.push(file);
 console.log(`➕ Added ${folder}/${file} to order.json`);
-      isUpdated = true;
     }
   }
 
@@ -107,16 +245,8 @@ console.log(`➕ Added ${folder}/${file} to order.json`);
   }
 }
 
-  if (cleanedList.length !== existingList.length) {
-    isUpdated = true;
-  }
-
   orderData[folder] = cleanedList;
-  if (folder === "Java") {
-  javaCount = cleanedList.length;
-} else if (folder === "C") {
-  cCount = cleanedList.length;
-}
+  programCounts[folder] = cleanedList.length;
 
   // Build search index
   for (const [index, file] of cleanedList.entries()) {
@@ -174,14 +304,14 @@ const description = commentLines[1] || "";
     searchIndex[folder].push({
   number: index + 1,
   file,
-  path: `${folder}/${file}`,
+  path: `programs/${folder}/${file}`,
   title,
   description
 });
 codeIndex[folder].push({
   number: index + 1,
   file,
-  path: `${folder}/${file}`,
+  path: `programs/${folder}/${file}`,
   code,
   search
 });
@@ -189,22 +319,49 @@ codeIndex[folder].push({
   }
 }
 
+writeJsonIfChanged(orderFilePath, orderData);
+
 // Save indexes
+writeJsonIfChanged(languageIndexPath, languageIndex);
 writeJsonIfChanged(searchIndexPath, searchIndex);
 writeJsonIfChanged(codeIndexPath, codeIndex);
 
-// Save order.json if changed
-if (isUpdated) {
-  writeJsonIfChanged(orderFilePath, orderData);
-} else {
-  console.log("✓ order.json is already up to date.");
-}
+const prismLoader = `
+${JSON.stringify(prismLanguages, null, 2)}.forEach(language => {
+  const script = document.createElement("script");
+
+  script.src =
+    \`https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-\${language}.min.js\`;
+
+  script.defer = true;
+
+  document.head.appendChild(script);
+});
+`;
+
+writeTextIfChanged(
+  prismLoaderPath,
+  prismLoader
+);
+
+writeJsonIfChanged(
+  siteInfoPath,
+  {
+    github: getGitHubInfo()
+  }
+);
 
 console.log("\n==================================");
 console.log(" Interactive Lab Record Generator");
 console.log("==================================");
-console.log(`Java Programs : ${javaCount}`);
-console.log(`C Programs    : ${cCount}`);
-console.log(`Total Programs: ${javaCount + cCount}`);
+
+let totalPrograms = 0;
+
+for (const [folder, count] of Object.entries(programCounts)) {
+  console.log(`${folder} Programs : ${count}`);
+  totalPrograms += count;
+}
+
+console.log(`Total Programs: ${totalPrograms}`);
 console.log("==================================");
 console.log("Build complete.");

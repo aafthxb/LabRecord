@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive C & Java Lab Record</title>
+  <title>Interactive Programming Lab Record</title>
   <link
     rel="icon"
     type="image/png"
@@ -11,11 +11,11 @@
   <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
   <meta
     name="description"
-    content="Browse, search, copy, and run C & Java lab programs online with syntax highlighting and an interactive code runner."
+    content="Browse, search, copy, and run programming lab examples online with syntax highlighting and an interactive code runner."
 >
 <meta
     name="keywords"
-    content="C Lab Record, Java Lab Record, C Programs, Java Programs, Programming Lab, OneCompiler, Interactive Lab Record"
+    content="Programming Lab Record, Programming Examples, Interactive Code Runner, Computer Science Lab, OneCompiler, Interactive Lab Record"
 >
 <meta name="author" content="Aafthab">
 
@@ -30,24 +30,24 @@
 
 <meta
     property="og:image:alt"
-    content="Interactive C & Java Lab Record"
+    content="Interactive Programming Lab Record"
 >
 
 <meta
     name="twitter:image:alt"
-    content="Interactive C & Java Lab Record"
+    content="Interactive Programming Lab Record"
 >
 
 <meta property="og:type" content="website">
 
 <meta
     property="og:title"
-    content="Interactive C & Java Lab Record"
+    content="Interactive Programming Lab Record"
 >
 
 <meta
     property="og:description"
-    content="Run, search and explore C & Java lab programs directly in your browser."
+    content="Browse, search, copy, and run programming lab examples directly in your browser."
 >
 
 <meta
@@ -55,18 +55,18 @@
     content="https://c-java.vercel.app/"
 >
 
-<meta property="og:site_name" content="Interactive C & Java Lab Record">
+<meta property="og:site_name" content="Interactive Programming Lab Record">
 
 <meta name="twitter:card" content="summary_large_image">
 
 <meta
     name="twitter:title"
-    content="Interactive C & Java Lab Record"
+    content="Interactive Programming Lab Record"
 >
 
 <meta
     name="twitter:description"
-    content="Run C & Java lab programs online."
+    content="Browse, search, copy, and run programming lab examples directly in your browser."
 >
 
 <meta
@@ -129,9 +129,9 @@
         <div class="header-bar">
 
     <div>
-        <h1 class="app-title" id="page-title">INTERACTIVE C & JAVA LAB RECORD!</h1>
+        <h1 class="app-title" id="page-title">INTERACTIVE PROGRAMMING LAB RECORD!</h1>
         <p class="app-subtitle" id="page-subtitle">
-            select a folder to view and run programs.
+            Select a folder to view and run programs.
         </p>
     </div>
 
@@ -153,32 +153,19 @@
       </header>
 
       <!-- Home View -->
-      <div id="home-view" class="home-grid">
-        <div class="folder-card" onclick="openFolder('c', event)">
-          <h2 class="folder-card-title">C PROGRAMS</h2>
-          <p class="folder-card-desc">standard c algorithms and lab record experiments.</p>
-        </div>
-
-        <div class="folder-card" onclick="openFolder('java', event)">
-          <h2 class="folder-card-title">JAVA PROGRAMS</h2>
-          <p class="folder-card-desc">object-oriented java programs and practical record exercises.</p>
-        </div>
-      </div>
+      <div id="home-view" class="home-grid"></div>
 
       <!-- Program Containers -->
-      <div id="c-container" class="view-container"></div>
-      <div id="java-container" class="view-container"></div>
-      <footer class="app-footer">
-    Powered by Vercel · Created by Aafthab
+      <div id="language-views"></div>
+      <footer class="app-footer" id="app-footer">
+    Powered by Vercel
 </footer>
     </div>
   </div>
 
   <!-- Prism.js Scripts for Syntax Highlighting -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
-
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script defer src="generated/prism-loader.js"></script>
 <script defer src="script.js"></script>
 
 </body>

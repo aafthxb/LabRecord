@@ -1,0 +1,97 @@
+{
+  "C": [
+    {
+      "number": 1,
+      "file": "1.c",
+      "path": "programs/C/1.c",
+      "title": "Positive or Negative",
+      "description": "C program to check whether the number is positive, negative or zero"
+    },
+    {
+      "number": 2,
+      "file": "10.c",
+      "path": "programs/C/10.c",
+      "title": "Addition using function",
+      "description": "C program to add two numbers using function without parameters"
+    },
+    {
+      "number": 3,
+      "file": "11.c",
+      "path": "programs/C/11.c",
+      "title": "Addition using function",
+      "description": "C program to add two numbers using function and return the sum"
+    },
+    {
+      "number": 4,
+      "file": "12.c",
+      "path": "programs/C/12.c",
+      "title": "Addition using function",
+      "description": "C program to add two numbers using function and return the sum with parameters"
+    },
+    {
+      "number": 5,
+      "file": "2.c",
+      "path": "programs/C/2.c",
+      "title": "Largest of three numbers",
+      "description": "C program to find the largest of three numbers"
+    },
+    {
+      "number": 6,
+      "file": "3.c",
+      "path": "programs/C/3.c",
+      "title": "Multiplication Table",
+      "description": "C program to print multiplication table of a given number using for loop"
+    },
+    {
+      "number": 7,
+      "file": "4.c",
+      "path": "programs/C/4.c",
+      "title": "Multiplication Table",
+      "description": "C program to print multiplication table of a given number using while loop"
+    },
+    {
+      "number": 8,
+      "file": "5.c",
+      "path": "programs/C/5.c",
+      "title": "Simple Calculator",
+      "description": "C program to implement a simple calculator using switch case"
+    },
+    {
+      "number": 9,
+      "file": "6.c",
+      "path": "programs/C/6.c",
+      "title": "Addition of two numbers",
+      "description": "C program to add two numbers"
+    },
+    {
+      "number": 10,
+      "file": "7.c",
+      "path": "programs/C/7.c",
+      "title": "Even or Odd",
+      "description": "C program to check whether the number is even or odd"
+    },
+    {
+      "number": 11,
+      "file": "8.c",
+      "path": "programs/C/8.c",
+      "title": "Pyramid Pattern",
+      "description": "C program to print pyramid pattern using nested for loop"
+    },
+    {
+      "number": 12,
+      "file": "9.c",
+      "path": "programs/C/9.c",
+      "title": "Addition using function",
+      "description": "C program to add two numbers using function with parameters"
+    }
+  ],
+  "Java": [
+    {
+      "number": 1,
+      "file": "HelloWorld.java",
+      "path": "programs/Java/HelloWorld.java",
+      "title": "Hello World",
+      "description": "Print \"Hello, World!\" to the console."
+    }
+  ]
+}

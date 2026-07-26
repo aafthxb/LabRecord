@@ -105,48 +105,45 @@ function toggleTheme(event) {
 }
 
 function openFolder(folder, event) {
-  runWithTactileDelay(event, () => {
-    document.getElementById('home-view').style.display = 'none';
-    document.getElementById('back-btn').style.display = 'inline-block';
-    document.getElementById("theme-btn").style.display = "none";
+    runWithTactileDelay(event, () => {
 
-    const cContainer = document.getElementById('c-container');
-    const javaContainer = document.getElementById('java-container');
+        document.getElementById("home-view").style.display = "none";
+        document.getElementById("back-btn").style.display = "inline-block";
+        document.getElementById("theme-btn").style.display = "none";
 
-    if (folder === "c") {
+        // Hide all language containers
+        document.querySelectorAll(".view-container").forEach(container => {
+            container.classList.remove("active");
+        });
 
-    cContainer.classList.add("active");
-    cContainer.classList.add("view-enter");
+        const activeContainer = document.getElementById(`${folder}-container`);
 
-    javaContainer.classList.remove("active");
+        if (!activeContainer) return;
 
-    cContainer.addEventListener("animationend", () => {
-        cContainer.classList.remove("view-enter");
-    }, { once: true });
+        activeContainer.classList.add("active");
+        activeContainer.classList.add("view-enter");
 
-    document.getElementById("page-title").textContent = "C PROGRAMS";
-    document.getElementById("page-subtitle").textContent =
-        "live executable c lab assignments.";
+        activeContainer.addEventListener(
+            "animationend",
+            () => activeContainer.classList.remove("view-enter"),
+            { once: true }
+        );
 
-} else {
+        const language = App.languageIndex.find(l => l.folder === folder);
 
-    javaContainer.classList.add("active");
-    javaContainer.classList.add("view-enter");
+        if (language) {
+            document.getElementById("page-title").textContent =
+                `${language.displayName.toUpperCase()} PROGRAMS`;
 
-    cContainer.classList.remove("active");
+            document.getElementById("page-subtitle").textContent =
+                language.description || "";
+        }
 
-    javaContainer.addEventListener("animationend", () => {
-        javaContainer.classList.remove("view-enter");
-    }, { once: true });
-
-    document.getElementById("page-title").textContent = "JAVA PROGRAMS";
-    document.getElementById("page-subtitle").textContent =
-        "live executable java lab assignments.";
-
-}
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
 }
 
 function showHome(event) {
@@ -166,10 +163,11 @@ home.addEventListener("animationend", () => {
     document.getElementById('back-btn').style.display = 'none';
     document.getElementById("theme-btn").style.display = "flex";
     
-    document.getElementById('c-container').classList.remove('active');
-    document.getElementById('java-container').classList.remove('active');
+    document.querySelectorAll(".view-container").forEach(container => {
+    container.classList.remove("active");
+    });
 
-    document.getElementById('page-title').textContent = 'INTERACTIVE C & JAVA LAB RECORD!';
+    document.getElementById('page-title').textContent = 'INTERACTIVE PROGRAMMING LAB RECORD!';
     document.getElementById('page-subtitle').textContent = 'select a folder to view and run programs.';
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -182,36 +180,87 @@ home.addEventListener("animationend", () => {
 
 const App = {
     currentFolder: null,
+    languageIndex: [],
 
-    metadata: {
-        Java: [],
-        C: []
-    },
+    metadata: {},
+    cards: {},
 
     codeIndex: null,
     codeIndexLoaded: false,
     codeLookup: {},
 
-    loadedPrograms: new Map(),   // path -> source code
-cards: {
-    Java: [],
-    C: []
-}
+    loadedPrograms: new Map()
 };
-
 // ==========================
 // Load Metadata
 // ==========================
 
 async function loadSearchIndex() {
 
-    const response = await fetch("/search-index.json");
-
+    const response = await fetch("/generated/search-index.json");
     if (!response.ok) {
         throw new Error("Unable to load search index.");
     }
 
     App.metadata = await response.json();
+}
+
+async function loadLanguageIndex() {
+
+    const response = await fetch("/generated/language-index.json");
+
+    if (!response.ok) {
+        throw new Error("Unable to load language index.");
+    }
+
+    App.languageIndex = await response.json();
+}
+
+async function loadSiteInfo() {
+
+    const response =
+        await fetch("/generated/site-info.json");
+
+    if (!response.ok) return null;
+
+    return response.json();
+
+}
+
+function buildLanguageUI() {
+    const homeView = document.getElementById("home-view");
+    const languageViews = document.getElementById("language-views");
+
+    homeView.innerHTML = "";
+    languageViews.innerHTML = "";
+
+    App.languageIndex.forEach(language => {
+
+        // ---------- Home Card ----------
+        const card = document.createElement("div");
+        card.className = "folder-card";
+
+        card.onclick = (event) => openFolder(language.folder, event);
+
+        card.innerHTML = `
+            <h2 class="folder-card-title">
+                ${language.displayName.toUpperCase()} PROGRAMS
+            </h2>
+            <p class="folder-card-desc">
+                ${language.description || ""}
+            </p>
+        `;
+
+        homeView.appendChild(card);
+
+        // ---------- Container ----------
+        const container = document.createElement("div");
+
+        container.id = `${language.folder}-container`;
+        container.className = "view-container";
+
+        languageViews.appendChild(container);
+    });
 }
 
 // ==========================
@@ -222,7 +271,7 @@ async function loadCodeIndex() {
 
     if (App.codeIndexLoaded) return;
 
-    const response = await fetch("/code-index.json");
+    const response = await fetch("/generated/code-index.json");
 
     if (!response.ok) {
         throw new Error("Unable to load code index.");
@@ -232,7 +281,9 @@ async function loadCodeIndex() {
 
 App.codeLookup = {};
 
-["Java", "C"].forEach(folder => {
+App.languageIndex.forEach(language => {
+
+    const folder = language.folder;
 
     (App.codeIndex[folder] || []).forEach(program => {
 
@@ -258,12 +309,16 @@ function createSearchUI(container, folder) {
     wrapper.className = "search-wrapper";
 
     const input = document.createElement("input");
-    input.className = "search-input";
-    input.type = "text";
-    input.placeholder =
-        folder === "Java"
-            ? "Search Java programs..."
-            : "Search C programs...";
+input.className = "search-input";
+input.type = "text";
+
+const language = App.languageIndex.find(
+    l => l.folder === folder
+);
+
+input.placeholder =
+    language?.searchPlaceholder ||
+    `Search ${language?.displayName ?? folder} programs...`;
 
     const clearBtn = document.createElement("button");
     clearBtn.className = "search-clear";
@@ -816,10 +871,38 @@ async function init() {
 
     applyTheme(savedTheme);
 
+    await loadLanguageIndex();
+
+    buildLanguageUI();
+
     await loadSearchIndex();
 
-    await loadFolder("C", "c-container", "c");
-    await loadFolder("Java", "java-container", "java");
+    const siteInfo = await loadSiteInfo();
+
+    if (siteInfo?.github) {
+
+        document.getElementById("app-footer").innerHTML = `
+            Powered by Vercel ·
+            Created by
+            <a
+                href="${siteInfo.github.url}"
+                target="_blank"
+                rel="noopener noreferrer">
+                ${siteInfo.github.username}
+            </a>
+        `;
+
+    }
+
+    for (const language of App.languageIndex) {
+
+        await loadFolder(
+            language.folder,
+            `${language.folder}-container`,
+            language.compiler
+        );
+
+    }
 
 }
 const themeBtn = document.getElementById("theme-btn");

@@ -16,5 +16,14 @@
     "prism": "java",
     "description": "Object-oriented Java programs and practical exercises.",
     "searchPlaceholder": "Search Java programs..."
+  },
+  {
+    "id": "python",
+    "displayName": "Python",
+    "folder": "Python",
+    "compiler": "python",
+    "prism": "python",
+    "description": "Python programs for scripting, algorithms, and automation.",
+    "searchPlaceholder": "Search Python programs..."
   }
 ]

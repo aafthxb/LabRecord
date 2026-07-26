@@ -93,5 +93,14 @@
       "title": "Hello World",
       "description": "Print \"Hello, World!\" to the console."
     }
+  ],
+  "Python": [
+    {
+      "number": 1,
+      "file": "hello.py",
+      "path": "programs/Python/hello.py",
+      "title": "hello.py",
+      "description": ""
+    }
   ]
 }

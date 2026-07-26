@@ -15,5 +15,8 @@
   ],
   "Java": [
     "HelloWorld.java"
+  ],
+  "Python": [
+    "hello.py"
   ]
 }

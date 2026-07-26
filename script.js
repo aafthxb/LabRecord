@@ -167,8 +167,11 @@ home.addEventListener("animationend", () => {
     container.classList.remove("active");
     });
 
-    document.getElementById('page-title').textContent = 'INTERACTIVE PROGRAMMING LAB RECORD!';
-    document.getElementById('page-subtitle').textContent = 'select a folder to view and run programs.';
+    document.getElementById("page-title").textContent =
+    "LABRECORD";
+
+document.getElementById("page-subtitle").innerHTML =
+    "Interactive Programming Lab Record<br>Browse, view, and run programs by language.";
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -882,15 +885,20 @@ async function init() {
     if (siteInfo?.github) {
 
         document.getElementById("app-footer").innerHTML = `
-            Powered by Vercel ·
-            Created by
-            <a
-                href="${siteInfo.github.url}"
-                target="_blank"
-                rel="noopener noreferrer">
-                ${siteInfo.github.username}
-            </a>
-        `;
+    Built with
+    <a
+        href="https://github.com/aafthxb/LabRecord"
+        target="_blank"
+        rel="noopener noreferrer">
+        LabRecord</a>
+    · Created by
+    <a
+        href="${siteInfo.github.url}"
+        target="_blank"
+        rel="noopener noreferrer">
+        ${siteInfo.github.username}
+    </a>
+`;
 
     }
 

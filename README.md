@@ -1,8 +1,8 @@
 <div align="center">
 
-# 📚 LabRecord
+# 📚 Interactive Programming Lab Record
 
-### Interactive Programming Lab Record<br>
+**A beautiful, searchable, and interactive Programming Lab Record.**<br>
 Organize programs by language, search instantly, copy code, and run programs online — all from a modern, responsive website.
 
 ⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done
@@ -203,7 +203,7 @@ Edit `generated/order.json` and move filenames up or down. The website displays 
 
 Only needed if you want to modify the project itself.
 
-    git clone https://github.com/aafthxb/LabRecord.git
+    git clone https://github.com/<your-username>/<repository>.git
     npm install
     npm run generate
 

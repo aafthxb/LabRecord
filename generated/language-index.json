@@ -5,7 +5,7 @@
     "folder": "C",
     "compiler": "c",
     "prism": "c",
-    "description": "Classic procedural programming and lab experiments.",
+    "description": "Classic procedural programming and lab experiments",
     "searchPlaceholder": "Search C programs..."
   },
   {
@@ -14,7 +14,7 @@
     "folder": "Java",
     "compiler": "java",
     "prism": "java",
-    "description": "Object-oriented Java programs and practical exercises.",
+    "description": "Object-oriented Java programs and practical exercises",
     "searchPlaceholder": "Search Java programs..."
   }
 ]

@@ -203,7 +203,7 @@ Edit `generated/order.json` and move filenames up or down. The website displays 
 
 Only needed if you want to modify the project itself.
 
-    git clone https://github.com/<your-username>/<repository>.git
+    git clone https://github.com/aafthxb/LabRecord.git
     npm install
     npm run generate
 

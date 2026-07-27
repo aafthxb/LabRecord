@@ -21,6 +21,7 @@ Most Programming Lab Record websites require editing HTML, JavaScript, or config
 * 📄 A source file becomes a program card.
 * 🔍 Search indexes are generated automatically.
 * 🎨 Syntax highlighting is configured automatically.
+* 📱 Installable as a Progressive Web App (PWA) with offline support.
 * 🚀 GitHub Actions regenerates the project.
 * 🌐 Vercel deploys the latest version automatically.
 

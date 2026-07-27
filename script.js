@@ -940,5 +940,13 @@ async function init() {
 const themeBtn = document.getElementById("theme-btn");
 
 themeBtn.addEventListener("click", toggleTheme);
+if ("serviceWorker" in navigator) {
 
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+
+        window.location.reload();
+
+    });
+
+}
 init();

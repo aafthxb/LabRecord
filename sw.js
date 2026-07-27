@@ -1,15 +1,11 @@
-const VERSION = "labrecord-v1.0.0";
+const VERSION = "labrecord-v2";
 
-const APP_SHELL = [
+const STATIC_CACHE = [
     "/",
     "/index.html",
     "/style.css",
     "/script.js",
     "/site.webmanifest",
-
-    "/generated/language-index.json",
-    "/generated/search-index.json",
-    "/generated/site-info.json",
 
     "/generated/prism-loader.js",
 
@@ -22,26 +18,25 @@ const APP_SHELL = [
 self.addEventListener("install", event => {
 
     event.waitUntil(
-    caches.open(VERSION).then(async cache => {
 
-        await Promise.all(
+        caches.open(VERSION).then(async cache => {
 
-            APP_SHELL.map(async asset => {
+            for (const file of STATIC_CACHE) {
 
                 try {
-                    await cache.add(asset);
+                    await cache.add(file);
                 } catch (err) {
-                    console.warn("Failed to cache:", asset);
+                    console.warn("Failed:", file);
                 }
 
-            })
+            }
 
-        );
+        })
 
-    })
-);
+    );
 
     self.skipWaiting();
+
 });
 
 self.addEventListener("activate", event => {
@@ -54,6 +49,7 @@ self.addEventListener("activate", event => {
                 keys
                     .filter(key => key !== VERSION)
                     .map(key => caches.delete(key))
+
             )
         )
 
@@ -69,34 +65,81 @@ self.addEventListener("fetch", event => {
 
     const url = new URL(event.request.url);
 
-    // Only cache requests from your own website
-    if (url.origin !== self.location.origin) {
+    // Ignore third-party resources
+    if (url.origin !== self.location.origin) return;
+
+    const path = url.pathname;
+
+    // HTML
+    if (event.request.mode === "navigate") {
+        event.respondWith(networkFirst(event.request));
         return;
     }
 
-    event.respondWith(
+    // Generated JSON
+    if (
+        path.startsWith("/generated/") &&
+        path.endsWith(".json")
+    ) {
+        event.respondWith(networkFirst(event.request));
+        return;
+    }
 
-        caches.match(event.request).then(cached => {
-
-            if (cached) {
-                return cached;
-            }
-
-            return fetch(event.request)
-                .then(network => {
-
-                    const copy = network.clone();
-
-                    caches.open(VERSION)
-                        .then(cache => cache.put(event.request, copy));
-
-                    return network;
-
-                })
-                .catch(() => caches.match("/index.html"));
-
-        })
-
-    );
+    // Everything else
+    event.respondWith(cacheFirst(event.request));
 
 });
+
+async function cacheFirst(request) {
+
+    const cache = await caches.open(VERSION);
+
+    const cached = await cache.match(request);
+
+    if (cached) {
+        return cached;
+    }
+
+    const response = await fetch(request);
+
+    if (response.ok) {
+        cache.put(request, response.clone());
+    }
+
+    return response;
+
+}
+
+async function networkFirst(request) {
+
+    const cache = await caches.open(VERSION);
+
+    try {
+
+        const response = await fetch(request);
+
+        if (response.ok) {
+            cache.put(request, response.clone());
+        }
+
+        return response;
+
+    } catch {
+
+        const cached = await cache.match(request);
+
+        if (cached) {
+            return cached;
+        }
+
+        if (request.mode === "navigate") {
+            return cache.match("/index.html");
+        }
+
+        return new Response("Offline", {
+            status: 503
+        });
+
+    }
+
+}

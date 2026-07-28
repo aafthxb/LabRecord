@@ -1,5 +1,5 @@
 //Addition using function
-//C program to add two numbers using function and return the sum
+//Function without argument and with return value
 
 #include <stdio.h>
 

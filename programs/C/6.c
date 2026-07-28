@@ -1,4 +1,4 @@
-//Addition of two numbers
+//Sum of two numbers
 //C program to add two numbers
 
 #include <stdio.h>

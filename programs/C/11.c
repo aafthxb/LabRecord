@@ -1,4 +1,4 @@
-//Addition using function
+//Sum using function
 //Function without argument and with return value
 
 #include <stdio.h>

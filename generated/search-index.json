@@ -4,7 +4,7 @@
       "number": 1,
       "file": "6.c",
       "path": "programs/C/6.c",
-      "title": "Addition of two numbers",
+      "title": "Sum of two numbers",
       "description": "C program to add two numbers"
     },
     {
@@ -61,28 +61,28 @@
       "file": "9.c",
       "path": "programs/C/9.c",
       "title": "Addition using function",
-      "description": "C program to add two numbers using function with parameters"
+      "description": "Function with argument and without return value"
     },
     {
       "number": 10,
       "file": "10.c",
       "path": "programs/C/10.c",
       "title": "Addition using function",
-      "description": "C program to add two numbers using function without parameters"
+      "description": "Function without argument and without return value"
     },
     {
       "number": 11,
       "file": "11.c",
       "path": "programs/C/11.c",
       "title": "Addition using function",
-      "description": "C program to add two numbers using function and return the sum"
+      "description": "Function without argument and with return value"
     },
     {
       "number": 12,
       "file": "12.c",
       "path": "programs/C/12.c",
       "title": "Addition using function",
-      "description": "C program to add two numbers using function and return the sum with parameters"
+      "description": "Function with argument and with return value"
     }
   ],
   "Java": [

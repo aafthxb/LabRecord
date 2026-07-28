@@ -60,8 +60,8 @@
       "number": 9,
       "file": "9.c",
       "path": "programs/C/9.c",
-      "code": "//Addition using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}",
-      "search": "addition using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
+      "code": "//Sum using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
+      "search": "sum using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
     },
     {
       "number": 10,

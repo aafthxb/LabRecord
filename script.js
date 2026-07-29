@@ -55,7 +55,7 @@ function runWithTactileDelay(event, callback, targetOverride = null) {
     setTimeout(() => {
       targetEl.classList.remove('is-pressed');
       callback();
-    }, 120);
+    }, 70);
     return;
   }
 
@@ -63,14 +63,38 @@ function runWithTactileDelay(event, callback, targetOverride = null) {
 }
 const SEARCH_ANIMATION_DURATION = 220;
 
-function applyTheme(theme) {
+const prefersReducedMotion =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const supportsHover =
+    window.matchMedia("(hover: hover)").matches;
+
+function applyTheme(theme, animate = true) {
 
     document.documentElement.setAttribute("data-theme", theme);
 
     const themeBtn = document.getElementById("theme-btn");
+    const icon = themeBtn?.querySelector(".theme-icon") || themeBtn;
 
-    if (themeBtn) {
-        themeBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+    if (icon) {
+
+        const nextEmoji = theme === "dark" ? "☀️" : "🌙";
+
+        if (animate) {
+
+            icon.classList.add("theme-icon-flip");
+
+            setTimeout(() => {
+                icon.textContent = nextEmoji;
+            }, 125);
+
+            setTimeout(() => {
+                icon.classList.remove("theme-icon-flip");
+            }, 250);
+
+        } else {
+            icon.textContent = nextEmoji;
+        }
     }
 
     const themeColor = document.querySelector(
@@ -121,6 +145,15 @@ function openFolder(folder, event) {
 
         if (!activeContainer) return;
 
+        // Build this folder's program cards on first open only.
+        // Building every language upfront (during init) was what caused
+        // the noticeable delay, especially for larger folders like C/Java.
+        if (!App.builtFolders.has(folder)) {
+            const language = App.languageIndex.find(l => l.folder === folder);
+            loadFolder(folder, `${folder}-container`, language?.compiler);
+            App.builtFolders.add(folder);
+        }
+
         activeContainer.classList.add("active");
         activeContainer.classList.add("view-enter");
 
@@ -151,31 +184,91 @@ function showHome(event) {
   runWithTactileDelay(event, () => {
     const home = document.getElementById("home-view");
 
-home.style.display = "grid";
-home.classList.add("view-enter");
+    home.style.display = "grid";
+    home.classList.add("view-enter");
 
-home.addEventListener("animationend", () => {
-    home.classList.remove("view-enter");
-}, { once: true });
+    home.addEventListener("animationend", () => {
+        home.classList.remove("view-enter");
+    }, { once: true });
+
     document.querySelectorAll(".search-input").forEach(input => {
-    input.value = "";
-    input.dispatchEvent(new Event("input"));
-});
+        input.value = "";
+        input.dispatchEvent(new Event("input"));
+    });
+
     document.getElementById('back-btn').style.display = 'none';
     document.getElementById("theme-btn").style.display = "flex";
-    
+
     document.querySelectorAll(".view-container").forEach(container => {
-    container.classList.remove("active");
+        container.classList.remove("active");
     });
 
     document.getElementById("page-title").textContent =
-    "LABRECORD";
+        "LABRECORD";
 
-document.getElementById("page-subtitle").innerHTML =
-    "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
+    document.getElementById("page-subtitle").innerHTML =
+        "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
+
+function playBootIntro() {
+
+    const titleEl = document.getElementById("page-title");
+    const text = titleEl.textContent.trim();
+
+    titleEl.textContent = "";
+
+    [...text].forEach((char, i) => {
+        const span = document.createElement("span");
+        span.textContent = char === " " ? "\u00A0" : char;
+        span.className = "boot-letter";
+        span.style.setProperty("--i", i);
+        titleEl.appendChild(span);
+    });
+
+    const subtitleEl = document.getElementById("page-subtitle");
+    const bootDelay = text.length * 35 + 150;
+
+    subtitleEl.classList.add("boot-subtitle");
+    subtitleEl.style.setProperty("--boot-delay", `${bootDelay}ms`);
+
+    document.getElementById("home-view")
+        .style.setProperty("--boot-offset", `${text.length * 35 + 380}ms`);
+}
+
+function setupScrollHeader() {
+
+    const header = document.querySelector(".app-header");
+    if (!header) return;
+
+    const ENTER_THRESHOLD = 70;
+    const EXIT_THRESHOLD = 10;
+
+    let ticking = false;
+    let isScrolled = false;
+
+    window.addEventListener("scroll", () => {
+
+        if (ticking) return;
+        ticking = true;
+
+        requestAnimationFrame(() => {
+
+            const y = window.scrollY;
+
+            if (!isScrolled && y > ENTER_THRESHOLD) {
+                isScrolled = true;
+            } else if (isScrolled && y < EXIT_THRESHOLD) {
+                isScrolled = false;
+            }
+
+            header.classList.toggle("scrolled", isScrolled);
+            ticking = false;
+        });
+
+    }, { passive: true });
 }
 
 // ==========================
@@ -193,7 +286,8 @@ const App = {
     codeIndexLoaded: false,
     codeLookup: {},
 
-    loadedPrograms: new Map()
+    loadedPrograms: new Map(),
+    builtFolders: new Set()
 };
 // ==========================
 // Load Metadata
@@ -238,13 +332,33 @@ function buildLanguageUI() {
     homeView.innerHTML = "";
     languageViews.innerHTML = "";
 
-    App.languageIndex.forEach(language => {
+    App.languageIndex.forEach((language, index) => {
 
         // ---------- Home Card ----------
         const card = document.createElement("div");
-        card.className = "folder-card";
+        card.className = "folder-card card-enter";
+        card.style.setProperty("--stagger-index", index);
+
+        card.addEventListener(
+            "animationend",
+            () => card.classList.remove("card-enter"),
+            { once: true }
+        );
 
         card.onclick = (event) => openFolder(language.folder, event);
+
+        if (supportsHover && !prefersReducedMotion) {
+            card.addEventListener("mousemove", (e) => {
+                const rect = card.getBoundingClientRect();
+                const py = (e.clientY - rect.top) / rect.height - 0.5;
+
+                card.style.setProperty("--magnet-y", `${(py * 6).toFixed(2)}px`);
+            });
+
+            card.addEventListener("mouseleave", () => {
+                card.style.removeProperty("--magnet-y");
+            });
+        }
 
         card.innerHTML = `
             <h2 class="folder-card-title">
@@ -778,6 +892,8 @@ loaded = true;
 
         if (!iframe) {
 
+            runBtn.classList.add("is-loading");
+
             iframe = document.createElement("iframe");
 
             iframe.src =
@@ -800,6 +916,7 @@ loaded = true;
                     iframe.contentWindow.postMessage({
                         eventType: "triggerRun"
                     }, "*");
+                    runBtn.classList.remove("is-loading");
                 }, 800);
 
             };
@@ -818,6 +935,8 @@ loaded = true;
 
         } else {
 
+            runBtn.classList.add("is-loading");
+
             iframe.contentWindow.postMessage({
                 eventType: "populateCode",
                 language: lang,
@@ -831,6 +950,7 @@ loaded = true;
                 iframe.contentWindow.postMessage({
                     eventType: "triggerRun"
                 }, "*");
+                runBtn.classList.remove("is-loading");
             }, 500);
 
         }
@@ -877,15 +997,23 @@ const programs = getPrograms(folderName);
 
 App.cards[folderName] = [];
 
-for (const program of programs) {
+programs.forEach((program, index) => {
 
     const card = createProgramCard(program, lang);
+    card.classList.add("card-enter");
+    card.style.setProperty("--stagger-index", Math.min(index, 14));
+
+    card.addEventListener(
+        "animationend",
+        () => card.classList.remove("card-enter"),
+        { once: true }
+    );
 
     container.appendChild(card);
 
     App.cards[folderName].push(card);
 
-}
+});
 
 setupSearch(search, folderName);
 
@@ -896,7 +1024,13 @@ async function init() {
     const savedTheme =
         localStorage.getItem("theme") || "light";
 
-    applyTheme(savedTheme);
+    applyTheme(savedTheme, false);
+
+    if (!prefersReducedMotion) {
+        playBootIntro();
+    }
+
+    setupScrollHeader();
 
     await loadLanguageIndex();
 
@@ -926,15 +1060,10 @@ async function init() {
 
     }
 
-    for (const language of App.languageIndex) {
-
-        await loadFolder(
-            language.folder,
-            `${language.folder}-container`,
-            language.compiler
-        );
-
-    }
+    // Note: folders are no longer built eagerly here. Each folder's
+    // program cards are now built lazily on first open (see openFolder),
+    // which keeps initial load fast and avoids the delay large folders
+    // like C/Java caused when everything was rendered upfront.
 
 }
 const themeBtn = document.getElementById("theme-btn");

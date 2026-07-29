@@ -31,6 +31,10 @@
     --shadow-md: 4px 4px 0 var(--border);
     --shadow-lg: 6px 6px 0 var(--border);
 
+    /* Glow accents (layered on top of the hard shadows on hover) */
+    --glow-primary: 0 0 22px rgba(255,138,0,.45);
+    --glow-success: 0 0 22px rgba(47,191,113,.45);
+
     /* Skeleton Loading Animation Colors */
     --skeleton-dark:#252525;
     --skeleton-light:#3a3a3a;
@@ -61,10 +65,35 @@
     --shadow-md:4px 4px 0 var(--border);
     --shadow-lg:6px 6px 0 var(--border);
 
+    --glow-primary: 0 0 26px rgba(255,138,0,.55);
+    --glow-success: 0 0 26px rgba(47,191,113,.55);
+
 }
 
 html {
     scrollbar-gutter: stable;
+}
+
+/* Subtle grain texture — sells the tactile "paper/brutalist" feel */
+html::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .045;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+html[data-theme="dark"]::before {
+    opacity: .07;
+    mix-blend-mode: overlay;
+}
+
+::selection {
+    background: var(--primary);
+    color: #fff;
 }
 
 html,
@@ -131,6 +160,7 @@ box-shadow: var(--shadow-lg);
   border-bottom:2px solid var(--border);
   padding-top: 10px;
   padding-bottom: 24px;
+  overflow-anchor: none;
 }
 
 .app-title {
@@ -140,6 +170,7 @@ box-shadow: var(--shadow-lg);
   margin: 0 0 10px 0;
   text-transform: uppercase;
   letter-spacing: 2px;
+  transition: font-size .3s cubic-bezier(.16,1,.3,1), margin .3s ease, letter-spacing .3s ease;
 }
 
 .app-subtitle {
@@ -147,6 +178,50 @@ box-shadow: var(--shadow-lg);
   color:var(--text-muted);
   margin: 0;
   line-height:1.5;
+  transition: opacity .25s ease, max-height .25s ease, margin .25s ease;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+/* ---- Boot sequence: title letters drop in, subtitle follows ---- */
+@keyframes letterDrop {
+    from { opacity: 0; transform: translateY(-16px) rotate(-6deg); }
+    to   { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+
+.boot-letter {
+    display: inline-block;
+    animation: letterDrop .45s cubic-bezier(.16,1,.3,1) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.boot-subtitle {
+    opacity: 0;
+    animation: fadeUp .4s ease forwards;
+    animation-delay: var(--boot-delay, 400ms);
+}
+
+/* ---- Scroll-aware header: shrinks once you're reading, not browsing ---- */
+.app-header.scrolled {
+    padding-top: 6px;
+    padding-bottom: 10px;
+}
+
+.app-header.scrolled .app-title {
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+}
+
+.app-header.scrolled .app-subtitle {
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
 }
 
 .header-bar {
@@ -208,12 +283,31 @@ box-shadow: var(--shadow-lg);
     background:var(--border);
     color:var(--surface);
 
-    box-shadow:var(--shadow-md);
+    box-shadow:var(--shadow-md), var(--glow-primary);
 
     transform:translate(-1px,-1px);
 
 }
 
+}
+
+.theme-icon{
+    display:inline-block;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;
+}
+
+.theme-icon.theme-icon-flip{
+    transform: rotate(180deg) scale(.4);
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .theme-icon,
+    .theme-icon.theme-icon-flip{
+        transition:none;
+        transform:none;
+        opacity:1;
+    }
 }
 
 .theme-btn:active,
@@ -272,6 +366,8 @@ box-shadow:var(--shadow-sm);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 25px;
+  position: relative;
+  z-index: 1;
 }
 
 .folder-card {
@@ -281,9 +377,11 @@ box-shadow:var(--shadow-sm);
   padding: 30px 20px;
   text-align: center;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
   transition:
-    transform .08s ease,
-    box-shadow .08s ease,
+    transform .12s ease,
+    box-shadow .18s ease,
     background-color .12s ease,
     color .12s ease;
   display: flex;
@@ -295,12 +393,17 @@ box-shadow:var(--shadow-sm);
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Faint zine-style tilt so the grid doesn't feel too rigid */
+.folder-card { --tilt: 0deg; transform: rotate(var(--tilt)); }
+.folder-card:nth-child(3n) { --tilt: -.5deg; }
+.folder-card:nth-child(3n+1) { --tilt: .4deg; }
+
 @media (hover: hover) {
   .folder-card:hover {
     background: var(--border);
     color: var(--surface);
 
-    transform: translate(-1px, -1px);
+    transform: translate(-2px, calc(-2px + var(--magnet-y, 0px)));
     box-shadow: var(--shadow-md);
   }
 
@@ -312,8 +415,37 @@ box-shadow:var(--shadow-sm);
 
 .folder-card:active,
 .folder-card.is-pressed {
-    transform: translate(3px, 3px) !important;
+    transform: translate(3px, 3px) rotate(0deg) !important;
     box-shadow: 0 0 0 0 var(--border) !important;
+}
+
+/* ========================== */
+/* Staggered Entrance Animation */
+/* ========================== */
+
+@keyframes cardEnter {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(.98) rotate(var(--tilt, 0deg));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(var(--tilt, 0deg));
+    }
+}
+
+.card-enter {
+    animation: cardEnter .5s cubic-bezier(.16,1,.3,1) both;
+    animation-delay: calc(var(--boot-offset, 0ms) + var(--stagger-index, 0) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 .folder-card-title {
@@ -363,7 +495,7 @@ box-shadow:var(--shadow-sm);
 }
 
 .view-enter{
-    animation:viewFadeIn .22s ease;
+    animation:viewFadeIn .15s ease;
 }
 
 /* Clicky Brutalist Program Card */
@@ -386,7 +518,7 @@ box-shadow:var(--shadow-sm);
 }
 @media (hover: hover) {
   .program-card:hover {
-    transform: translate(-1px, -1px);
+    transform: translate(-2px, -2px);
     box-shadow: var(--shadow-lg);
   }
 }
@@ -572,6 +704,15 @@ box-shadow:var(--shadow-md);
 .run-btn.is-pressed {
   transform: translate(3px, 3px) !important;
   box-shadow:0 0 0 0 var(--border) !important;
+}
+
+.run-btn.is-loading {
+    animation: runPulse 1s ease-in-out infinite;
+}
+
+@keyframes runPulse {
+    0%, 100% { box-shadow: var(--shadow-sm), 0 0 0 rgba(47,191,113,0); }
+    50% { box-shadow: var(--shadow-sm), var(--glow-success); }
 }
 
 /* Code Display Area */
@@ -962,4 +1103,14 @@ mark{
     color:#000;
     border-radius:4px;
     padding:0 .15em;
+    animation: markFlash .5s ease;
+}
+
+@keyframes markFlash{
+    0%{ background:var(--primary); }
+    100%{ background:var(--highlight); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    mark{ animation:none; }
 }

@@ -171,6 +171,11 @@ box-shadow: var(--shadow-lg);
   text-transform: uppercase;
   letter-spacing: 2px;
   transition: font-size .3s cubic-bezier(.16,1,.3,1), margin .3s ease, letter-spacing .3s ease;
+  opacity: 0;
+}
+
+.app-title.title-visible {
+  opacity: 1;
 }
 
 .app-subtitle {
@@ -181,6 +186,7 @@ box-shadow: var(--shadow-lg);
   transition: opacity .25s ease, max-height .25s ease, margin .25s ease;
   max-height: 60px;
   overflow: hidden;
+  opacity: 0;
 }
 
 /* ---- Boot sequence: title letters drop in, subtitle follows ---- */

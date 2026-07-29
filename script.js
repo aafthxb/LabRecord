@@ -228,6 +228,8 @@ function playBootIntro() {
         titleEl.appendChild(span);
     });
 
+    titleEl.classList.add("title-visible");
+
     const subtitleEl = document.getElementById("page-subtitle");
     const bootDelay = text.length * 35 + 150;
 
@@ -1027,7 +1029,22 @@ async function init() {
     applyTheme(savedTheme, false);
 
     if (!prefersReducedMotion) {
-        playBootIntro();
+        // Wait for the Courier Prime webfont to finish loading before
+        // splitting the title into letters and animating it. On a cold/
+        // hard refresh the fallback font renders first; if the animation
+        // starts before the swap to Courier Prime, every letter's width
+        // changes mid-animation, which is what caused the jitter.
+        if (document.fonts && document.fonts.ready) {
+            Promise.race([
+                document.fonts.ready,
+                new Promise(resolve => setTimeout(resolve, 500))
+            ]).then(playBootIntro);
+        } else {
+            playBootIntro();
+        }
+    } else {
+        document.getElementById("page-title").classList.add("title-visible");
+        document.getElementById("page-subtitle").style.opacity = "1";
     }
 
     setupScrollHeader();
@@ -1071,7 +1088,18 @@ const themeBtn = document.getElementById("theme-btn");
 themeBtn.addEventListener("click", toggleTheme);
 if ("serviceWorker" in navigator) {
 
+    let swRefreshing = false;
+
     navigator.serviceWorker.addEventListener("controllerchange", () => {
+
+        // Guard against firing more than once. Without this, an update
+        // landing right after page load can force a reload mid-animation
+        // (boot intro, theme toggle, etc.) and, in the worst case, a
+        // reload loop — this was most visible on mobile right after a
+        // fresh deploy, since that's when the new service worker is most
+        // likely to activate moments after the page has already loaded.
+        if (swRefreshing) return;
+        swRefreshing = true;
 
         window.location.reload();
 

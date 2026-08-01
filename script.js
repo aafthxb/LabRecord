@@ -260,9 +260,22 @@ function refreshEditUI() {
     if (folder && App.edit.unlocked) {
         addBtn.style.display = "inline-block";
         addBtn.onclick = (event) => {
-            runWithTactileDelay(event, () => {
-                window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
-            });
+            const targetEl = event.currentTarget || event.target;
+            targetEl.classList.add("is-pressed");
+            setTimeout(() => {
+                targetEl.classList.remove("is-pressed");
+                // Unlike the other tactile-delay buttons, this one triggers
+                // a full page navigation — if that fires the instant
+                // is-pressed comes off, the browser starts tearing the page
+                // down before the shadow/transform have actually animated
+                // back to rest, so the shadow snaps into place ahead of the
+                // button visually rising. Give it one more beat (matching
+                // the .08s CSS transition) so the reverse animation finishes
+                // first.
+                setTimeout(() => {
+                    window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+                }, 90);
+            }, 70);
         };
         ensurePending(folder);
     } else {

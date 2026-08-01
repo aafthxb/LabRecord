@@ -261,21 +261,23 @@ function refreshEditUI() {
         addBtn.style.display = "inline-block";
         addBtn.onclick = (event) => {
             const targetEl = event.currentTarget || event.target;
-            targetEl.classList.add("is-pressed");
-            setTimeout(() => {
-                targetEl.classList.remove("is-pressed");
+            // Same press timing/feel as every other button on the site.
+            runWithTactileDelay(event, () => {
                 // Unlike the other tactile-delay buttons, this one triggers
-                // a full page navigation — if that fires the instant
-                // is-pressed comes off, the browser starts tearing the page
-                // down before the shadow/transform have actually animated
-                // back to rest, so the shadow snaps into place ahead of the
-                // button visually rising. Give it one more beat (matching
-                // the .08s CSS transition) so the reverse animation finishes
-                // first.
+                // a full page navigation. If we just left the button alone
+                // here, is-pressed coming off would let :hover re-engage
+                // (the mouse is typically still sitting on the button) and
+                // start animating the box-shadow back up to shadow-md —
+                // only for that transition to get cut off mid-flight by the
+                // page unload, which is what reads as a little jitter/pop.
+                // is-navigating pins it to its resting look (no hover, no
+                // further transitions) for one more beat so nothing is
+                // still animating when the page tears down.
+                targetEl.classList.add("is-navigating");
                 setTimeout(() => {
                     window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
                 }, 90);
-            }, 70);
+            }, targetEl);
         };
         ensurePending(folder);
     } else {

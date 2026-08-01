@@ -1,5 +1,5 @@
 //Simple Calculator
-//C program to implement a simple calculator using switch
+//C program to implement a simple calculator using switch case
 
 #include <stdio.h>
 

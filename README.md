@@ -5,7 +5,7 @@
 **A beautiful, searchable, and interactive Programming Lab Record.**<br>
 Organize programs by language, search instantly, copy code, and run programs online — all from a modern, responsive website.
 
-⭐ Fork • 🚀 Deploy • 📚 Upload Programs • ✨ Done
+⭐ Fork • 🚀 Deploy • ✏️ Add Programs From Your Browser • ✨ Done
 
 </div>
 
@@ -13,26 +13,29 @@ Organize programs by language, search instantly, copy code, and run programs onl
 
 ## 🌟 Why This Project?
 
-Most Programming Lab Record websites require editing HTML, JavaScript, or configuration files whenever you add a new program. 
+Most Programming Lab Record websites require editing HTML, JavaScript, or configuration files whenever you add a new program.
 
-**This project is different.** You simply organize your source files into folders, and everything else happens automatically.
+**This project is different.** Add, delete, and reorder programs straight from the website — no Git, no terminal, and no code editor required.
 
+* ✏️ A built-in **web editor** lets you add new programs from your phone or laptop — no GitHub website needed.
+* 📷 Snap a photo of handwritten or printed code and let OCR extract it for you.
 * 📂 A language folder becomes a language button.
 * 📄 A source file becomes a program card.
 * 🔍 Search indexes are generated automatically.
 * 🎨 Syntax highlighting is configured automatically.
+* 🗑️ Delete or reorder programs directly on the homepage.
 * 📱 Installable as a Progressive Web App (PWA) with offline support.
 * 🚀 GitHub Actions regenerates the project.
 * 🌐 Vercel deploys the latest version automatically.
 
-For most users, **no Git, Node.js, terminal, or programming setup is required.**
+For most users, **no Git, Node.js, terminal, or programming setup is required — not even a trip to GitHub.com.**
 
 ---
 
 ## 🚀 Create Your Own Programming Lab Record
 
 > [!TIP]
-> If you've never used GitHub before, don't worry. This project is designed so that you can manage everything directly from the GitHub website.
+> If you've never used GitHub before, don't worry. Once deployed, everyday use — adding, deleting, reordering programs — happens entirely through the site's own editor.
 
 ### Step 1 — Create Your Copy
 
@@ -44,20 +47,62 @@ This creates a brand-new repository in your GitHub account with all of LabRecord
 > If you prefer, you can also **Fork** this repository. Using the template is recommended because it creates an independent repository without a fork relationship.
 
 ### Step 2 — Deploy with Vercel
+
 1. Sign in to Vercel with GitHub.
 2. Click **Add New Project**.
 3. Import your fork.
-4. Click **Deploy**.
+4. Add the environment variables below (needed for the built-in editor to be able to commit to your repo).
+5. Click **Deploy**.
 
 Your website is now live.
 
-### Step 3 — Start Uploading Programs
-From now on, you only need GitHub. Whenever you upload, edit, or remove programs and commit the changes:
+#### Required environment variables
 
-* GitHub Actions updates the generated files.
-* Vercel deploys the latest version automatically.
+The site's editor commits directly to your repo on your behalf through GitHub's API, so it needs a token and a passphrase. Set these in your Vercel project's **Settings → Environment Variables**:
 
-No manual build steps are required.
+| Variable | Required | Description |
+| :--- | :--- | :--- |
+| `GITHUB_TOKEN` | ✅ | A fine-grained GitHub PAT with **Contents: Read and write** access on this repo. Never exposed to the browser. |
+| `GITHUB_OWNER` | ✅ | Your GitHub username or org, e.g. `aafthxb`. |
+| `GITHUB_REPO` | ✅ | The repository name, e.g. `LabRecord`. |
+| `GITHUB_BRANCH` | ❌ | Branch to commit to. Defaults to `main`. |
+| `EDITOR_ACCESS_CODE` | ✅ | A passphrase of your choosing. Anyone entering this unlocks the editor — keep it private. |
+
+### Step 3 — Start Adding Programs
+
+Once deployed, everything happens on the site itself:
+
+* Click the **✏️ pencil icon** on the homepage and enter your access code to unlock editing tools.
+* Add new programs through the built-in editor (see below).
+* Delete or reorder existing programs directly on the homepage.
+* GitHub Actions updates the generated files and Vercel redeploys automatically after every change.
+
+No manual build steps, and no need to open GitHub.com at all — though you still can, if you'd rather upload files there directly (see [Adding Programs Manually](#-adding-programs-manually-optional) below).
+
+---
+
+## ✏️ The Built-in Web Editor
+
+Unlock editing tools from the homepage by clicking the **pencil icon** (✏️) in the top-right corner and entering your access code. This works on both desktop and mobile.
+
+Once unlocked, an **[ + ]** button appears whenever you're inside a language folder — click it to open the editor and add a new program. You get three ways to add code:
+
+| Method | Best for |
+| :--- | :--- |
+| 📷 **Upload / paste screenshots** | Handwritten or printed code — photograph it (or paste a screenshot with Ctrl/Cmd+V) and OCR (via Tesseract.js) extracts the text for you to review and edit. |
+| ⌨️ **Paste / type code directly** | Skip OCR entirely and paste or type the program by hand. |
+| 📁 **Upload finished files** | Already have working source files? Select as many as you like — rename, reorder, and check each one's title/description on the review screen, then everything lands in **one commit**, so uploading 10 files doesn't trigger 10 separate GitHub Actions runs / Vercel deploys. |
+
+In every case, if a program's title/description comment isn't detected automatically, the review screen shows a box to fill them in and insert them at the top of the file for you.
+
+### Deleting & Reordering
+
+With editing tools unlocked, open any language folder on the homepage to:
+
+* **Delete** a program with one click.
+* **Reorder** programs by dragging them into place.
+
+Changes are staged locally first — a **Save Changes / Discard** bar appears at the bottom of the screen so you can review everything before committing. Saving applies all your deletions and the new order as a single commit.
 
 ---
 
@@ -79,7 +124,7 @@ Think of it like this:
     Program Cards
           │
           ▼
-    Commit Changes
+    Commit Changes (via the editor, or manually on GitHub)
           │
           ▼
     GitHub Actions
@@ -87,7 +132,7 @@ Think of it like this:
           ▼
     Updated Website
 
-You only manage your program files. The project manages everything else.
+You only manage your program files — through the site's editor or directly on GitHub. The project manages everything else.
 
 ---
 
@@ -105,12 +150,14 @@ The following languages are already configured.
 
 > [!IMPORTANT]
 > If you're using one of the languages above, **do not edit `languages.json`.**
-> 
-> Simply create (or use) the corresponding folder, upload your source files, commit the changes, and the website updates automatically.
+>
+> Simply add programs through the built-in editor (or upload files to the corresponding folder), and the website updates automatically.
 
 ---
 
-## 📂 Adding Programs
+## 📂 Adding Programs Manually (Optional)
+
+You don't need this if you're using the built-in editor — it's here for anyone who prefers working directly on GitHub, or wants to add several files without going through the site.
 
 **Example:**
 
@@ -145,7 +192,7 @@ Every program card gets its title and description from the **first two comment l
 | **Second Comment** | `// Sort an array using Bubble Sort.` | Program Description |
 
 > [!IMPORTANT]
-> Always keep these two comment lines at the top of every source file.
+> Always keep these two comment lines at the top of every source file. The built-in editor will offer to insert them for you if they're missing.
 
 ---
 
@@ -153,13 +200,16 @@ Every program card gets its title and description from the **first two comment l
 
 Only do this if the language is **not** already listed above (e.g., Rust, Go, Kotlin, Swift).
 
+> [!NOTE]
+> **The built-in web editor can't create a new language folder** — it only adds, deletes, and reorders programs inside languages that already exist. (Deletion is the one thing that works both ways: since Git doesn't track empty folders, deleting every program in a folder through the editor removes the folder itself. Creating one has no such shortcut — it has to be set up manually on GitHub, as below.)
+
 **Steps:**
 1. Create a new folder inside `programs/`.
 2. Add your source files.
-3. Add the language configuration to `languages.json`.
+3. If this language isn't one of the five listed under [Built-in Programming Languages](#-built-in-programming-languages) already, add its configuration to `languages.json` — this step is only needed the first time a given language is used.
 4. Commit your changes.
 
-The homepage automatically gains a new language button.
+The homepage automatically gains a new language button. Once the folder and `languages.json` entry (if needed) exist, the editor can add further programs to it normally.
 
 ---
 
@@ -168,11 +218,16 @@ The homepage automatically gains a new language button.
 Removing content is just as easy.
 
 ### Remove a Program File
-Delete a source file.
+Delete it from the homepage's edit mode, or delete the source file directly on GitHub.
 ✅ The corresponding program card disappears automatically.
 
 ### Remove a Language Folder
-Delete an entire language folder.
+Git doesn't track empty folders, so once the last program inside a language folder is gone, the folder itself is gone too — no separate "delete folder" step exists or is needed.
+
+You can get there either way:
+* **From the website:** delete every program in that folder through the editor (one at a time, or via **Manage Files**). Once it's empty, the folder — and the homepage's language button for it — disappears on the next deploy.
+* **On GitHub:** delete the folder directly.
+
 ✅ The homepage language button disappears.
 ✅ All programs belonging to that language disappear.
 
@@ -182,13 +237,14 @@ No additional cleanup is required.
 
 ## 🔢 Changing the Program Order
 
-Edit `generated/order.json` and move filenames up or down. The website displays cards in the same order.
+Drag programs into place from the homepage's edit mode, or manually edit `generated/order.json` and move filenames up or down. The website displays cards in the same order.
 
 ---
 
 ## 📁 Project Structure
 
     .
+    ├── api/              # Serverless functions powering the web editor (commit, delete, batch save, verify)
     ├── assets/
     ├── generated/
     ├── programs/
@@ -201,6 +257,9 @@ Edit `generated/order.json` and move filenames up or down. The website displays 
     ├── languages.json
     ├── script.js
     ├── style.css
+    ├── editor.html       # Add-a-program wizard (screenshots / paste / bulk upload)
+    ├── editor.js
+    ├── editor.css
     ├── index.html
     └── README.md
 

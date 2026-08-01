@@ -1,4 +1,4 @@
-//Largest of 3 numbers
+//Largest of three numbers
 //C program to find the largest of three numbers
 
 #include <stdio.h>

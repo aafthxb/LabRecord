@@ -110,6 +110,7 @@
           <label class="field-label">File name (in <span id="step2-folder-label"></span>)</label>
           <input id="filename-input" type="text" class="editor-input" placeholder="e.g. Bubble Sort.c" />
           <div id="filename-status" class="banner" style="display:none;"></div>
+          <p class="field-hint">Only used for the two options below. Uploading multiple files keeps each file's own name instead.</p>
 
           <label class="field-label" style="margin-top:26px;">How do you want to add the code?</label>
           <div class="method-grid">
@@ -154,6 +155,32 @@
 
           </div>
 
+          <div class="or-divider">OR</div>
+
+          <div class="method-card">
+            <div class="method-card-head">
+              <span class="method-icon">📁</span>
+              <h3 class="method-title">Upload files</h3>
+            </div>
+            <p class="field-hint" style="margin-top:0;">
+              Already have finished code files (<span id="step2-batch-exts"></span>)? Pick as many as
+              you like — you'll rename, reorder, and check each one's title/description on the next
+              screen before anything is committed. All of them land in <strong>one commit</strong>,
+              so this doesn't burn through extra GitHub Actions runs / Vercel deploys the way saving
+              one-by-one would.
+            </p>
+
+            <div id="batch-drop-zone" class="file-drop">
+              <input id="batch-file-input" type="file" multiple class="file-input-hidden" />
+              <button type="button" id="batch-input-trigger" class="action-btn">CHOOSE FILES</button>
+              <span id="batch-input-status" class="file-drop-status">No files chosen</span>
+            </div>
+
+            <div id="batch-required-warning" class="banner banner-error" style="display:none;"></div>
+
+            <button id="step2-batch-next" class="action-btn run-btn method-cta" style="margin-top:14px;">REVIEW FILES »</button>
+          </div>
+
           <div class="btn-row">
             <button id="step2-back" class="action-btn">« BACK</button>
           </div>
@@ -165,25 +192,35 @@
 
           <div id="merge-notes"></div>
 
-          <label class="field-label">Code (edit freely — this is exactly what gets committed)</label>
-          <textarea id="code-textarea" class="code-textarea" spellcheck="false"></textarea>
+          <div id="single-review">
+            <label class="field-label">Code (edit freely — this is exactly what gets committed)</label>
+            <textarea id="code-textarea" class="code-textarea" spellcheck="false"></textarea>
 
-          <div class="preview-box">
-            <div><strong>Detected title:</strong> <span id="preview-title">—</span></div>
-            <div><strong>Detected description:</strong> <span id="preview-desc">—</span></div>
+            <div class="preview-box">
+              <div><strong>Detected title:</strong> <span id="preview-title">—</span></div>
+              <div><strong>Detected description:</strong> <span id="preview-desc">—</span></div>
+            </div>
+
+            <div id="no-comment-helper" class="helper-box" style="display:none;">
+              <p class="field-hint" style="margin-top:0;">No title/description comment detected. Fill these in and insert them at the top:</p>
+              <input id="helper-title" type="text" class="editor-input" placeholder="Program title" />
+              <input id="helper-desc" type="text" class="editor-input" style="margin-top:8px;" placeholder="Short description" />
+              <button id="helper-insert" class="action-btn" style="margin-top:10px;">INSERT</button>
+            </div>
+
+            <div id="python-warning" class="banner banner-warn" style="display:none;">
+              Heads up: your current generator script only recognizes <code>//</code> or <code>/* */</code> comments,
+              not <code>#</code>. A Python file's title/description may not be auto-detected on the site until that's added.
+              The file will still commit and appear — just possibly without a title/description until then.
+            </div>
           </div>
 
-          <div id="no-comment-helper" class="helper-box" style="display:none;">
-            <p class="field-hint" style="margin-top:0;">No title/description comment detected. Fill these in and insert them at the top:</p>
-            <input id="helper-title" type="text" class="editor-input" placeholder="Program title" />
-            <input id="helper-desc" type="text" class="editor-input" style="margin-top:8px;" placeholder="Short description" />
-            <button id="helper-insert" class="action-btn" style="margin-top:10px;">INSERT</button>
-          </div>
-
-          <div id="python-warning" class="banner banner-warn" style="display:none;">
-            Heads up: your current generator script only recognizes <code>//</code> or <code>/* */</code> comments,
-            not <code>#</code>. A Python file's title/description may not be auto-detected on the site until that's added.
-            The file will still commit and appear — just possibly without a title/description until then.
+          <div id="batch-review" style="display:none;">
+            <p class="field-hint" style="margin-top:0;margin-bottom:16px;">
+              Reorder with ↑ / ↓, rename or edit any file inline, then save everything as a single commit.
+            </p>
+            <div id="batch-list" class="batch-list"></div>
+            <div id="batch-review-error" class="banner banner-error" style="display:none;"></div>
           </div>
 
           <div id="save-error" class="banner banner-error" style="display:none;"></div>

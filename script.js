@@ -342,18 +342,24 @@ async function submitSiteGate() {
 function initEditorGate() {
     const editorBtn = document.getElementById("editor-btn");
 
-    editorBtn.addEventListener("click", () => {
-        if (App.edit.unlocked) {
-            // Toggling off locks editing tools back up immediately.
-            sessionStorage.removeItem(EDIT_SESSION_KEY);
-            setEditMode(false);
-            return;
-        }
-        openSiteGate();
+    editorBtn.addEventListener("click", (event) => {
+        runWithTactileDelay(event, () => {
+            if (App.edit.unlocked) {
+                // Toggling off locks editing tools back up immediately.
+                sessionStorage.removeItem(EDIT_SESSION_KEY);
+                setEditMode(false);
+                return;
+            }
+            openSiteGate();
+        });
     });
 
-    document.getElementById("site-gate-submit").addEventListener("click", submitSiteGate);
-    document.getElementById("site-gate-cancel").addEventListener("click", closeSiteGate);
+    document.getElementById("site-gate-submit").addEventListener("click", (event) => {
+        runWithTactileDelay(event, submitSiteGate);
+    });
+    document.getElementById("site-gate-cancel").addEventListener("click", (event) => {
+        runWithTactileDelay(event, closeSiteGate);
+    });
     document.getElementById("site-gate-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") submitSiteGate();
     });

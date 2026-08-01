@@ -70,6 +70,8 @@ const State = {
   mergeNotes: [],
   accessCode: "",        // kept in memory only, never persisted — asked for on every visit
   skippedStep1: false,   // true when the folder arrived preset via ?folder=, so step 1 (language) was never shown
+  batchMode: false,      // true while Step 3 is showing the multi-file review list instead of the single-file one
+  batchFiles: [],        // [{ id, filename, code, error }] — the "upload multiple files at once" path
 };
 
 let tesseractLoadPromise = null;
@@ -275,6 +277,7 @@ function presetLanguage(lang) {
   State.selectedFolder = lang.folder;
   State.selectedLangEntry = langEntry;
   $("step2-folder-label").textContent = lang.displayName;
+  updateBatchFileInputHints();
 
   document.querySelectorAll(".lang-card").forEach((c) => {
     c.classList.toggle("selected", c.textContent.trim() === lang.displayName.toUpperCase());
@@ -399,6 +402,7 @@ function selectLanguage(lang, e) {
   State.selectedLangEntry = langEntry;
 
   $("step2-folder-label").textContent = lang.displayName;
+  updateBatchFileInputHints();
 
   setTimeout(() => goToStep(2), 150);
 }
@@ -425,6 +429,7 @@ function initStep2() {
   $("step2-paste-instead").addEventListener("click", goToManualEntry);
 
   initImagePaste();
+  initBatchUpload();
   updateImageInputStatus();
 }
 
@@ -632,6 +637,17 @@ function requireFilename() {
   return false;
 }
 
+// Switches Step 3 back to the single-file review UI (code-textarea,
+// preview box, helper) and away from the batch list — shared by the
+// screenshot and paste-code paths, both of which produce exactly one
+// file.
+function showSingleReview() {
+  State.batchMode = false;
+  $("batch-review").style.display = "none";
+  $("single-review").style.display = "block";
+  $("step3-save").textContent = "SAVE TO GITHUB";
+}
+
 // Skips OCR entirely — jumps straight to Step 3 with a blank textarea
 // for the user to paste or type code into by hand.
 function goToManualEntry() {
@@ -641,6 +657,7 @@ function goToManualEntry() {
   State.imageTexts = [];
   State.mergeNotes = [];
 
+  showSingleReview();
   $("code-textarea").value = "";
   renderMergeNotes([]);
   updateReviewPreview();
@@ -682,6 +699,7 @@ async function runExtraction() {
     const { mergedCode, notes } = mergeImageTexts(State.imageTexts);
     State.mergeNotes = notes;
 
+    showSingleReview();
     $("code-textarea").value = mergedCode;
     renderMergeNotes(notes);
     updateReviewPreview();
@@ -803,6 +821,300 @@ function mergeImageTexts(texts) {
 }
 
 // ---------------------------------------------------------------
+// Step 2: batch upload (multiple finished code files at once)
+// ---------------------------------------------------------------
+
+function initBatchUpload() {
+  $("batch-file-input").addEventListener("change", handleBatchFilesSelected);
+  $("batch-input-trigger").addEventListener("click", () => $("batch-file-input").click());
+  $("step2-batch-next").addEventListener("click", goToBatchReview);
+}
+
+// Sets the hidden <input>'s accept attribute and the hint text next to
+// it to whatever extensions the currently-selected language allows.
+function updateBatchFileInputHints() {
+  const entry = State.selectedLangEntry;
+  if (!entry) return;
+  // Extensions alone (e.g. ".java") aren't enough on some mobile file
+  // pickers — Android/iOS map accept filters to MIME types, and custom
+  // source-code extensions often aren't in that map, so matching files
+  // get greyed out or hidden entirely. Adding the "text/*" MIME as a
+  // fallback fixes that without loosening desktop filtering (extension
+  // + server-side validation still apply).
+  $("batch-file-input").accept = entry.extensions.join(",") + ",text/*";
+  $("step2-batch-exts").textContent = entry.extensions.join(", ");
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+    reader.readAsText(file);
+  });
+}
+
+function handleBatchFilesSelected(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";
+  if (!files.length) return;
+
+  Promise.all(
+    files.map((file) =>
+      readFileAsText(file)
+        .then((code) => ({ id: uid(), filename: file.name, code, error: null }))
+        .catch((err) => ({ id: uid(), filename: file.name, code: "", error: err.message }))
+    )
+  ).then((entries) => {
+    State.batchFiles.push(...entries);
+    updateBatchInputStatus();
+    $("batch-required-warning").style.display = "none";
+  });
+}
+
+function updateBatchInputStatus() {
+  const status = $("batch-input-status");
+  const n = State.batchFiles.length;
+  status.textContent = n === 0
+    ? "No files chosen"
+    : `${n} file${n === 1 ? "" : "s"} added — add more if needed`;
+}
+
+// Jumps to Step 3 in batch mode. Unlike the single-file paths, this
+// doesn't need requireFilename() — each file keeps its own name,
+// edited inline in the review list.
+function goToBatchReview() {
+  if (!State.batchFiles.length) {
+    const warn = $("batch-required-warning");
+    warn.textContent = "Choose at least one file first.";
+    warn.style.display = "block";
+    return;
+  }
+
+  clearWizardError();
+  State.batchMode = true;
+
+  $("single-review").style.display = "none";
+  $("batch-review").style.display = "block";
+
+  renderBatchList();
+  goToStep(3);
+}
+
+// Checks one filename against the folder's existing files and every
+// other filename currently in the batch. Returns an error string, or
+// null if it's fine.
+function validateBatchFilename(rawName, existingLower, seenCounts) {
+  const name = (rawName || "").trim();
+  if (!name) return "Filename can't be empty.";
+  if (/[\/\\]/.test(name) || name.includes("..")) return "Filename can't contain slashes or \"..\".";
+
+  const entry = State.selectedLangEntry;
+  const hasExt = entry.extensions.some((ext) => name.toLowerCase().endsWith(ext));
+  if (!hasExt) return `Must end with one of: ${entry.extensions.join(", ")}`;
+
+  const key = name.toLowerCase();
+  if (existingLower.includes(key)) return `"${name}" already exists in ${State.selectedFolder}/.`;
+  if ((seenCounts.get(key) || 0) > 1) return `"${name}" is used more than once in this batch.`;
+
+  return null;
+}
+
+function batchFilePreviewHtml(title, description) {
+  return `
+    <div><strong>Title:</strong> ${title || "— not detected —"}</div>
+    <div><strong>Description:</strong> ${description || "— not detected —"}</div>
+  `;
+}
+
+// Builds the same "no title/description detected — fill these in and
+// insert them at the top" box the single-file review shows
+// (#no-comment-helper), scoped to one batch entry. Only shown while
+// that file has no detected title, same as the single-file version.
+function buildBatchFileHelper(entry, onInsert) {
+  const box = el("div", "helper-box");
+
+  const hint = el("p", "field-hint", "No title/description comment detected. Fill these in and insert them at the top:");
+  hint.style.marginTop = "0";
+
+  const titleInput = el("input", "editor-input");
+  titleInput.type = "text";
+  titleInput.placeholder = "Program title";
+
+  const descInput = el("input", "editor-input");
+  descInput.type = "text";
+  descInput.placeholder = "Short description";
+  descInput.style.marginTop = "8px";
+
+  const insertBtn = el("button", "action-btn", "INSERT");
+  insertBtn.type = "button";
+  insertBtn.style.marginTop = "10px";
+  insertBtn.addEventListener("click", () => {
+    const title = titleInput.value.trim();
+    if (!title) return;
+    const description = descInput.value.trim();
+
+    const prefix = commentPrefixForFolder();
+    const lines = [`${prefix} ${title}`];
+    if (description) lines.push(`${prefix} ${description}`);
+    lines.push("");
+
+    entry.code = lines.join("\n") + entry.code;
+    onInsert();
+  });
+
+  box.appendChild(hint);
+  box.appendChild(titleInput);
+  box.appendChild(descInput);
+  box.appendChild(insertBtn);
+
+  return box;
+}
+
+function renderBatchList() {
+  const list = $("batch-list");
+  list.innerHTML = "";
+
+  const existingLower = existingFilesInFolder();
+  const seenCounts = new Map();
+  State.batchFiles.forEach((entry) => {
+    const key = entry.filename.trim().toLowerCase();
+    seenCounts.set(key, (seenCounts.get(key) || 0) + 1);
+  });
+
+  State.batchFiles.forEach((entry, index) => {
+    entry.error = validateBatchFilename(entry.filename, existingLower, seenCounts);
+
+    const item = el("div", `batch-file-item${entry.error ? " batch-file-error" : ""}`);
+
+    const head = el("div", "batch-file-head");
+
+    const orderBox = el("div", "batch-file-order");
+    const upBtn = el("button", "", "↑");
+    upBtn.type = "button";
+    upBtn.disabled = index === 0;
+    upBtn.onclick = () => moveBatchFile(index, -1);
+    const downBtn = el("button", "", "↓");
+    downBtn.type = "button";
+    downBtn.disabled = index === State.batchFiles.length - 1;
+    downBtn.onclick = () => moveBatchFile(index, 1);
+    orderBox.appendChild(upBtn);
+    orderBox.appendChild(downBtn);
+
+    const numberBadge = el("span", "serial-badge", String(index + 1));
+
+    const nameInput = el("input", "editor-input batch-file-name-input");
+    nameInput.type = "text";
+    nameInput.value = entry.filename;
+    nameInput.addEventListener("input", () => {
+      entry.filename = nameInput.value;
+      // Re-run validation across the whole batch (a rename can create
+      // or resolve a duplicate elsewhere in the list) without losing
+      // focus on the field being typed in.
+      const stillFocused = document.activeElement === nameInput;
+      const caret = nameInput.selectionStart;
+      renderBatchList();
+      if (stillFocused) {
+        const refreshed = list.querySelectorAll(".batch-file-name-input")[index];
+        if (refreshed) {
+          refreshed.focus();
+          refreshed.setSelectionRange(caret, caret);
+        }
+      }
+    });
+
+    const removeBtn = el("button", "action-btn batch-file-remove", "REMOVE");
+    removeBtn.type = "button";
+    removeBtn.onclick = () => removeBatchFile(index);
+
+    head.appendChild(orderBox);
+    head.appendChild(numberBadge);
+    head.appendChild(nameInput);
+    head.appendChild(removeBtn);
+
+    let { title, description } = parseTitleDescription(entry.code);
+    const meta = el("div", "batch-file-meta", batchFilePreviewHtml(title, description));
+
+    let helperBox = title ? null : buildBatchFileHelper(entry, () => renderBatchList());
+
+    const toggleBtn = el("button", "batch-file-code-toggle", "Show / edit code");
+    toggleBtn.type = "button";
+
+    const textarea = el("textarea", "code-textarea");
+    textarea.spellcheck = false;
+    textarea.style.display = "none";
+    textarea.value = entry.code;
+    textarea.addEventListener("input", () => {
+      entry.code = textarea.value;
+      const preview = parseTitleDescription(entry.code);
+      meta.innerHTML = batchFilePreviewHtml(preview.title, preview.description);
+
+      // Title just got typed/pasted directly into the code — the
+      // helper box is no longer needed, drop it rather than leaving a
+      // stale "no title detected" prompt on screen.
+      if (preview.title && helperBox) {
+        helperBox.remove();
+        helperBox = null;
+      }
+    });
+
+    toggleBtn.addEventListener("click", () => {
+      const showing = textarea.style.display !== "none";
+      textarea.style.display = showing ? "none" : "block";
+      toggleBtn.textContent = showing ? "Show / edit code" : "Hide code";
+    });
+
+    item.appendChild(head);
+    if (entry.error) {
+      item.appendChild(el("div", "batch-file-error-text", entry.error));
+    }
+    item.appendChild(meta);
+    if (helperBox) item.appendChild(helperBox);
+    item.appendChild(toggleBtn);
+    item.appendChild(textarea);
+
+    list.appendChild(item);
+  });
+
+  const saveBtn = $("step3-save");
+  if (State.batchMode) {
+    saveBtn.textContent = `SAVE ${State.batchFiles.length} FILE${State.batchFiles.length === 1 ? "" : "S"} TO GITHUB`;
+  }
+
+  const errorBanner = $("batch-review-error");
+  const anyError = State.batchFiles.some((f) => f.error);
+  if (anyError) {
+    errorBanner.textContent = "Fix the highlighted filenames before saving — each must be unique in this batch and in the folder, and use a valid extension for this language.";
+    errorBanner.style.display = "block";
+  } else {
+    errorBanner.style.display = "none";
+  }
+}
+
+function moveBatchFile(index, delta) {
+  const newIndex = index + delta;
+  if (newIndex < 0 || newIndex >= State.batchFiles.length) return;
+  const [item] = State.batchFiles.splice(index, 1);
+  State.batchFiles.splice(newIndex, 0, item);
+  renderBatchList();
+}
+
+function removeBatchFile(index) {
+  State.batchFiles.splice(index, 1);
+  updateBatchInputStatus();
+
+  if (!State.batchFiles.length) {
+    // Nothing left to review — bounce back to Step 2 so they can add
+    // more instead of showing an empty review screen.
+    showSingleReview();
+    goToStep(2);
+    return;
+  }
+
+  renderBatchList();
+}
+
+// ---------------------------------------------------------------
 // Step 3: review
 // ---------------------------------------------------------------
 
@@ -875,6 +1187,11 @@ function initStep3() {
 }
 
 async function saveProgram() {
+  if (State.batchMode) {
+    await saveBatchProgram();
+    return;
+  }
+
   const errorEl = $("save-error");
   errorEl.style.display = "none";
 
@@ -918,6 +1235,68 @@ async function saveProgram() {
   }
 }
 
+// Posts every file in State.batchFiles to /api/batch-commit in one
+// request, which lands them all in exactly one GitHub commit (see
+// api/batch-commit.js) — so uploading, say, 10 finished programs only
+// triggers one GitHub Actions run / one Vercel deploy, not 10.
+async function saveBatchProgram() {
+  const errorEl = $("save-error");
+  errorEl.style.display = "none";
+
+  // Re-validate against whatever's currently in the fields (a rename
+  // or a removal elsewhere could have changed things) before sending.
+  renderBatchList();
+  if (State.batchFiles.some((f) => f.error)) {
+    errorEl.textContent = "Fix the file errors above before saving.";
+    errorEl.style.display = "block";
+    return;
+  }
+  if (!State.batchFiles.length) return;
+
+  const saveBtn = $("step3-save");
+  const count = State.batchFiles.length;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "SAVING…";
+
+  try {
+    const res = await fetch("/api/batch-commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessCode: getAccessCode(),
+        folder: State.selectedFolder,
+        files: State.batchFiles.map((f) => ({
+          filename: f.filename.trim(),
+          code: f.code,
+        })),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Unknown error");
+    }
+
+    if (!State.searchIndex[State.selectedFolder]) {
+      State.searchIndex[State.selectedFolder] = [];
+    }
+    (data.committed || []).forEach((filename) => {
+      State.searchIndex[State.selectedFolder].push({ file: filename });
+    });
+
+    $("done-text").textContent =
+      `Saved ${data.committed.length} file${data.committed.length === 1 ? "" : "s"} in a single commit.`;
+    goToStep(4);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = "block";
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = `SAVE ${count} FILE${count === 1 ? "" : "S"} TO GITHUB`;
+  }
+}
+
 // ---------------------------------------------------------------
 // Step 4: reset
 // ---------------------------------------------------------------
@@ -935,12 +1314,17 @@ function resetWizard() {
   State.images = [];
   State.imageTexts = [];
   State.mergeNotes = [];
+  State.batchFiles = [];
 
   $("filename-input").value = "";
   $("filename-status").style.display = "none";
   $("image-list").innerHTML = "";
   $("code-textarea").value = "";
   $("merge-notes").innerHTML = "";
+  $("batch-list").innerHTML = "";
+  $("batch-input-status").textContent = "No files chosen";
+  $("batch-required-warning").style.display = "none";
+  showSingleReview();
   updateImageInputStatus();
   updateNextEnabled();
 

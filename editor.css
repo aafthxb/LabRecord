@@ -848,3 +848,111 @@ body.site-edit-mode .card-delete-btn {
     max-width: none;
   }
 }
+
+/* ---------- Step 2/3: batch (multi-file) upload ---------- */
+
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.batch-file-item {
+  border: 2px solid var(--border);
+  background: var(--surface-alt);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+
+.batch-file-item.batch-file-error {
+  border-color: var(--danger);
+}
+
+.batch-file-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.batch-file-order {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.batch-file-order button {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 3px 7px;
+}
+
+.batch-file-order button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.batch-file-name-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.batch-file-remove {
+  flex-shrink: 0;
+  color: var(--danger);
+  border-color: var(--danger);
+  font-size: 0.75rem;
+  padding: 0 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .batch-file-remove:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+.batch-file-meta {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-muted);
+}
+
+.batch-file-code-toggle {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Courier Prime', monospace;
+}
+
+.batch-file-item .code-textarea {
+  min-height: 220px;
+  margin-top: 10px;
+}
+
+.batch-file-error-text {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--danger);
+  font-weight: 700;
+}

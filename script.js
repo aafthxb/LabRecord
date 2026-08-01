@@ -259,30 +259,11 @@ function refreshEditUI() {
 
     if (folder && App.edit.unlocked) {
         addBtn.style.display = "inline-block";
-        addBtn.onclick = (event) => {
-            const targetEl = event.currentTarget || event.target;
-            // Same press timing/feel as every other button on the site.
-            runWithTactileDelay(event, () => {
-                // Unlike the other tactile-delay buttons, this one triggers
-                // a full page navigation. If we just left the button alone
-                // here, is-pressed coming off would let :hover re-engage
-                // (the mouse is typically still sitting on the button) and
-                // start animating the box-shadow back up to shadow-md —
-                // only for that transition to get cut off mid-flight by the
-                // page unload, which is what reads as a little jitter/pop.
-                // is-navigating pins it to its resting look (no hover, no
-                // further transitions) for one more beat so nothing is
-                // still animating when the page tears down.
-                targetEl.classList.add("is-navigating");
-                setTimeout(() => {
-                    window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
-                }, 90);
-            }, targetEl);
-        };
+        addBtn.href = `editor.html?folder=${encodeURIComponent(folder)}`;
         ensurePending(folder);
     } else {
         addBtn.style.display = "none";
-        addBtn.onclick = null;
+        addBtn.removeAttribute("href");
     }
 
     updateSaveBar(folder);

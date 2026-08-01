@@ -407,18 +407,6 @@ box-shadow:var(--shadow-sm);
   box-shadow:0 0 0 0 var(--border) !important;
 }
 
-/* Used while a button is mid-navigation, after the tactile press has
-   already released, so it sits still at rest instead of letting :hover
-   re-animate in (box-shadow growing) only to be cut off by the page
-   unload — that re-animation-then-cutoff is what reads as a jitter. */
-.back-btn.is-navigating {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  box-shadow: var(--shadow-sm) !important;
-  transition: none !important;
-  pointer-events: none;
-}
-
 /* Home Grid */
 .home-grid {
   display: grid;

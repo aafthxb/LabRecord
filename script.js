@@ -132,9 +132,12 @@ function toggleTheme(event) {
 function openFolder(folder, event) {
     runWithTactileDelay(event, () => {
 
+        App.currentFolder = folder;
+
         document.getElementById("home-view").style.display = "none";
         document.getElementById("back-btn").style.display = "inline-block";
         document.getElementById("theme-btn").style.display = "none";
+        document.getElementById("editor-btn").style.display = "none";
 
         // Hide all language containers
         document.querySelectorAll(".view-container").forEach(container => {
@@ -173,6 +176,8 @@ function openFolder(folder, event) {
                 language.description || "";
         }
 
+        refreshEditUI();
+
         window.scrollTo({
             top: 0,
             behavior: "smooth"
@@ -198,6 +203,7 @@ function showHome(event) {
 
     document.getElementById('back-btn').style.display = 'none';
     document.getElementById("theme-btn").style.display = "flex";
+    document.getElementById("editor-btn").style.display = "flex";
 
     document.querySelectorAll(".view-container").forEach(container => {
         container.classList.remove("active");
@@ -209,8 +215,358 @@ function showHome(event) {
     document.getElementById("page-subtitle").innerHTML =
         "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
 
+    App.currentFolder = null;
+    refreshEditUI();
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
+
+// ==========================
+// Inline editor access + edit mode (add / delete / reorder)
+// ==========================
+
+async function verifyAccessCode(code) {
+    try {
+        const res = await fetch("/api/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessCode: code })
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return !!data.ok;
+    } catch {
+        return false;
+    }
+}
+
+function ensurePending(folder) {
+    if (!App.edit.pending[folder]) {
+        App.edit.pending[folder] = {
+            order: getPrograms(folder).map(p => p.file),
+            deletions: new Set()
+        };
+    }
+    return App.edit.pending[folder];
+}
+
+// Shows/hides the "+" button and the pending-changes save bar to match
+// whichever folder is currently open and whether editing is unlocked.
+function refreshEditUI() {
+    const addBtn = document.getElementById("add-program-btn");
+    const folder = App.currentFolder;
+
+    if (folder && App.edit.unlocked) {
+        addBtn.style.display = "inline-block";
+        addBtn.onclick = () => {
+            window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+        };
+        ensurePending(folder);
+    } else {
+        addBtn.style.display = "none";
+        addBtn.onclick = null;
+    }
+
+    updateSaveBar(folder);
+}
+
+function setEditMode(on, code) {
+    App.edit.unlocked = on;
+    App.edit.code = on ? code : "";
+
+    document.body.classList.toggle("site-edit-mode", on);
+
+    const editorBtn = document.getElementById("editor-btn");
+    editorBtn.classList.toggle("is-unlocked", on);
+    editorBtn.title = on ? "Exit editor mode" : "Editor access";
+    editorBtn.setAttribute("aria-label", on ? "Exit editor mode" : "Toggle editor access");
+
+    refreshEditUI();
+}
+
+// Fades a .modal-overlay in/out (see the is-visible transition in
+// editor.css) instead of an instant display:none/flex snap. Toggling
+// `display` directly can't be transitioned, so we flip it first, force
+// a reflow, then add the class that actually animates opacity/transform.
+function showOverlay(overlayEl) {
+    overlayEl.style.display = "flex";
+    void overlayEl.offsetWidth; // reflow so the transition below actually runs
+    overlayEl.classList.add("is-visible");
+}
+
+function hideOverlay(overlayEl) {
+    overlayEl.classList.remove("is-visible");
+    const finish = () => { overlayEl.style.display = "none"; };
+    overlayEl.addEventListener("transitionend", finish, { once: true });
+    // Fallback in case transitionend never fires (e.g. reduced motion).
+    setTimeout(finish, 250);
+}
+
+function openSiteGate() {
+    document.getElementById("site-gate-error").style.display = "none";
+    document.getElementById("site-gate-input").value = "";
+    showOverlay(document.getElementById("site-gate-overlay"));
+    document.getElementById("site-gate-input").focus();
+}
+
+function closeSiteGate() {
+    hideOverlay(document.getElementById("site-gate-overlay"));
+}
+
+async function submitSiteGate() {
+    const input = document.getElementById("site-gate-input");
+    const code = input.value.trim();
+    if (!code) return;
+
+    const btn = document.getElementById("site-gate-submit");
+    btn.disabled = true;
+    btn.textContent = "CHECKING…";
+
+    const ok = await verifyAccessCode(code);
+
+    btn.disabled = false;
+    btn.textContent = "UNLOCK";
+
+    if (ok) {
+        sessionStorage.setItem(EDIT_SESSION_KEY, code);
+        setEditMode(true, code);
+        closeSiteGate();
+    } else {
+        const errorEl = document.getElementById("site-gate-error");
+        errorEl.textContent = "Incorrect access code.";
+        errorEl.style.display = "block";
+    }
+}
+
+function initEditorGate() {
+    const editorBtn = document.getElementById("editor-btn");
+
+    editorBtn.addEventListener("click", () => {
+        if (App.edit.unlocked) {
+            // Toggling off locks editing tools back up immediately.
+            sessionStorage.removeItem(EDIT_SESSION_KEY);
+            setEditMode(false);
+            return;
+        }
+        openSiteGate();
+    });
+
+    document.getElementById("site-gate-submit").addEventListener("click", submitSiteGate);
+    document.getElementById("site-gate-cancel").addEventListener("click", closeSiteGate);
+    document.getElementById("site-gate-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitSiteGate();
+    });
+
+    document.getElementById("edit-save-btn").addEventListener("click", saveChanges);
+    document.getElementById("edit-discard-btn").addEventListener("click", discardChanges);
+}
+
+// Restores edit mode from this tab's session (set after a successful
+// unlock) without asking for the code again — cleared when the tab
+// closes, so nothing is ever written to persistent storage.
+async function restoreEditSession() {
+    const code = sessionStorage.getItem(EDIT_SESSION_KEY);
+    if (!code) return;
+
+    const ok = await verifyAccessCode(code);
+    if (ok) {
+        setEditMode(true, code);
+    } else {
+        sessionStorage.removeItem(EDIT_SESSION_KEY);
+    }
+}
+
+function updateSaveBar(folder) {
+    const bar = document.getElementById("edit-save-bar");
+
+    if (!folder || !App.edit.unlocked) {
+        bar.style.display = "none";
+        return;
+    }
+
+    const pending = App.edit.pending[folder];
+    const original = getPrograms(folder).map(p => p.file);
+
+    if (!pending) {
+        bar.style.display = "none";
+        return;
+    }
+
+    const survivingOriginal = original.filter(f => !pending.deletions.has(f));
+    const survivingPending = pending.order.filter(f => !pending.deletions.has(f));
+
+    const hasReorder =
+        JSON.stringify(survivingPending) !== JSON.stringify(survivingOriginal);
+    const hasDeletions = pending.deletions.size > 0;
+
+    if (!hasReorder && !hasDeletions) {
+        bar.style.display = "none";
+        return;
+    }
+
+    const parts = [];
+    if (hasDeletions) {
+        parts.push(`${pending.deletions.size} file${pending.deletions.size === 1 ? "" : "s"} marked for deletion`);
+    }
+    if (hasReorder) {
+        parts.push("order changed");
+    }
+
+    document.getElementById("edit-save-status").textContent = parts.join(" · ");
+    bar.style.display = "flex";
+}
+
+function toggleCardDeletion(folder, filename, card, btn) {
+    const pending = ensurePending(folder);
+
+    if (pending.deletions.has(filename)) {
+        pending.deletions.delete(filename);
+        card.classList.remove("pending-delete");
+        btn.textContent = "DELETE";
+    } else {
+        pending.deletions.add(filename);
+        card.classList.add("pending-delete");
+        btn.textContent = "UNDO";
+    }
+
+    updateSaveBar(folder);
+}
+
+function syncOrderFromDom(folder) {
+    const container = document.getElementById(`${folder}-container`);
+    const order = Array.from(container.querySelectorAll(".program-card"))
+        .map(c => c.dataset.filename);
+
+    ensurePending(folder).order = order;
+    updateSaveBar(folder);
+}
+
+// Pointer-based drag reorder (works for mouse and touch alike) — moves
+// the whole card to sit before/after whichever sibling the pointer is
+// currently over, then commits the new DOM order into pending state.
+function initCardDrag(card, handle, folder) {
+    let dragging = false;
+    let container = null;
+
+    function onPointerMove(e) {
+        if (!dragging) return;
+
+        const y = e.clientY;
+        const siblings = Array.from(container.querySelectorAll(".program-card"))
+            .filter(el => el !== card);
+
+        let target = null;
+        for (const sib of siblings) {
+            const rect = sib.getBoundingClientRect();
+            if (y < rect.top + rect.height / 2) {
+                target = sib;
+                break;
+            }
+        }
+
+        if (target) {
+            container.insertBefore(card, target);
+        } else {
+            container.appendChild(card);
+        }
+    }
+
+    function onPointerUp() {
+        if (!dragging) return;
+        dragging = false;
+        card.classList.remove("dragging");
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        syncOrderFromDom(folder);
+    }
+
+    handle.addEventListener("pointerdown", (e) => {
+        if (!App.edit.unlocked) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        dragging = true;
+        container = card.parentElement;
+        card.classList.add("dragging");
+
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+    });
+
+    handle.addEventListener("click", (e) => e.stopPropagation());
+}
+
+async function saveChanges() {
+    const folder = App.currentFolder;
+    const pending = App.edit.pending[folder];
+    if (!pending) return;
+
+    const saveBtn = document.getElementById("edit-save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "SAVING…";
+
+    const order = pending.order.filter(f => !pending.deletions.has(f));
+    const deletions = Array.from(pending.deletions);
+
+    try {
+        const res = await fetch("/api/batch-save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder,
+                order,
+                deletions
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        (App.cards[folder] || [])
+            .filter(c => deletions.includes(c.dataset.filename))
+            .forEach(c => c.remove());
+
+        App.cards[folder] = (App.cards[folder] || [])
+            .filter(c => !deletions.includes(c.dataset.filename));
+
+        // Rebuild metadata in the newly-saved order (not just with
+        // deletions removed) — updateSaveBar() diffs getPrograms(folder)
+        // against the pending order to decide whether anything is still
+        // unsaved, so if this stays in the old order the bar never
+        // clears after a successful reorder-only save.
+        const metadataByFile = new Map(
+            (App.metadata[folder] || []).map(p => [p.file, p])
+        );
+        App.metadata[folder] = order
+            .map(file => metadataByFile.get(file))
+            .filter(Boolean);
+
+        App.edit.pending[folder] = { order: order.slice(), deletions: new Set() };
+        updateSaveBar(folder);
+    } catch (err) {
+        alert("Couldn't save changes: " + err.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "SAVE CHANGES";
+    }
+}
+
+// Discards any pending reorder/delete by rebuilding the folder's cards
+// straight from the last-loaded metadata.
+function discardChanges() {
+    const folder = App.currentFolder;
+    if (!folder) return;
+
+    App.edit.pending[folder] = null;
+    App.builtFolders.delete(folder);
+
+    const language = App.languageIndex.find(l => l.folder === folder);
+    loadFolder(folder, `${folder}-container`, language?.compiler);
+    App.builtFolders.add(folder);
+
+    updateSaveBar(folder);
 }
 
 function playBootIntro() {
@@ -277,12 +633,20 @@ function setupScrollHeader() {
 // Application State
 // ==========================
 
+const EDIT_SESSION_KEY = "lr_editor_session_code";
+
 const App = {
     currentFolder: null,
     languageIndex: [],
 
     metadata: {},
     cards: {},
+
+    edit: {
+        unlocked: false,
+        code: "",
+        pending: {} // folder -> { order: [filenames], deletions: Set<filename> }
+    },
 
     codeIndex: null,
     codeIndexLoaded: false,
@@ -348,19 +712,6 @@ function buildLanguageUI() {
         );
 
         card.onclick = (event) => openFolder(language.folder, event);
-
-        if (supportsHover && !prefersReducedMotion) {
-            card.addEventListener("mousemove", (e) => {
-                const rect = card.getBoundingClientRect();
-                const py = (e.clientY - rect.top) / rect.height - 0.5;
-
-                card.style.setProperty("--magnet-y", `${(py * 6).toFixed(2)}px`);
-            });
-
-            card.addEventListener("mouseleave", () => {
-                card.style.removeProperty("--magnet-y");
-            });
-        }
 
         card.innerHTML = `
             <h2 class="folder-card-title">
@@ -674,12 +1025,15 @@ function setupSearch(search, folder) {
     
 function createProgramCard(program, lang) {
 
+    const cardFolder = App.currentFolder;
+
     const card = document.createElement("div");
     card.className = "program-card collapsed";
 
     card.dataset.number = String(program.number);
     card.dataset.title = program.title.toLowerCase();
     card.dataset.file = program.file.toLowerCase();
+    card.dataset.filename = program.file;
     card.dataset.description = (program.description || "").toLowerCase();
     card.dataset.path = program.path;
     card.dataset.search = [
@@ -694,30 +1048,40 @@ function createProgramCard(program, lang) {
     header.className = "card-header";
 
     header.innerHTML = `
-        <div class="title-group">
+        <div class="card-left">
 
-            <h3 class="card-title">
-                <span class="serial-badge">${program.number}</span>
+            <span class="card-drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
 
-                <span class="program-title-text">
-                    ${program.title}
+            <div class="title-group">
+
+                <h3 class="card-title">
+                    <span class="serial-badge">${program.number}</span>
+
+                    <span class="program-title-text">
+                        ${program.title}
+                    </span>
+                </h3>
+
+                <span class="file-badge">
+                    [ ${program.file} ]
                 </span>
-            </h3>
 
-            <span class="file-badge">
-                [ ${program.file} ]
-            </span>
-
-            <p class="card-subtitle">
-                ${program.description || ""}
-            </p>
-            <div class="code-match-badge">
+                <p class="card-subtitle">
+                    ${program.description || ""}
+                </p>
+                <div class="code-match-badge">
     Found in source code
 </div>
+
+            </div>
 
         </div>
 
         <div class="header-actions">
+
+            <button class="action-btn card-delete-btn" type="button" title="Delete this program">
+                DELETE
+            </button>
 
             <button class="action-btn">
                 COPY
@@ -755,7 +1119,9 @@ editorWrapper.className = "editor-wrapper";
 card.appendChild(editorWrapper);
 
 const expandIcon = card.querySelector(".expand-icon");
-const copyBtn = card.querySelector(".action-btn");
+const dragHandle = card.querySelector(".card-drag-handle");
+const deleteBtn = card.querySelector(".card-delete-btn");
+const copyBtn = card.querySelector(".action-btn:not(.card-delete-btn)");
 const runBtn = card.querySelector(".run-btn");
 const titleText = card.querySelector(".program-title-text");
 const fileBadge = card.querySelector(".file-badge");
@@ -775,7 +1141,7 @@ let skeleton = null;
 
 header.onclick = (e) => {
 
-    if (e.target.closest(".action-btn")) return;
+    if (e.target.closest(".action-btn") || e.target.closest(".card-drag-handle")) return;
 
     runWithTactileDelay(e, async () => {
 
@@ -822,6 +1188,16 @@ loaded = true;
     }, card);
 
 };
+deleteBtn.onclick = (e) => {
+    e.stopPropagation();
+
+    runWithTactileDelay(e, () => {
+        toggleCardDeletion(cardFolder, program.file, card, deleteBtn);
+    }, deleteBtn);
+};
+
+initCardDrag(card, dragHandle, cardFolder);
+
 copyBtn.onclick = (e) => {
 
     e.stopPropagation();
@@ -1021,6 +1397,31 @@ setupSearch(search, folderName);
 
 }
 
+function renderFooter(siteInfo) {
+    const footer = document.getElementById("app-footer");
+    footer.innerHTML = "";
+
+    if (!siteInfo?.github) return;
+
+    footer.appendChild(document.createTextNode("Built with "));
+
+    const repoLink = document.createElement("a");
+    repoLink.href = "https://github.com/aafthxb/LabRecord";
+    repoLink.target = "_blank";
+    repoLink.rel = "noopener noreferrer";
+    repoLink.textContent = "LabRecord";
+    footer.appendChild(repoLink);
+
+    footer.appendChild(document.createTextNode(" · Created by "));
+
+    const authorLink = document.createElement("a");
+    authorLink.href = siteInfo.github.url;
+    authorLink.target = "_blank";
+    authorLink.rel = "noopener noreferrer";
+    authorLink.textContent = siteInfo.github.username;
+    footer.appendChild(authorLink);
+}
+
 async function init() {
 
     const savedTheme =
@@ -1057,30 +1458,26 @@ async function init() {
 
     const siteInfo = await loadSiteInfo();
 
-    if (siteInfo?.github) {
-
-        document.getElementById("app-footer").innerHTML = `
-    Built with
-    <a
-        href="https://github.com/aafthxb/LabRecord"
-        target="_blank"
-        rel="noopener noreferrer">
-        LabRecord</a>
-    · Created by
-    <a
-        href="${siteInfo.github.url}"
-        target="_blank"
-        rel="noopener noreferrer">
-        ${siteInfo.github.username}
-    </a>
-`;
-
-    }
+    renderFooter(siteInfo);
 
     // Note: folders are no longer built eagerly here. Each folder's
     // program cards are now built lazily on first open (see openFolder),
     // which keeps initial load fast and avoids the delay large folders
     // like C/Java caused when everything was rendered upfront.
+
+    initEditorGate();
+    await restoreEditSession();
+
+    // Returning from the editor wizard (e.g. after adding a program)
+    // lands back here with ?folder=<folder> so the person is dropped
+    // straight back into the folder they were working in.
+    const params = new URLSearchParams(window.location.search);
+    const returnFolder = params.get("folder");
+
+    if (returnFolder && App.languageIndex.some(l => l.folder === returnFolder)) {
+        openFolder(returnFolder);
+        history.replaceState(null, "", window.location.pathname);
+    }
 
 }
 const themeBtn = document.getElementById("theme-btn");

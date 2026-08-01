@@ -1,0 +1,850 @@
+/* editor.css — extends style.css, reuses the same CSS variables */
+
+#editor-btn {
+  text-decoration: none;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.modal-overlay.is-visible {
+  opacity: 1;
+}
+
+.modal-box {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 380px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: auto;
+  opacity: 0;
+  transform: translateY(10px) scale(.96);
+  transition: opacity .18s ease, transform .18s cubic-bezier(.16,1,.3,1);
+}
+
+.modal-overlay.is-visible .modal-box {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.gate-submit-btn {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 52px;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+
+.gate-home-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 46px;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 46px;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 16px 12px;
+  }
+
+  .modal-box {
+    padding: 22px 18px;
+    max-height: none;
+  }
+
+  .gate-submit-btn {
+    min-height: 56px;
+  }
+}
+
+.modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modal-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 14px 0;
+  line-height: 1.4;
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 16px auto;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.editor-input {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 12px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.9rem;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.editor-input:focus {
+  outline: none;
+  box-shadow: var(--shadow-md);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+  color: var(--text);
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.step-dot {
+  flex: 1;
+  min-width: 70px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 10px 6px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.step-dot span {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.step-dot.active {
+  opacity: 1;
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.step-dot.done {
+  opacity: 0.85;
+  background: var(--success);
+  color: #fff;
+}
+
+.step-panel {
+  display: none;
+}
+
+.step-panel.active {
+  display: block;
+}
+
+.step-heading {
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 18px 0;
+}
+
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+/*
+ * Language cards reuse .action-btn (added in JS) for their base look,
+ * so they are visually identical to every other button on the site —
+ * same idle/hover/focus styling comes from style.css, not duplicated
+ * here. We only add grid-specific sizing and a "selected" indicator.
+ */
+.lang-card {
+  position: relative;
+  padding: 18px 14px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+/* Real "clicky" press feedback — press in, shadow tucks away */
+.lang-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Subtle, non-shouty indicator of the current pick — not a persistent
+   color invert, so it never gets mistaken for a stuck hover state. */
+.lang-card.selected {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.lang-card.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+/* ---------- File upload (custom, since native file inputs can't be
+   styled and reset their own "No file chosen" label unpredictably) --------- */
+
+.file-drop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  border: 2px dashed var(--border);
+  padding: 14px;
+}
+
+.file-drop.dragover {
+  border-color: var(--primary);
+  background: var(--surface-alt);
+}
+
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-drop-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 160px;
+}
+
+/* ---------- "OR" divider between the two Step 2 paths ---------- */
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+.image-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.image-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+}
+
+.image-item img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.image-item .image-name {
+  flex: 1;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.image-item .image-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.image-item .image-actions button {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 340px;
+  background: #1d1f21;
+  color: #f2f2f2;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre;
+}
+
+.preview-box {
+  margin-top: 14px;
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.helper-box {
+  margin-top: 16px;
+  border: 2px dashed var(--border);
+  padding: 14px;
+}
+
+.banner {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.banner-error {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.banner-warn {
+  background: var(--warning);
+  color: #111;
+}
+
+.banner-success {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+/* ---------- Wider, more tappable footer buttons ---------- */
+
+.btn-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-row .action-btn {
+  flex: 1;
+  min-height: 50px;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .btn-row .action-btn {
+    min-height: 54px;
+  }
+}
+
+#merge-notes .banner {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* ---------- Wizard topbar (« MENU) ---------- */
+
+.wizard-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+/* ---------- Mode select (Add Program / Manage Files) ---------- */
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 24px 22px;
+  cursor: pointer;
+  font-family: 'Courier Prime', monospace;
+  transition:
+    transform .08s ease,
+    box-shadow .08s ease,
+    background-color .12s ease,
+    color .12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .mode-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.mode-card:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--border);
+}
+
+.mode-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.mode-title {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.mode-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.mode-card-danger:hover {
+  border-color: var(--danger);
+}
+
+/* ---------- Step 2: two-path method cards ---------- */
+
+.method-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.method-grid .or-divider {
+  flex-direction: column;
+  margin: 0;
+  writing-mode: vertical-lr;
+}
+
+.method-grid .or-divider::before,
+.method-grid .or-divider::after {
+  width: 2px;
+  height: auto;
+}
+
+@media (max-width: 720px) {
+  .method-grid {
+    grid-template-columns: 1fr;
+  }
+  .method-grid .or-divider {
+    writing-mode: horizontal-tb;
+    flex-direction: row;
+    margin: 4px 0;
+  }
+  .method-grid .or-divider::before,
+  .method-grid .or-divider::after {
+    width: auto;
+    height: 2px;
+  }
+}
+
+.method-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
+  padding: 18px;
+}
+
+.method-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.method-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.method-title {
+  margin: 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.method-cta {
+  margin-top: auto;
+  padding-top: 14px;
+  min-height: 50px;
+  width: 100%;
+}
+
+/* ---------- Manage / delete files (full panel, not a modal — should
+   feel just as light and welcoming as the rest of the wizard) ---------- */
+
+.manage-intro {
+  max-width: 60ch;
+  margin-bottom: 22px !important;
+}
+
+select.editor-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text) 50%),
+    linear-gradient(135deg, var(--text) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 13px) calc(50% - 3px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+.manage-search {
+  margin-top: 18px;
+}
+
+.manage-file-list {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manage-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+  transition: transform .08s ease, box-shadow .08s ease, opacity .15s ease;
+}
+
+@media (hover: hover) {
+  .manage-file-item:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.manage-file-item.search-hidden {
+  display: none;
+}
+
+.manage-delete-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  min-height: 34px;
+}
+
+@media (hover: hover) {
+  .manage-delete-btn:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+.manage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 40px 20px;
+  border: 2px dashed var(--border);
+  background: var(--surface-alt);
+}
+
+.manage-empty-icon {
+  font-size: 1.8rem;
+}
+
+@media (max-width: 480px) {
+  .manage-file-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .manage-delete-btn {
+    width: 100%;
+  }
+}
+
+/* ---------- Disabled-state feedback (buttons across the site never
+   had one before — add a real visual cue now that some rely on it) ---------- */
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) {
+  .action-btn:disabled:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    background: var(--surface);
+    color: var(--text);
+  }
+}
+/* ==========================================================
+   Inline site editing (index.html) — the "+", per-card delete,
+   drag-to-reorder handle, and the floating save bar. Hidden
+   unless <body> carries .site-edit-mode, toggled from script.js
+   once the access code has been verified.
+   ========================================================== */
+
+/* Shared entrance for everything that appears when editor mode is
+   switched on — same fade + slight scale/lift used for cards and
+   view transitions elsewhere on the site (see cardEnter/viewFadeIn
+   in style.css), just applied here too so the switch doesn't feel
+   like an instant on/off snap. Using `animation` rather than
+   `transition` means it plays automatically the moment an element's
+   computed `display` goes from none to visible via the body-class
+   selectors below — no JS needed. */
+@keyframes editorRevealPop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Persistent reminder that editor mode is on, shown right under the
+   header on every view (home + folders) while unlocked. */
+#editor-mode-banner {
+  display: none;
+  margin-bottom: 20px;
+}
+
+body.site-edit-mode #editor-mode-banner {
+  display: block;
+  animation: editorRevealPop .2s cubic-bezier(.16,1,.3,1) both;
+}
+
+.card-delete-btn,
+.card-drag-handle,
+#add-program-btn {
+  display: none;
+}
+
+body.site-edit-mode #add-program-btn {
+  display: inline-block;
+  animation: editorRevealPop .2s cubic-bezier(.16,1,.3,1) both;
+}
+
+body.site-edit-mode .card-drag-handle {
+  display: flex;
+  animation: editorRevealPop .2s cubic-bezier(.16,1,.3,1) both;
+}
+
+body.site-edit-mode .card-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  animation: editorRevealPop .2s cubic-bezier(.16,1,.3,1) both;
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.card-drag-handle {
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-drag-handle:active {
+  cursor: grabbing;
+}
+
+.card-delete-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+@media (hover: hover) {
+  .card-delete-btn:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+.program-card.pending-delete {
+  opacity: 0.5;
+}
+
+.program-card.pending-delete .card-title,
+.program-card.pending-delete .card-subtitle,
+.program-card.pending-delete .file-badge {
+  text-decoration: line-through;
+}
+
+.program-card.dragging {
+  opacity: 0.35;
+}
+
+/* ---------- Floating bar for pending reorder/delete changes ---------- */
+
+@keyframes saveBarFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.edit-save-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 12px 16px;
+  max-width: calc(100vw - 24px);
+  flex-wrap: wrap;
+  justify-content: center;
+  animation: saveBarFadeIn .2s ease both;
+}
+
+.edit-save-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.edit-save-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .edit-save-bar {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    transform: none;
+    max-width: none;
+  }
+}

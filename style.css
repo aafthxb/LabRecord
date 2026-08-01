@@ -307,6 +307,30 @@ box-shadow: var(--shadow-lg);
     opacity: 0;
 }
 
+.theme-icon-editor{
+    font-size: 1.1rem;
+}
+
+/* Idle/hover look is identical to the theme toggle — no permanent
+   accent color. Editing tools are opt-in, so the button only stands
+   out once they're actually switched on (see .is-unlocked below). */
+
+#editor-btn.is-unlocked{
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+    box-shadow: var(--shadow-sm), var(--glow-success);
+}
+
+@media (hover: hover){
+    #editor-btn.is-unlocked:hover{
+        background: var(--surface);
+        color: var(--success);
+        border-color: var(--success);
+        box-shadow: var(--shadow-md);
+    }
+}
+
 @media (prefers-reduced-motion: reduce){
     .theme-icon,
     .theme-icon.theme-icon-flip{
@@ -409,7 +433,7 @@ box-shadow:var(--shadow-sm);
     background: var(--border);
     color: var(--surface);
 
-    transform: translate(-2px, calc(-2px + var(--magnet-y, 0px)));
+    transform: translate(-2px, -2px);
     box-shadow: var(--shadow-md);
   }
 
@@ -932,7 +956,12 @@ input:focus-visible,
     justify-content: space-between;
   }
 
-  .action-btn.run-btn {
+  /* Scoped to the program-card "RUN PROGRAM" button only — this used to
+     be a bare `.action-btn.run-btn` selector, which also matched every
+     other green button that reuses run-btn's styling (the gate's
+     UNLOCK, the editor wizard's EXTRACT/PASTE/SAVE, and the inline
+     editor's SAVE CHANGES), hiding all of them on mobile too. */
+  .header-actions .action-btn.run-btn {
     display: none !important;
   }
 

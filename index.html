@@ -118,6 +118,7 @@
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="editor.css" />
 
 </head>
 <body>
@@ -139,12 +140,30 @@
     <div class="header-actions-right">
 
         <button
+    id="editor-btn"
+    class="theme-btn"
+    type="button"
+    title="Editor access"
+    aria-label="Toggle editor access">
+    <span class="theme-icon theme-icon-editor">✏️</span>
+</button>
+
+        <button
     id="theme-btn"
     class="theme-btn"
     title="Toggle theme"
     aria-label="Toggle theme">
     <span class="theme-icon">🌙</span>
 </button>
+
+        <button class="back-btn"
+                id="add-program-btn"
+                type="button"
+                style="display:none;"
+                title="Add a new program"
+                aria-label="Add a new program">
+            [ + ]
+        </button>
 
         <button class="back-btn"
                 id="back-btn"
@@ -157,6 +176,11 @@
 </div>
       </header>
 
+      <!-- Shown whenever editor mode is unlocked (see body.site-edit-mode in editor.css) -->
+      <div id="editor-mode-banner" class="banner banner-success">
+        ✏️ Editor mode is on — you can add, delete, and reorder programs. Click the pencil icon again to exit.
+      </div>
+
       <!-- Home View -->
       <div id="home-view" class="home-grid"></div>
 
@@ -166,33 +190,32 @@
     </div>
   </div>
 
+  <!-- Editor access gate (site-wide) -->
+  <div id="site-gate-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h2 class="modal-title">Editor Access</h2>
+      <p class="modal-text">Enter your access code to reveal editing tools — adding, deleting, and reordering programs — right here on the site.</p>
+      <input id="site-gate-input" type="password" class="editor-input" placeholder="Access code" autocomplete="off" />
+      <div id="site-gate-error" class="banner banner-error" style="display:none;"></div>
+      <button id="site-gate-submit" class="action-btn run-btn gate-submit-btn">UNLOCK</button>
+      <button id="site-gate-cancel" type="button" class="action-btn gate-home-btn">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- Pending reorder/delete changes -->
+  <div id="edit-save-bar" class="edit-save-bar" style="display:none;">
+    <span id="edit-save-status" class="edit-save-status"></span>
+    <div class="edit-save-actions">
+      <button id="edit-discard-btn" type="button" class="action-btn">DISCARD</button>
+      <button id="edit-save-btn" type="button" class="action-btn run-btn">SAVE CHANGES</button>
+    </div>
+  </div>
+
   <!-- Prism.js Scripts for Syntax Highlighting -->
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script defer src="generated/prism-loader.js"></script>
 <script defer src="script.js"></script>
-<script>
-if ("serviceWorker" in navigator) {
 
-    window.addEventListener("load", async () => {
-
-        try {
-
-            const registration =
-                await navigator.serviceWorker.register("/sw.js");
-
-            console.log("Service Worker registered:", registration);
-
-        }
-        catch (err) {
-
-            console.error(err);
-
-        }
-
-    });
-
-}
-</script>
 </body>
 
 </html>

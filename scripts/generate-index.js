@@ -209,7 +209,9 @@ for (const language of discoveredLanguages) {
     compiler: language.compiler,
     prism: language.prism,
     description: language.description,
-    searchPlaceholder: language.searchPlaceholder
+    searchPlaceholder: language.searchPlaceholder,
+    aliases: language.aliases,
+    extensions: language.extensions
 });
 
   const folderPath = path.join("./programs", folder);

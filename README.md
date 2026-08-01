@@ -254,7 +254,8 @@ Drag programs into place from the homepage's edit mode, or manually edit `genera
     │   ├── JavaScript/
     │   └── Python/
     ├── scripts/
-    ├── languages.json
+    │   ├── generate-index.js
+    │   └── languages.json
     ├── script.js
     ├── style.css
     ├── editor.html       # Add-a-program wizard (screenshots / paste / bulk upload)

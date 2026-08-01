@@ -38,10 +38,13 @@ function sanitizeFolder(folder) {
 }
 
 function loadLanguages() {
+  // languages.json lives in scripts/ (it's a build-time config file, not
+  // a published asset) — these two candidates are just two ways a Vercel
+  // serverless function's working directory can resolve that same path,
+  // not a fallback for a different location.
   const candidates = [
     path.join(process.cwd(), "scripts", "languages.json"),
     path.join(__dirname, "..", "scripts", "languages.json"),
-    path.join(process.cwd(), "languages.json"), // fallback if ever moved to root
   ];
 
   for (const p of candidates) {
@@ -54,7 +57,7 @@ function loadLanguages() {
     }
   }
 
-  throw new Error("languages.json not found in scripts/ or repo root");
+  throw new Error("scripts/languages.json not found");
 }
 
 // Keeps a single commit's tree (and the request payload) from growing

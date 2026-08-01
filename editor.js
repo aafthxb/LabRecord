@@ -2,68 +2,17 @@
 
 const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 
-// Fallback in case /languages.json isn't reachable on the deployed site
-// (e.g. not committed, or excluded from the deployment). Keep this in sync
-// with your actual languages.json — it's only a safety net, not the source
-// of truth.
-const FALLBACK_LANGUAGES = {
-  c: {
-    displayName: "C", description: "Classic procedural programming and lab experiments",
-    searchPlaceholder: "Search C programs...", aliases: ["c"], extensions: [".c"],
-    compiler: "c", prism: "c"
-  },
-  cpp: {
-    displayName: "C++", description: "Object-oriented and STL-based C++ programs",
-    searchPlaceholder: "Search C++ programs...", aliases: ["cpp", "c++"],
-    extensions: [".cpp", ".cc", ".cxx"], compiler: "cpp", prism: "cpp"
-  },
-  java: {
-    displayName: "Java", description: "Object-oriented Java programs and practical exercises",
-    searchPlaceholder: "Search Java programs...", aliases: ["java"], extensions: [".java"],
-    compiler: "java", prism: "java"
-  },
-  python: {
-    displayName: "Python", description: "Python programs for scripting, algorithms, and automation",
-    searchPlaceholder: "Search Python programs...", aliases: ["python", "py"],
-    extensions: [".py"], compiler: "python", prism: "python"
-  },
-  javascript: {
-    displayName: "JavaScript", description: "JavaScript programs for browser and Node.js development",
-    searchPlaceholder: "Search JavaScript programs...", aliases: ["javascript", "js"],
-    extensions: [".js"], compiler: "javascript", prism: "javascript"
-  }
-};
-
-async function loadLanguagesWithFallback() {
-  const candidatePaths = ["/scripts/languages.json", "/languages.json"];
-
-  for (const path of candidatePaths) {
-    try {
-      const data = await fetchJson(path);
-      if (data && Object.keys(data).length) return data;
-    } catch {
-      // try next candidate
-    }
-  }
-
-  console.warn(
-    "Could not load languages.json from /scripts/languages.json or /languages.json — " +
-    "using a built-in fallback. Check the file is committed and included in the deployment."
-  );
-  return FALLBACK_LANGUAGES;
-}
-
 // Same key script.js uses on the home page — sessionStorage (not
 // localStorage) so it survives navigating here but is gone the moment
 // the tab closes, never written to disk.
 const EDITOR_SESSION_KEY = "lr_editor_session_code";
 
 const State = {
-  languages: null,      // languages.json content
+  languages: null,      // generated/language-index.json content (array)
   languageIndex: [],    // generated/language-index.json content
   searchIndex: {},      // generated/search-index.json content (for duplicate checks + Manage Files)
   selectedFolder: null, // e.g. "C"
-  selectedLangEntry: null, // matching languages.json entry
+  selectedLangEntry: null, // matching entry from State.languages
   filename: "",
   images: [],           // [{ file, url, id }]
   imageTexts: [],        // raw OCR text per image, same order as State.images
@@ -213,18 +162,25 @@ function getAccessCode() {
 
 let siteDataLoadPromise = null;
 
-// Loads languages.json / language-index.json / search-index.json exactly
-// once per visit and caches the in-flight promise, so both "Add Program"
-// and "Manage Files" can call this freely without refetching or racing.
+// Loads language-index.json / search-index.json exactly once per visit
+// and caches the in-flight promise, so both "Add Program" and "Manage
+// Files" can call this freely without refetching or racing.
+//
+// language-index.json is generated straight from scripts/languages.json
+// at build time (see scripts/generate-index.js) and now carries every
+// field the editor needs, including aliases/extensions — so there's no
+// separate client-side fetch of the raw config file. That file lives in
+// scripts/ as build-time input, not something meant to be served to the
+// browser, and guessing at its public URL was the source of the old
+// "languages.json not loading" issue.
 function ensureSiteDataLoaded() {
   if (siteDataLoadPromise) return siteDataLoadPromise;
 
   siteDataLoadPromise = Promise.all([
-    loadLanguagesWithFallback(),
     fetchJson("/generated/language-index.json"),
     fetchJson("/generated/search-index.json").catch(() => ({})),
-  ]).then(([languages, languageIndex, searchIndex]) => {
-    State.languages = languages;
+  ]).then(([languageIndex, searchIndex]) => {
+    State.languages = languageIndex;
     State.languageIndex = languageIndex;
     State.searchIndex = searchIndex;
   });
@@ -343,14 +299,6 @@ async function ensureTesseractReady() {
 function initWizardTopbar() {
   $("wizard-menu-btn").addEventListener("click", goHome);
   $("step1-back").addEventListener("click", goHome);
-
-  // See the .back-btn.is-departing comment in style.css.
-  const homeLink = $("editor-home-btn");
-  if (homeLink) {
-    homeLink.addEventListener("click", (event) => {
-      event.currentTarget.classList.add("is-departing");
-    });
-  }
 }
 
 // ---------------------------------------------------------------
@@ -1127,10 +1075,7 @@ function removeBatchFile(index) {
 // ---------------------------------------------------------------
 
 function commentPrefixForFolder() {
-  const id = State.selectedLangEntry ? Object.entries(State.languages).find(
-    ([, v]) => v === State.selectedLangEntry
-  )?.[0] : null;
-  return id === "python" ? "#" : "//";
+  return State.selectedLangEntry?.id === "python" ? "#" : "//";
 }
 
 function parseTitleDescription(code) {

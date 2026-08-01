@@ -311,6 +311,15 @@ box-shadow: var(--shadow-lg);
     font-size: 1.1rem;
 }
 
+/* The button's hover states swap its text color (white on the default
+   hover, green once unlocked) so the label/other icons read clearly
+   against the new background. On setups where the pencil emoji falls
+   back to a monochrome glyph that follows currentColor, that swap made
+   it turn white/green too. Pin it so it always stays the same color. */
+#editor-btn .theme-icon-editor{
+    color: var(--text) !important;
+}
+
 /* Idle/hover look is identical to the theme toggle — no permanent
    accent color. Editing tools are opt-in, so the button only stands
    out once they're actually switched on (see .is-unlocked below). */

@@ -379,6 +379,7 @@ box-shadow:var(--shadow-sm);
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
   transition:
     transform .08s ease,
@@ -405,6 +406,22 @@ box-shadow:var(--shadow-sm);
 .back-btn.is-pressed {
   transform: translate(3px, 3px) !important;
   box-shadow:0 0 0 0 var(--border) !important;
+}
+
+/* For real navigation links only (e.g. HOME, the "+" button): releasing
+   the mouse removes :active while the pointer is often still hovering,
+   so the box-shadow starts transitioning back up toward the hover size —
+   and because leaving the page takes a beat, that partial regrowth is
+   what actually gets painted right before the new page replaces it,
+   reading as a little jitter. Added on click, this freezes the button
+   exactly as it looked at that instant so there's nothing left to
+   animate while the page unloads. Desktop-only issue: touch input never
+   triggers :hover in the first place, which is why mobile never shows it. */
+.back-btn.is-departing {
+  transition: none !important;
+  transform: translate(3px, 3px) !important;
+  box-shadow: 0 0 0 0 var(--border) !important;
+  pointer-events: none;
 }
 
 /* Home Grid */

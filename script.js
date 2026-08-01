@@ -1487,6 +1487,16 @@ async function init() {
 const themeBtn = document.getElementById("theme-btn");
 
 themeBtn.addEventListener("click", toggleTheme);
+
+// See the .back-btn.is-departing comment in style.css: this is a real
+// navigation link (href swapped in by refreshEditUI), so freeze its
+// pressed look the instant it's clicked rather than letting the box-shadow
+// try to spring back up to its hover size while the page is unloading.
+document.getElementById("add-program-btn")
+    .addEventListener("click", (event) => {
+        event.currentTarget.classList.add("is-departing");
+    });
+
 if ("serviceWorker" in navigator) {
 
     let swRefreshing = false;

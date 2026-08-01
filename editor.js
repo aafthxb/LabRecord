@@ -343,6 +343,14 @@ async function ensureTesseractReady() {
 function initWizardTopbar() {
   $("wizard-menu-btn").addEventListener("click", goHome);
   $("step1-back").addEventListener("click", goHome);
+
+  // See the .back-btn.is-departing comment in style.css.
+  const homeLink = $("editor-home-btn");
+  if (homeLink) {
+    homeLink.addEventListener("click", (event) => {
+      event.currentTarget.classList.add("is-departing");
+    });
+  }
 }
 
 // ---------------------------------------------------------------

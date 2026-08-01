@@ -259,8 +259,10 @@ function refreshEditUI() {
 
     if (folder && App.edit.unlocked) {
         addBtn.style.display = "inline-block";
-        addBtn.onclick = () => {
-            window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+        addBtn.onclick = (event) => {
+            runWithTactileDelay(event, () => {
+                window.location.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+            });
         };
         ensurePending(folder);
     } else {

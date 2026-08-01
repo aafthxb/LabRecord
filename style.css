@@ -333,11 +333,18 @@ box-shadow: var(--shadow-lg);
 
 @media (hover: hover){
     #editor-btn.is-unlocked:hover{
-        background: var(--surface);
-        color: var(--success);
+        background: var(--success);
         border-color: var(--success);
-        box-shadow: var(--shadow-md);
+        color: #fff;
+        box-shadow: var(--shadow-md), var(--glow-success);
+        transform: translate(-1px, -1px);
     }
+}
+
+#editor-btn.is-unlocked:active,
+#editor-btn.is-unlocked.is-pressed{
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 var(--border);
 }
 
 @media (prefers-reduced-motion: reduce){

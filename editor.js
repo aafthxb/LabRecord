@@ -232,7 +232,7 @@ function presetLanguage(lang) {
 
   State.selectedFolder = lang.folder;
   State.selectedLangEntry = langEntry;
-  $("step2-folder-label").textContent = lang.displayName;
+  updateEditorLanguageUI(lang);
   updateBatchFileInputHints();
 
   document.querySelectorAll(".lang-card").forEach((c) => {
@@ -356,8 +356,7 @@ function selectLanguage(lang, e) {
 
   State.selectedFolder = lang.folder;
   State.selectedLangEntry = langEntry;
-
-  $("step2-folder-label").textContent = lang.displayName;
+  updateEditorLanguageUI(lang);
   updateBatchFileInputHints();
 
   setTimeout(() => goToStep(2), 150);
@@ -438,6 +437,23 @@ function validateFilename() {
   statusEl.style.display = "block";
 
   updateNextEnabled();
+}
+
+function updateEditorLanguageUI(lang) {
+    const subtitle = $("editor-subtitle");
+    const input = $("filename-input");
+
+    subtitle.textContent =
+        `Upload screenshots or paste code to add a new ${lang.displayName} program.`;
+
+    const placeholders = {
+        "C": "e.g. BubbleSort.c",
+        "Java": "e.g. BubbleSort.java",
+        "Python": "e.g. bubble_sort.py"
+    };
+
+    input.placeholder =
+        placeholders[lang.displayName] || "e.g. MyProgram";
 }
 
 // Shared entry point for both the file <input> and pasted images, so
@@ -601,7 +617,7 @@ function showSingleReview() {
   State.batchMode = false;
   $("batch-review").style.display = "none";
   $("single-review").style.display = "block";
-  $("step3-save").textContent = "SAVE TO GITHUB";
+  $("step3-save").textContent = "SAVE";
 }
 
 // Skips OCR entirely — jumps straight to Step 3 with a blank textarea
@@ -1034,7 +1050,7 @@ function renderBatchList() {
 
   const saveBtn = $("step3-save");
   if (State.batchMode) {
-    saveBtn.textContent = `SAVE ${State.batchFiles.length} FILE${State.batchFiles.length === 1 ? "" : "S"} TO GITHUB`;
+    saveBtn.textContent =`SAVE ${State.batchFiles.length} FILE${State.batchFiles.length === 1 ? "" : "S"}`;
   }
 
   const errorBanner = $("batch-review-error");
@@ -1177,14 +1193,19 @@ async function saveProgram() {
     }
     State.searchIndex[State.selectedFolder].push({ file: State.filename });
 
+    saveBtn.textContent = "✓ SAVED!";
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     $("done-text").textContent = `Saved as ${data.path}.`;
+
     goToStep(4);
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.style.display = "block";
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = "SAVE TO GITHUB";
+    saveBtn.textContent = "SAVE";
   }
 }
 
@@ -1238,15 +1259,21 @@ async function saveBatchProgram() {
       State.searchIndex[State.selectedFolder].push({ file: filename });
     });
 
-    $("done-text").textContent =
-      `Saved ${data.committed.length} file${data.committed.length === 1 ? "" : "s"} in a single commit.`;
-    goToStep(4);
+    saveBtn.textContent = "✓ SAVED!";
+
+await new Promise(resolve => setTimeout(resolve, 1000));
+
+$("done-text").textContent =
+`Saved ${data.committed.length} file${data.committed.length === 1 ? "" : "s"} in a single save.`;
+
+goToStep(4);
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.style.display = "block";
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = `SAVE ${count} FILE${count === 1 ? "" : "S"} TO GITHUB`;
+    saveBtn.textContent =
+`SAVE ${count} FILE${count === 1 ? "" : "S"}`;
   }
 }
 

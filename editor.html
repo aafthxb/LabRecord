@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LabRecord – Editor</title>
+  <title>LabRecord – Add Program</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="/assets/icons/favicon.png">
   <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
@@ -37,9 +37,9 @@
       <header class="app-header">
         <div class="header-bar">
           <div>
-            <h1 class="app-title title-visible">LABRECORD EDITOR</h1>
-            <p class="app-subtitle" style="opacity:1;">
-              Scan handwritten/printed code, review it, and commit a new program.
+            <h1 class="app-title title-visible">ADD PROGRAM</h1>
+            <p id="editor-subtitle" class="app-subtitle" style="opacity:1;">
+              Upload screenshots or paste code to add a new program.
             </p>
           </div>
 
@@ -107,7 +107,7 @@
         <section class="step-panel" id="step-2">
           <h2 class="step-heading">File name &amp; code</h2>
 
-          <label class="field-label">File name (in <span id="step2-folder-label"></span>)</label>
+          <label class="field-label">File Name</label>
           <input id="filename-input" type="text" class="editor-input" placeholder="e.g. Bubble Sort.c" />
           <div id="filename-status" class="banner" style="display:none;"></div>
           <p class="field-hint">Only used for the two options below. Uploading multiple files keeps each file's own name instead.</p>
@@ -227,15 +227,15 @@
 
           <div class="btn-row">
             <button id="step3-back" class="action-btn">« BACK</button>
-            <button id="step3-save" class="action-btn run-btn">SAVE TO GITHUB</button>
+            <button id="step3-save" class="action-btn run-btn">SAVE</button>
           </div>
         </section>
 
         <!-- Step 4: Done -->
         <section class="step-panel" id="step-4">
-          <h2 class="step-heading">Committed 🎉</h2>
+          <h2 class="step-heading">Saved ✓</h2>
           <p class="field-hint" id="done-text"></p>
-          <p class="field-hint">GitHub Actions will regenerate the site's indexes automatically — give it a minute, then check the homepage.</p>
+          <p class="field-hint">Your program has been saved successfully. It should appear on the homepage in about a minute.</p>
           <div class="btn-row">
             <button id="done-menu-btn" class="action-btn">« BACK TO HOME</button>
             <button id="add-another" class="action-btn run-btn">ADD ANOTHER PROGRAM</button>

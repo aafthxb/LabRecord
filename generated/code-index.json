@@ -88,13 +88,6 @@
   "Java": [
     {
       "number": 1,
-      "file": "HelloWorld.java",
-      "path": "programs/Java/HelloWorld.java",
-      "code": "// Hello World\r\n// Print \"Hello, World!\" to the console.\r\n\r\npublic class HelloWorld {\r\n    public static void main(String[] args) {\r\n        System.out.println(\"Hello, World!\");\r\n    }\r\n}",
-      "search": "hello world print hello world to the console public class helloworld public static void main string args system out println hello world"
-    },
-    {
-      "number": 2,
       "file": "SumOfTwoNumbers.java",
       "path": "programs/Java/SumOfTwoNumbers.java",
       "code": "//Sum of two numbers\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class SumOfTwoNumbers {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter first number: \");\r\n        int num1 = sc.nextInt();\r\n\r\n        System.out.print(\"Enter second number: \");\r\n        int num2 = sc.nextInt();\r\n\r\n        int sum = num1 + num2;\r\n\r\n        System.out.println(\"Sum = \" + sum);\r\n\r\n        sc.close();\r\n    }\r\n}\r\n",

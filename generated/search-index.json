@@ -88,13 +88,6 @@
   "Java": [
     {
       "number": 1,
-      "file": "HelloWorld.java",
-      "path": "programs/Java/HelloWorld.java",
-      "title": "Hello World",
-      "description": "Print \"Hello, World!\" to the console."
-    },
-    {
-      "number": 2,
       "file": "SumOfTwoNumbers.java",
       "path": "programs/Java/SumOfTwoNumbers.java",
       "title": "Sum of two numbers",

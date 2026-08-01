@@ -25,7 +25,7 @@
       "number": 4,
       "file": "2.c",
       "path": "programs/C/2.c",
-      "title": "Largest of three numbers",
+      "title": "Largest of 3 numbers",
       "description": "C program to find the largest of three numbers"
     },
     {
@@ -47,7 +47,7 @@
       "file": "5.c",
       "path": "programs/C/5.c",
       "title": "Simple Calculator",
-      "description": "C program to implement a simple calculator using switch case"
+      "description": "C program to implement a simple calculator using switch"
     },
     {
       "number": 8,
@@ -60,28 +60,28 @@
       "number": 9,
       "file": "9.c",
       "path": "programs/C/9.c",
-      "title": "Addition using function",
+      "title": "Sum using function",
       "description": "Function with argument and without return value"
     },
     {
       "number": 10,
       "file": "10.c",
       "path": "programs/C/10.c",
-      "title": "Addition using function",
+      "title": "Sum using function",
       "description": "Function without argument and without return value"
     },
     {
       "number": 11,
       "file": "11.c",
       "path": "programs/C/11.c",
-      "title": "Addition using function",
+      "title": "Sum using function",
       "description": "Function without argument and with return value"
     },
     {
       "number": 12,
       "file": "12.c",
       "path": "programs/C/12.c",
-      "title": "Addition using function",
+      "title": "Sum using function",
       "description": "Function with argument and with return value"
     }
   ],

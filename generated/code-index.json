@@ -25,8 +25,8 @@
       "number": 4,
       "file": "2.c",
       "path": "programs/C/2.c",
-      "code": "//Largest of three numbers\r\n//C program to find the largest of three numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n    \r\n    printf(\"enter 3 numbers:\");\r\n    scanf(\"%d %d %d\", &a, &b, &c);\r\n    \r\n    if(a > b && a > c)\r\n    {\r\n        printf(\"first number is greater\");\r\n    }\r\n    else if(b > c && b > a)\r\n    {\r\n        printf(\"second number is greater\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"third is greater\");\r\n    }\r\n    \r\n    return 0;\r\n}",
-      "search": "largest of three numbers c program to find the largest of three numbers include stdio h int main int a b c printf enter 3 numbers scanf d d d a b c if a b a c printf first number is greater else if b c b a printf second number is greater else printf third is greater return 0"
+      "code": "//Largest of 3 numbers\r\n//C program to find the largest of three numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n    \r\n    printf(\"enter 3 numbers:\");\r\n    scanf(\"%d %d %d\", &a, &b, &c);\r\n    \r\n    if(a > b && a > c)\r\n    {\r\n        printf(\"first number is greater\");\r\n    }\r\n    else if(b > c && b > a)\r\n    {\r\n        printf(\"second number is greater\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"third is greater\");\r\n    }\r\n    \r\n    return 0;\r\n}\r\n",
+      "search": "largest of 3 numbers c program to find the largest of three numbers include stdio h int main int a b c printf enter 3 numbers scanf d d d a b c if a b a c printf first number is greater else if b c b a printf second number is greater else printf third is greater return 0"
     },
     {
       "number": 5,
@@ -46,8 +46,8 @@
       "number": 7,
       "file": "5.c",
       "path": "programs/C/5.c",
-      "code": "//Simple Calculator\r\n//C program to implement a simple calculator using switch case\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers:\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    printf(\"1=addition,2=substraction,3=production\\n\");\r\n    printf(\"enter your choice:1,2,3:\");\r\n    scanf(\"%d\", &c);\r\n\r\n    switch(c)\r\n    {\r\n        case 1:\r\n            c = a + b;\r\n            printf(\"sum of two number is:%d\", c);\r\n            break;\r\n\r\n        case 2:\r\n            c = a - b;\r\n            printf(\"substration of numbers is:%d\", c);\r\n            break;\r\n\r\n        case 3:\r\n            c = a * b;\r\n            printf(\"multiplication of numbers:%d\", c);\r\n            break;\r\n    }\r\n\r\n    return 0;\r\n}",
-      "search": "simple calculator c program to implement a simple calculator using switch case include stdio h int main int a b c printf enter two numbers scanf d d a b printf 1 addition 2 substraction 3 production n printf enter your choice 1 2 3 scanf d c switch c case 1 c a b printf sum of two number is d c break case 2 c a b printf substration of numbers is d c break case 3 c a b printf multiplication of numbers d c break return 0"
+      "code": "//Simple Calculator\r\n//C program to implement a simple calculator using switch\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers:\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    printf(\"1=addition,2=substraction,3=production\\n\");\r\n    printf(\"enter your choice:1,2,3:\");\r\n    scanf(\"%d\", &c);\r\n\r\n    switch(c)\r\n    {\r\n        case 1:\r\n            c = a + b;\r\n            printf(\"sum of two number is:%d\", c);\r\n            break;\r\n\r\n        case 2:\r\n            c = a - b;\r\n            printf(\"substration of numbers is:%d\", c);\r\n            break;\r\n\r\n        case 3:\r\n            c = a * b;\r\n            printf(\"multiplication of numbers:%d\", c);\r\n            break;\r\n    }\r\n\r\n    return 0;\r\n}\r\n",
+      "search": "simple calculator c program to implement a simple calculator using switch include stdio h int main int a b c printf enter two numbers scanf d d a b printf 1 addition 2 substraction 3 production n printf enter your choice 1 2 3 scanf d c switch c case 1 c a b printf sum of two number is d c break case 2 c a b printf substration of numbers is d c break case 3 c a b printf multiplication of numbers d c break return 0"
     },
     {
       "number": 8,
@@ -60,29 +60,29 @@
       "number": 9,
       "file": "9.c",
       "path": "programs/C/9.c",
-      "code": "//Addition using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}",
-      "search": "addition using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
+      "code": "//Sum using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
+      "search": "sum using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
     },
     {
       "number": 10,
       "file": "10.c",
       "path": "programs/C/10.c",
-      "code": "//Addition using function\r\n//Function without argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum();\r\n\r\nint main()\r\n{\r\n    sum();\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum()\r\n{\r\n    int a, b, c;\r\n    a = 10;\r\n    b = 20;\r\n    c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}",
-      "search": "addition using function function without argument and without return value include stdio h void sum int main sum return 0 void sum int a b c a 10 b 20 c a b printf sum is d c"
+      "code": "//Sum using function\r\n//Function without argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum();\r\n\r\nint main()\r\n{\r\n    sum();\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum()\r\n{\r\n    int a, b, c;\r\n    a = 10;\r\n    b = 20;\r\n    c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
+      "search": "sum using function function without argument and without return value include stdio h void sum int main sum return 0 void sum int a b c a 10 b 20 c a b printf sum is d c"
     },
     {
       "number": 11,
       "file": "11.c",
       "path": "programs/C/11.c",
-      "code": "//Addition using function\r\n//Function without argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum();\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum();\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum()\r\n{\r\n    int a, b, c;\r\n    a = 17;\r\n    b = 27;\r\n    c = a + b;\r\n    \r\n    return c;\r\n}",
-      "search": "addition using function function without argument and with return value include stdio h int sum int main int r r sum printf sum is d r return 0 int sum int a b c a 17 b 27 c a b return c"
+      "code": "//Sum using function\r\n//Function without argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum();\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum();\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum()\r\n{\r\n    int a, b, c;\r\n    a = 17;\r\n    b = 27;\r\n    c = a + b;\r\n    \r\n    return c;\r\n}\r\n",
+      "search": "sum using function function without argument and with return value include stdio h int sum int main int r r sum printf sum is d r return 0 int sum int a b c a 17 b 27 c a b return c"
     },
     {
       "number": 12,
       "file": "12.c",
       "path": "programs/C/12.c",
-      "code": "//Addition using function\r\n//Function with argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum(int, int);\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum(4, 7);\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum(int a, int b)\r\n{\r\n    int c;\r\n    c = a + b;\r\n\r\n    return c;\r\n}",
-      "search": "addition using function function with argument and with return value include stdio h int sum int int int main int r r sum 4 7 printf sum is d r return 0 int sum int a int b int c c a b return c"
+      "code": "//Sum using function\r\n//Function with argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum(int, int);\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum(4, 7);\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum(int a, int b)\r\n{\r\n    int c;\r\n    c = a + b;\r\n\r\n    return c;\r\n}\r\n",
+      "search": "sum using function function with argument and with return value include stdio h int sum int int int main int r r sum 4 7 printf sum is d r return 0 int sum int a int b int c c a b return c"
     }
   ],
   "Java": [

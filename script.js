@@ -537,12 +537,28 @@ function toggleCardDeletion(folder, filename, card, btn) {
     updateSaveBar(folder);
 }
 
+// Re-stamps every visible card's serial-badge (1, 2, 3…) to match its
+// current position in the DOM. Called after any local reorder/delete so
+// the numbers on screen always match what you'd see after a refresh,
+// without waiting on the backend regenerate + redeploy.
+function renumberCards(folder) {
+    const container = document.getElementById(`${folder}-container`);
+    if (!container) return;
+
+    Array.from(container.querySelectorAll(".program-card")).forEach((card, index) => {
+        card.dataset.number = String(index + 1);
+        const badge = card.querySelector(".serial-badge");
+        if (badge) badge.textContent = index + 1;
+    });
+}
+
 function syncOrderFromDom(folder) {
     const container = document.getElementById(`${folder}-container`);
     const order = Array.from(container.querySelectorAll(".program-card"))
         .map(c => c.dataset.filename);
 
     ensurePending(folder).order = order;
+    renumberCards(folder);
     updateSaveBar(folder);
 }
 
@@ -574,6 +590,8 @@ function initCardDrag(card, handle, folder) {
         } else {
             container.appendChild(card);
         }
+
+        renumberCards(folder);
     }
 
     function onPointerUp() {
@@ -680,6 +698,8 @@ async function saveChanges() {
         });
 
         App.edit.pending[folder] = { order: order.slice(), deletions: new Set(), edits: new Map() };
+
+        renumberCards(folder);
 
         // Sync every surviving card's edited-state badge, live preview,
         // and displayed source now that its edit (if any) is committed.
@@ -1028,7 +1048,10 @@ function setupSearch(search, folder) {
         let metadataMatches = 0;
         const matchedCards = [];
 
-        App.cards[folder].forEach(card => {
+        const container = document.getElementById(`${folder}-container`);
+        const domOrderCards = Array.from(container.querySelectorAll(".program-card"));
+
+        domOrderCards.forEach(card => {
 
             let match = false;
 
@@ -1139,11 +1162,17 @@ function setupSearch(search, folder) {
 
         }
 
-        matchedCards
-            .sort((a, b) => b.score - a.score)
-            .forEach(({ card }) => {
-                card.parentNode.appendChild(card);
-            });
+        domOrderCards.forEach(card => {
+            card.style.order = "";
+        });
+
+        if (query) {
+            matchedCards
+                .sort((a, b) => b.score - a.score)
+                .forEach(({ card }, index) => {
+                    card.style.order = index;
+                });
+        }
 
         status.textContent = query
             ? `Showing ${visible} of ${total} program${total !== 1 ? "s" : ""}`

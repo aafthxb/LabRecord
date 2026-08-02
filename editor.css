@@ -805,6 +805,56 @@ body.site-edit-mode .card-delete-btn {
   opacity: 0.35;
 }
 
+/* ---------- Inline per-card code editing ---------- */
+
+/* Small "EDITED" tag next to the file badge once a card's textarea
+   differs from its last-saved source — mirrors the pending-delete
+   treatment above, but non-destructive (nothing is struck through). */
+.edited-badge {
+  background: var(--warning);
+  color: #111;
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.program-card.pending-edit .card-header {
+  border-left: 4px solid var(--warning);
+}
+
+/* Small reminder shown above the textarea, only while a card is
+   expanded and editor mode is unlocked — this is the "small
+   indication that the file can be edited" called for instead of a
+   separate edit-mode toggle. */
+.code-edit-indicator {
+  display: none;
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 15px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* The editable textarea replacing the read-only <pre> inside a
+   program card's code-wrapper. Reuses .code-textarea's dark editor
+   look (defined above) but fits the program card's shorter, scrolling
+   code area instead of the wizard's full-page review step. */
+.card-code-textarea {
+  display: none;
+  min-height: 220px;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: hidden;
+  resize: none;
+}
+
 /* ---------- Floating bar for pending reorder/delete changes ---------- */
 
 @keyframes saveBarFadeIn {

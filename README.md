@@ -15,7 +15,7 @@ Organize programs by language, search instantly, copy code, and run programs onl
 
 Most Programming Lab Record websites require editing HTML, JavaScript, or configuration files whenever you add a new program.
 
-**This project is different.** Add, delete, and reorder programs straight from the website — no Git, no terminal, and no code editor required.
+**This project is different.** Add, edit, delete, and reorder programs straight from the website — no Git, no terminal, and no code editor required.
 
 * ✏️ A built-in **web editor** lets you add new programs from your phone or laptop — no GitHub website needed.
 * 📷 Snap a photo of handwritten or printed code and let OCR extract it for you.
@@ -23,8 +23,8 @@ Most Programming Lab Record websites require editing HTML, JavaScript, or config
 * 📄 A source file becomes a program card.
 * 🔍 Search indexes are generated automatically.
 * 🎨 Syntax highlighting is configured automatically.
-* 🗑️ Delete or reorder programs directly on the homepage.
-* 📱 Installable as a Progressive Web App (PWA) with offline support.
+* ✏️ Add, edit, delete, or reorder programs — including a program's code and its title/description comment lines — directly on the homepage.
+* 📱 Installable as a home-screen app via its PWA manifest.
 * 🚀 GitHub Actions regenerates the project.
 * 🌐 Vercel deploys the latest version automatically.
 
@@ -35,7 +35,7 @@ For most users, **no Git, Node.js, terminal, or programming setup is required �
 ## 🚀 Create Your Own Programming Lab Record
 
 > [!TIP]
-> If you've never used GitHub before, don't worry. Once deployed, everyday use — adding, deleting, reordering programs — happens entirely through the site's own editor.
+> If you've never used GitHub before, don't worry. Once deployed, everyday use — adding, editing, deleting, reordering programs — happens entirely through the site's own editor.
 
 ### Step 1 — Create Your Copy
 
@@ -74,7 +74,7 @@ Once deployed, everything happens on the site itself:
 
 * Click the **✏️ pencil icon** on the homepage and enter your access code to unlock editing tools.
 * Add new programs through the built-in editor (see below).
-* Delete or reorder existing programs directly on the homepage.
+* Edit, delete, or reorder existing programs directly on the homepage.
 * GitHub Actions updates the generated files and Vercel redeploys automatically after every change.
 
 No manual build steps, and no need to open GitHub.com at all — though you still can, if you'd rather upload files there directly (see [Adding Programs Manually](#-adding-programs-manually-optional) below).
@@ -91,18 +91,19 @@ Once unlocked, an **[ + ]** button appears whenever you're inside a language fol
 | :--- | :--- |
 | 📷 **Upload / paste screenshots** | Handwritten or printed code — photograph it (or paste a screenshot with Ctrl/Cmd+V) and OCR (via Tesseract.js) extracts the text for you to review and edit. |
 | ⌨️ **Paste / type code directly** | Skip OCR entirely and paste or type the program by hand. |
-| 📁 **Upload finished files** | Already have working source files? Select as many as you like — rename, reorder, and check each one's title/description on the review screen, then everything lands in **one commit**, so uploading 10 files doesn't trigger 10 separate GitHub Actions runs / Vercel deploys. |
+| 📁 **Upload finished files** | Already have working source files? Select up to 50 at a time — rename, reorder, and check each one's title/description on the review screen, then everything lands in **one commit**, so uploading 10 files doesn't trigger 10 separate GitHub Actions runs / Vercel deploys. |
 
 In every case, if a program's title/description comment isn't detected automatically, the review screen shows a box to fill them in and insert them at the top of the file for you.
 
-### Deleting & Reordering
+### Editing, Deleting & Reordering
 
 With editing tools unlocked, open any language folder on the homepage to:
 
+* **Edit** a program's code in place — expand its card and the read-only view turns into an editable textarea, including the first two comment lines that set its title and description.
 * **Delete** a program with one click.
 * **Reorder** programs by dragging them into place.
 
-Changes are staged locally first — a **Save Changes / Discard** bar appears at the bottom of the screen so you can review everything before committing. Saving applies all your deletions and the new order as a single commit.
+A card with changes not yet committed shows an **UNSAVED** badge. Changes are staged locally first — a **Save Changes / Discard** bar appears at the bottom of the screen so you can review everything before committing. Saving applies all your edits, deletions, and the new order as a single commit.
 
 ---
 
@@ -201,7 +202,7 @@ Every program card gets its title and description from the **first two comment l
 Only do this if the language is **not** already listed above (e.g., Rust, Go, Kotlin, Swift).
 
 > [!NOTE]
-> **The built-in web editor can't create a new language folder** — it only adds, deletes, and reorders programs inside languages that already exist. (Deletion is the one thing that works both ways: since Git doesn't track empty folders, deleting every program in a folder through the editor removes the folder itself. Creating one has no such shortcut — it has to be set up manually on GitHub, as below.)
+> **The built-in web editor can't create a new language folder** — it only adds, edits, deletes, and reorders programs inside languages that already exist. (Deletion is the one thing that works both ways: since Git doesn't track empty folders, deleting every program in a folder through the editor removes the folder itself. Creating one has no such shortcut — it has to be set up manually on GitHub, as below.)
 
 **Steps:**
 1. Create a new folder inside `programs/`.
@@ -244,7 +245,16 @@ Drag programs into place from the homepage's edit mode, or manually edit `genera
 ## 📁 Project Structure
 
     .
-    ├── api/              # Serverless functions powering the web editor (commit, delete, batch save, verify)
+    ├── .github/
+    │   └── workflows/
+    │       └── update-order.yml   # Regenerates generated/ and commits after every push to main
+    ├── api/              # Serverless functions powering the web editor
+    │   ├── commit.js         # Add one new file
+    │   ├── update.js         # Edit an existing file's content in place
+    │   ├── delete.js         # Delete one file
+    │   ├── batch-commit.js   # Add multiple new files in a single commit
+    │   ├── batch-save.js     # Apply edits + deletions + reorder in a single commit
+    │   └── verify.js         # Check the editor access code
     ├── assets/
     ├── generated/
     ├── programs/
@@ -258,10 +268,14 @@ Drag programs into place from the homepage's edit mode, or manually edit `genera
     │   └── languages.json
     ├── script.js
     ├── style.css
+    ├── sw.js             # Service worker
+    ├── site.webmanifest  # PWA manifest (install/home-screen metadata)
     ├── editor.html       # Add-a-program wizard (screenshots / paste / bulk upload)
     ├── editor.js
     ├── editor.css
     ├── index.html
+    ├── package.json
+    ├── LICENSE
     └── README.md
 
 ---

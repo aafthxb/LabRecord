@@ -129,8 +129,24 @@ function toggleTheme(event) {
 
 }
 
+// Collapses every built card in a folder back to its default state.
+// Called whenever the user leaves that folder's page (back to home, or
+// straight into a different folder), so a card left expanded doesn't
+// stay expanded the next time this folder is opened.
+function collapseAllCards(folder) {
+    (App.cards[folder] || []).forEach(card => {
+        card._editHandle?.collapse?.();
+    });
+}
+
 function openFolder(folder, event) {
     runWithTactileDelay(event, () => {
+
+        // Leaving whichever folder (if any) was open before this one —
+        // collapse its cards now so they're reset if the user comes back.
+        if (App.currentFolder && App.currentFolder !== folder) {
+            collapseAllCards(App.currentFolder);
+        }
 
         App.currentFolder = folder;
 
@@ -155,6 +171,19 @@ function openFolder(folder, event) {
             const language = App.languageIndex.find(l => l.folder === folder);
             loadFolder(folder, `${folder}-container`, language?.compiler);
             App.builtFolders.add(folder);
+        } else {
+            // Cards for this folder already exist in the DOM from a
+            // previous visit. If a card was left expanded in its
+            // editable (textarea) view and editor mode was then
+            // switched off while a *different* folder (or the home
+            // screen) was current, that card never got told to switch
+            // back — setEditMode() only re-syncs whichever folder is
+            // open at the moment the mode toggles. Re-syncing every
+            // card here, on every open, covers that case regardless of
+            // what happened while this folder was in the background.
+            (App.cards[folder] || []).forEach(card => {
+                card._editHandle?.syncMode();
+            });
         }
 
         activeContainer.classList.add("active");
@@ -187,6 +216,10 @@ function openFolder(folder, event) {
 
 function showHome(event) {
   runWithTactileDelay(event, () => {
+    if (App.currentFolder) {
+        collapseAllCards(App.currentFolder);
+    }
+
     const home = document.getElementById("home-view");
 
     home.style.display = "grid";
@@ -245,10 +278,66 @@ function ensurePending(folder) {
     if (!App.edit.pending[folder]) {
         App.edit.pending[folder] = {
             order: getPrograms(folder).map(p => p.file),
-            deletions: new Set()
+            deletions: new Set(),
+            edits: new Map() // filename -> staged new code, not yet committed
         };
     }
     return App.edit.pending[folder];
+}
+
+function getPendingEdit(folder, filename) {
+    return App.edit.pending[folder]?.edits?.get(filename);
+}
+
+// Mirrors the title/description extraction in scripts/generate-index.js
+// exactly (same comment-prefix stripping, same 2-line cutoff) so the
+// card preview matches what the generator will derive once this code
+// is actually committed.
+function extractTitleDescription(code) {
+    const lines = code.split(/\r?\n/);
+    const commentLines = [];
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!trimmed) continue;
+
+        if (
+            trimmed.startsWith("//") ||
+            trimmed.startsWith("/*") ||
+            trimmed.startsWith("*")
+        ) {
+            const cleanLine = trimmed
+                .replace(/^\/\/\s*/, "")
+                .replace(/^\/\*\s*/, "")
+                .replace(/\*\/$/, "")
+                .replace(/^\*\s*/, "")
+                .trim();
+
+            if (cleanLine.length > 0) commentLines.push(cleanLine);
+            if (commentLines.length === 2) break;
+        } else {
+            break;
+        }
+    }
+
+    return {
+        title: commentLines[0] || null,
+        description: commentLines[1] || ""
+    };
+}
+
+// True if anything is staged (reorder, deletion, or edit) in any folder
+// that hasn't been committed via SAVE CHANGES yet.
+function hasUnsavedEdits() {
+    return Object.entries(App.edit.pending).some(([folder, pending]) => {
+        if (!pending) return false;
+        if (pending.deletions.size > 0) return true;
+        if (pending.edits.size > 0) return true;
+
+        const original = getPrograms(folder).map(p => p.file);
+        return JSON.stringify(pending.order) !== JSON.stringify(original);
+    });
 }
 
 // Shows/hides the "+" button and the pending-changes save bar to match
@@ -281,6 +370,13 @@ function setEditMode(on, code) {
     editorBtn.setAttribute("aria-label", on ? "Exit editor mode" : "Toggle editor access");
 
     refreshEditUI();
+
+    // Flip any already-expanded, already-loaded cards in the current
+    // folder between their read-only view and their editable textarea
+    // to match the mode that was just switched to.
+    (App.cards[App.currentFolder] || []).forEach(card => {
+        card._editHandle?.syncMode();
+    });
 }
 
 // Fades a .modal-overlay in/out (see the is-visible transition in
@@ -403,8 +499,9 @@ function updateSaveBar(folder) {
     const hasReorder =
         JSON.stringify(survivingPending) !== JSON.stringify(survivingOriginal);
     const hasDeletions = pending.deletions.size > 0;
+    const hasEdits = pending.edits.size > 0;
 
-    if (!hasReorder && !hasDeletions) {
+    if (!hasReorder && !hasDeletions && !hasEdits) {
         bar.style.display = "none";
         return;
     }
@@ -412,6 +509,9 @@ function updateSaveBar(folder) {
     const parts = [];
     if (hasDeletions) {
         parts.push(`${pending.deletions.size} file${pending.deletions.size === 1 ? "" : "s"} marked for deletion`);
+    }
+    if (hasEdits) {
+        parts.push(`${pending.edits.size} file${pending.edits.size === 1 ? "" : "s"} edited`);
     }
     if (hasReorder) {
         parts.push("order changed");
@@ -512,6 +612,12 @@ async function saveChanges() {
 
     const order = pending.order.filter(f => !pending.deletions.has(f));
     const deletions = Array.from(pending.deletions);
+    // A file marked for deletion can't also be edited in the same
+    // commit — the server drops such edits too, but filtering here
+    // keeps the payload (and the post-save bookkeeping below) honest.
+    const edits = Array.from(pending.edits.entries())
+        .filter(([filename]) => !pending.deletions.has(filename))
+        .map(([filename, code]) => ({ filename, code }));
 
     try {
         const res = await fetch("/api/batch-save", {
@@ -521,7 +627,8 @@ async function saveChanges() {
                 accessCode: App.edit.code,
                 folder,
                 order,
-                deletions
+                deletions,
+                edits
             })
         });
 
@@ -539,15 +646,47 @@ async function saveChanges() {
         // deletions removed) — updateSaveBar() diffs getPrograms(folder)
         // against the pending order to decide whether anything is still
         // unsaved, so if this stays in the old order the bar never
-        // clears after a successful reorder-only save.
+        // clears after a successful reorder-only save. Edited files also
+        // get their title/description re-derived from their new first
+        // two comment lines, mirroring what the generator will do.
+        const editsByFile = new Map(edits.map(e => [e.filename, e.code]));
         const metadataByFile = new Map(
             (App.metadata[folder] || []).map(p => [p.file, p])
         );
+
         App.metadata[folder] = order
-            .map(file => metadataByFile.get(file))
+            .map(file => {
+                const existing = metadataByFile.get(file);
+                if (!existing) return null;
+
+                const newCode = editsByFile.get(file);
+                if (newCode === undefined) return existing;
+
+                const extracted = extractTitleDescription(newCode);
+                return {
+                    ...existing,
+                    title: extracted.title || existing.file,
+                    description: extracted.description || ""
+                };
+            })
             .filter(Boolean);
 
-        App.edit.pending[folder] = { order: order.slice(), deletions: new Set() };
+        // Keep the in-memory code cache in sync so re-expanding a card
+        // (or hitting COPY / RUN PROGRAM) shows the just-saved content
+        // instead of re-fetching the pre-edit version.
+        editsByFile.forEach((code, file) => {
+            const program = (App.metadata[folder] || []).find(p => p.file === file);
+            if (program) App.loadedPrograms.set(program.path, code);
+        });
+
+        App.edit.pending[folder] = { order: order.slice(), deletions: new Set(), edits: new Map() };
+
+        // Sync every surviving card's edited-state badge, live preview,
+        // and displayed source now that its edit (if any) is committed.
+        (App.cards[folder] || []).forEach(card => {
+            card._editHandle?.onSaved(editsByFile.get(card.dataset.filename));
+        });
+
         updateSaveBar(folder);
     } catch (err) {
         alert("Couldn't save changes: " + err.message);
@@ -1069,6 +1208,7 @@ function createProgramCard(program, lang) {
                 <span class="file-badge">
                     [ ${program.file} ]
                 </span>
+                <span class="edited-badge" title="Edited but not saved yet" style="display:none;">UNSAVED</span>
 
                 <p class="card-subtitle">
                     ${program.description || ""}
@@ -1115,6 +1255,20 @@ pre.appendChild(codeElement);
 
 codeWrapper.appendChild(pre);
 
+// Shown instead of `pre` whenever editor mode is unlocked — a plain
+// textarea (same as the wizard's review-step editor) that IS the
+// program's source. There's no separate "enable editing" step: typing
+// here stages the change directly. The textarea is built lazily, the
+// first time it's actually needed.
+const editIndicator = document.createElement("div");
+editIndicator.className = "code-edit-indicator";
+editIndicator.textContent =
+    "✎ Editable — first two comment lines set the title & description.";
+editIndicator.style.display = "none";
+codeWrapper.appendChild(editIndicator);
+
+let textarea = null;
+
 card.appendChild(codeWrapper);
 
 const editorWrapper = document.createElement("div");
@@ -1129,6 +1283,7 @@ const copyBtn = card.querySelector(".action-btn:not(.card-delete-btn)");
 const runBtn = card.querySelector(".run-btn");
 const titleText = card.querySelector(".program-title-text");
 const fileBadge = card.querySelector(".file-badge");
+const editedBadge = card.querySelector(".edited-badge");
 const subtitle = card.querySelector(".card-subtitle");
 const codeMatchBadge =
     card.querySelector(".code-match-badge");
@@ -1142,6 +1297,149 @@ card.originalContent = {
 
 let loaded = false;
 let skeleton = null;
+let originalSource = null; // last-known saved source, set once loaded
+
+// ---- Inline edit support ----
+
+function currentDraft() {
+    return getPendingEdit(cardFolder, program.file);
+}
+
+// Re-derives title/description from `code` the same way the generator
+// will, and reflects it in the card header immediately — so editing
+// the first two comment lines previews the new title/description
+// right away, without waiting for a commit + regenerated index.
+function applyPreview(code) {
+    const extracted = extractTitleDescription(code);
+    const title = extracted.title || program.file;
+    const description = extracted.description || "";
+
+    titleText.textContent = title;
+    subtitle.textContent = description;
+
+    card.originalContent.title = title;
+    card.originalContent.description = description;
+
+    card.dataset.title = title.toLowerCase();
+    card.dataset.description = description.toLowerCase();
+    card.dataset.search = [title, program.file, description].join(" ").toLowerCase();
+}
+
+function markEditedState() {
+    const hasEdit = currentDraft() !== undefined;
+    card.classList.toggle("pending-edit", hasEdit);
+    editedBadge.style.display = hasEdit ? "inline-block" : "none";
+}
+
+function stageEdit(newCode) {
+    const pending = ensurePending(cardFolder);
+
+    if (newCode === originalSource) {
+        pending.edits.delete(program.file);
+    } else {
+        pending.edits.set(program.file, newCode);
+    }
+
+    markEditedState();
+    applyPreview(newCode);
+    updateSaveBar(cardFolder);
+}
+
+// Grows the textarea to fit its content so it never scrolls
+// internally — the surrounding .code-wrapper (which also holds the
+// edit indicator above it) is the only scroll region, so scrolling
+// the code and scrolling past the indicator are the same motion.
+function autoGrowTextarea(ta) {
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+}
+
+function ensureTextarea() {
+    if (textarea) return textarea;
+
+    textarea = document.createElement("textarea");
+    textarea.className = "code-textarea card-code-textarea";
+    textarea.spellcheck = false;
+    textarea.addEventListener("input", () => {
+        stageEdit(textarea.value);
+        autoGrowTextarea(textarea);
+    });
+    codeWrapper.appendChild(textarea);
+
+    return textarea;
+}
+
+function showEditableView(code) {
+    pre.style.display = "none";
+    editIndicator.style.display = "block";
+
+    const ta = ensureTextarea();
+    ta.style.display = "block";
+    if (ta.value !== code) ta.value = code;
+    autoGrowTextarea(ta);
+}
+
+function showReadOnlyView(code) {
+    if (textarea) textarea.style.display = "none";
+    editIndicator.style.display = "none";
+    pre.style.display = "block";
+
+    if (codeElement.textContent !== code) {
+        codeElement.textContent = code;
+        Prism.highlightElement(codeElement);
+    }
+}
+
+// Shows whichever view (read-only highlighted code, or the editable
+// textarea) matches the current editor-mode lock state, with whatever
+// content is currently "effective" — the staged draft if one exists,
+// otherwise the last-saved source.
+function renderCodeView() {
+    if (!loaded) return;
+
+    const draft = currentDraft();
+    const code = draft !== undefined ? draft : originalSource;
+
+    if (App.edit.unlocked) {
+        showEditableView(code);
+    } else {
+        showReadOnlyView(code);
+    }
+}
+
+async function getEffectiveCode() {
+    const draft = currentDraft();
+    if (draft !== undefined) return draft;
+    return loadProgramCode(program, lang);
+}
+
+// Called from saveChanges() right after a successful commit.
+// `newCode` is this card's just-committed content, or undefined if
+// this file wasn't part of the save.
+function onSaved(newCode) {
+    if (newCode !== undefined) {
+        originalSource = newCode;
+        applyPreview(newCode);
+    }
+    markEditedState();
+    renderCodeView();
+}
+
+function collapse() {
+    if (card.classList.contains("collapsed")) return;
+    card.classList.add("collapsed");
+    expandIcon.textContent = "▼";
+    if (editorWrapper.classList.contains("active")) {
+        editorWrapper.classList.remove("active");
+        runBtn.textContent = "RUN PROGRAM ▶";
+    }
+}
+
+card._editHandle = {
+    syncMode: renderCodeView,
+    onSaved,
+    collapse
+};
 
 header.onclick = (e) => {
 
@@ -1163,7 +1461,11 @@ if (collapsed) {
     return;
 }
 
-if (loaded) return;
+if (loaded) {
+    renderCodeView();
+    return;
+}
+
 skeleton = document.createElement("div");
 skeleton.className = "code-skeleton";
 
@@ -1180,14 +1482,14 @@ pre.style.display = "none";
 codeWrapper.insertBefore(skeleton, pre);
 const source = await loadProgramCode(program, lang);
 
-codeElement.textContent = source;
-
-skeleton.style.display = "none";
-pre.style.display = "block";
-
-Prism.highlightElement(codeElement);
-
+originalSource = source;
 loaded = true;
+
+skeleton.remove();
+skeleton = null;
+
+renderCodeView();
+markEditedState();
 
     }, card);
 
@@ -1210,7 +1512,7 @@ copyBtn.onclick = (e) => {
 
         try {
 
-            const source = await loadProgramCode(program, lang);
+            const source = await getEffectiveCode();
 
             await copyToClipboard(source, codeElement);
 
@@ -1246,21 +1548,22 @@ runBtn.onclick = (e) => {
             expandIcon.textContent = "▲";
         }
 
-        const source = await loadProgramCode(program, lang);
+        const source = await getEffectiveCode();
 
         if (!loaded) {
-            codeElement.textContent = source;
+            // Safe: a draft can't exist before the code has been loaded
+            // at least once, so `source` here is the freshly-fetched
+            // original — no need to fetch it a second time.
+            originalSource = source;
+            loaded = true;
 
-if (skeleton) {
-    skeleton.remove();
-    skeleton = null;
-}
+            renderCodeView();
+            markEditedState();
 
-pre.style.display = "block";
-
-Prism.highlightElement(codeElement);
-
-loaded = true;
+            if (skeleton) {
+                skeleton.remove();
+                skeleton = null;
+            }
         }
 
         if (editorWrapper.classList.contains("active")) {
@@ -1496,6 +1799,15 @@ document.getElementById("add-program-btn")
     .addEventListener("click", (event) => {
         event.currentTarget.classList.add("is-departing");
     });
+
+// Warn before leaving the tab if a reorder, deletion, or in-progress
+// edit hasn't been committed via SAVE CHANGES yet.
+window.addEventListener("beforeunload", (event) => {
+    if (!App.edit.unlocked) return;
+    if (!hasUnsavedEdits()) return;
+    event.preventDefault();
+    event.returnValue = "";
+});
 
 if ("serviceWorker" in navigator) {
 

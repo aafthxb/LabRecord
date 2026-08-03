@@ -1309,6 +1309,18 @@ function createProgramCard(program, lang) {
     const header = document.createElement("div");
     header.className = "card-header";
 
+    // program.title / program.file / program.description come straight
+    // from a source file's first two comment lines (see
+    // scripts/generate-index.js) — i.e. from anyone with editor or push
+    // access, not from us. This template runs on every card build
+    // (every time a folder is opened), not just while searching, so
+    // these MUST be escaped here — the escaping in highlightText() only
+    // covers the later search-highlight re-render, not this initial
+    // render.
+    const safeTitle = escapeHtml(program.title);
+    const safeFile = escapeHtml(program.file);
+    const safeDescription = escapeHtml(program.description || "");
+
     header.innerHTML = `
         <div class="card-left">
 
@@ -1320,17 +1332,17 @@ function createProgramCard(program, lang) {
                     <span class="serial-badge">${program.number}</span>
 
                     <span class="program-title-text">
-                        ${program.title}
+                        ${safeTitle}
                     </span>
                 </h3>
 
                 <span class="file-badge">
-                    [ ${program.file} ]
+                    [ ${safeFile} ]
                 </span>
                 <span class="edited-badge" title="Edited but not saved yet" style="display:none;">UNSAVED</span>
 
                 <p class="card-subtitle">
-                    ${program.description || ""}
+                    ${safeDescription}
                 </p>
                 <div class="code-match-badge">
     Found in source code
@@ -1705,6 +1717,13 @@ runBtn.onclick = (e) => {
 
             editorWrapper.appendChild(iframe);
 
+            // Only the code sent to OneCompiler gets the Turbo-C cleanup
+            // (stripping conio.h/getch()/clrscr() and swapping in
+            // "int main()") — this is a throwaway copy used just for
+            // running the program, never fed back into `source`, the
+            // cache, the editor textarea, or a commit.
+            const runSource = lang === "c" ? cleanTurboC(source) : source;
+
             const populate = () => {
 
                 iframe.contentWindow.postMessage({
@@ -1712,7 +1731,7 @@ runBtn.onclick = (e) => {
                     language: lang,
                     files: [{
                         name: program.file,
-                        content: source
+                        content: runSource
                     }]
                 }, "*");
 
@@ -1741,12 +1760,14 @@ runBtn.onclick = (e) => {
 
             runBtn.classList.add("is-loading");
 
+            const runSource = lang === "c" ? cleanTurboC(source) : source;
+
             iframe.contentWindow.postMessage({
                 eventType: "populateCode",
                 language: lang,
                 files: [{
                     name: program.file,
-                    content: source
+                    content: runSource
                 }]
             }, "*");
 
@@ -1780,9 +1801,16 @@ async function loadProgramCode(program, lang) {
 
     let code = await response.text();
 
-    if (lang === "c") {
-        code = cleanTurboC(code);
-    }
+    // NOTE: cleanTurboC() is deliberately NOT applied here. This cached
+    // value is also used as the baseline for the inline editor (what a
+    // saved edit is diffed against and ultimately re-committed as), so
+    // stripping Turbo-C constructs at this point meant saving any
+    // unrelated edit to a C program silently deleted its
+    // #include <conio.h> / getch() / clrscr() calls from the actual repo
+    // file. The Turbo-C cleanup is only needed so old-style C can run in
+    // OneCompiler's modern GCC — it's applied there instead, right
+    // before the code is sent to the runner, leaving the cached/edited/
+    // copied source untouched.
 
     App.loadedPrograms.set(program.path, code);
 

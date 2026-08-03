@@ -36,23 +36,7 @@
 // file's title/description from whatever its first two comment lines
 // now say.
 
-function sanitizeFilename(name) {
-  if (typeof name !== "string") return null;
-  const trimmed = name.trim();
-  if (!trimmed) return null;
-  if (/[\/\\]/.test(trimmed)) return null;      // no path separators
-  if (trimmed.includes("..")) return null;      // no traversal
-  if (/[\x00-\x1f]/.test(trimmed)) return null; // no control chars
-  if (trimmed.length > 200) return null;
-  return trimmed;
-}
-
-function sanitizeFolder(folder) {
-  if (typeof folder !== "string") return null;
-  if (/[\/\\]/.test(folder)) return null;
-  if (folder.includes("..")) return null;
-  return folder;
-}
+const { sanitizeFilename, sanitizeFolder } = require("./_lib");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {

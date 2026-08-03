@@ -40,6 +40,21 @@ function el(tag, className, html) {
   return e;
 }
 
+// Escapes HTML special characters. Needed anywhere a title/description
+// (or anything else pulled from a submitted file's content) gets built
+// into an HTML string for innerHTML — those values are just whatever
+// text was in the file, not markup, and must never be interpreted as
+// tags/attributes. All the other el(...) calls in this file pass in
+// static strings we wrote ourselves, so they don't need this.
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Shows a section with the same fade/slide-up entrance the homepage
 // uses when opening a language folder (.view-enter, defined in
 // style.css) — restarts the animation even if it's already visible.
@@ -893,9 +908,12 @@ function validateBatchFilename(rawName, existingLower, seenCounts) {
 }
 
 function batchFilePreviewHtml(title, description) {
+  const safeTitle = title ? escapeHtml(title) : "— not detected —";
+  const safeDescription = description ? escapeHtml(description) : "— not detected —";
+
   return `
-    <div><strong>Title:</strong> ${title || "— not detected —"}</div>
-    <div><strong>Description:</strong> ${description || "— not detected —"}</div>
+    <div><strong>Title:</strong> ${safeTitle}</div>
+    <div><strong>Description:</strong> ${safeDescription}</div>
   `;
 }
 
@@ -1038,7 +1056,11 @@ function renderBatchList() {
 
     item.appendChild(head);
     if (entry.error) {
-      item.appendChild(el("div", "batch-file-error-text", entry.error));
+      // entry.error can echo back the raw filename the person picked
+      // (e.g. `"<name>" already exists in ...`) — that filename came
+      // straight from their own file picker, so escape before it goes
+      // into innerHTML the same way title/description do above.
+      item.appendChild(el("div", "batch-file-error-text", escapeHtml(entry.error)));
     }
     item.appendChild(meta);
     if (helperBox) item.appendChild(helperBox);

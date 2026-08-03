@@ -290,29 +290,56 @@ function getPendingEdit(folder, filename) {
 }
 
 // Mirrors the title/description extraction in scripts/generate-index.js
-// exactly (same comment-prefix stripping, same 2-line cutoff) so the
-// card preview matches what the generator will derive once this code
-// is actually committed.
-function extractTitleDescription(code) {
+// (and editor.js's parseTitleDescription) so the card preview matches
+// what the generator will derive once this code is actually committed.
+//
+// `folder` selects that language's comment markers from
+// App.languageIndex (populated from languages.json's `comments` field),
+// the same source generate-index.js and editor.js already read from.
+// This used to be hardcoded to "//" and "/* */" only, which silently
+// misparsed languages with different comment syntax (e.g. Python's "#")
+// whenever a file was edited inline on the homepage — falls back to the
+// C-style default if `folder` is omitted or unrecognized.
+function extractTitleDescription(code, folder) {
     const lines = code.split(/\r?\n/);
     const commentLines = [];
+
+    const language = folder != null
+        ? App.languageIndex.find(l => l.folder === folder)
+        : null;
+
+    const lineMarkers = (language?.comments?.line) || ["//"];
+    const blockMarkers = (language?.comments?.block) || ["/*", "*/"];
+    const [blockOpen, blockClose] = blockMarkers;
 
     for (const line of lines) {
         const trimmed = line.trim();
 
         if (!trimmed) continue;
 
-        if (
-            trimmed.startsWith("//") ||
-            trimmed.startsWith("/*") ||
-            trimmed.startsWith("*")
-        ) {
-            const cleanLine = trimmed
-                .replace(/^\/\/\s*/, "")
-                .replace(/^\/\*\s*/, "")
-                .replace(/\*\/$/, "")
-                .replace(/^\*\s*/, "")
-                .trim();
+        const isLineComment = lineMarkers.some(marker => trimmed.startsWith(marker));
+        const isBlockComment =
+            blockOpen && (trimmed.startsWith(blockOpen) || trimmed.startsWith("*"));
+
+        if (isLineComment || isBlockComment) {
+            let cleanLine = trimmed;
+
+            for (const marker of lineMarkers) {
+                if (cleanLine.startsWith(marker)) {
+                    cleanLine = cleanLine.slice(marker.length).trim();
+                    break;
+                }
+            }
+
+            if (blockOpen && cleanLine.startsWith(blockOpen)) {
+                cleanLine = cleanLine.slice(blockOpen.length).trim();
+            }
+            if (blockClose && cleanLine.endsWith(blockClose)) {
+                cleanLine = cleanLine.slice(0, -blockClose.length).trim();
+            }
+            if (blockOpen && cleanLine.startsWith("*")) {
+                cleanLine = cleanLine.slice(1).trim();
+            }
 
             if (cleanLine.length > 0) commentLines.push(cleanLine);
             if (commentLines.length === 2) break;
@@ -722,7 +749,7 @@ async function saveChanges() {
                 const newCode = editsByFile.get(file);
                 if (newCode === undefined) return existing;
 
-                const extracted = extractTitleDescription(newCode);
+                const extracted = extractTitleDescription(newCode, folder);
                 return {
                     ...existing,
                     title: extracted.title || existing.file,
@@ -1030,12 +1057,33 @@ container.appendChild(noResults);
         noResults
     };
 }
+// Escapes HTML special characters so arbitrary text (e.g. a program's
+// title/description, which comes straight from a source file's comment
+// lines and is therefore attacker-controlled by anyone with commit or
+// editor access) can never be interpreted as markup when later injected
+// via innerHTML. Must run BEFORE highlightText wraps a match in <mark>,
+// never after — escaping after would also escape the <mark> tags.
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function highlightText(text, keywords) {
 
-    if (!keywords.length)
-        return text;
+    // Escape first, then highlight — the returned string is only ever
+    // safe to assign to .innerHTML because every character from `text`
+    // itself has been neutralized; only the <mark> tags we add below are
+    // real markup.
+    const safeText = escapeHtml(text);
 
-    let highlighted = text;
+    if (!keywords.length)
+        return safeText;
+
+    let highlighted = safeText;
 
     keywords.forEach(word => {
 
@@ -1381,7 +1429,7 @@ function currentDraft() {
 // the first two comment lines previews the new title/description
 // right away, without waiting for a commit + regenerated index.
 function applyPreview(code) {
-    const extracted = extractTitleDescription(code);
+    const extracted = extractTitleDescription(code, cardFolder);
     const title = extracted.title || program.file;
     const description = extracted.description || "";
 

@@ -141,10 +141,10 @@ You only manage your program files — through the site's editor or directly on 
 
 The following languages are already configured.
 
-| Language | Folder | Extension | Configuration Needed? |
+| Language | Folder | Extensions | Configuration Needed? |
 | :--- | :--- | :--- | :--- |
 | **C** | `programs/C/` | `.c` | ❌ No |
-| **C++** | `programs/CPP/` | `.cpp` | ❌ No |
+| **C++** | `programs/CPP/` | `.cpp`, `.cc`, `.cxx` | ❌ No |
 | **Java** | `programs/Java/` | `.java` | ❌ No |
 | **JavaScript** | `programs/JavaScript/` | `.js` | ❌ No |
 | **Python** | `programs/Python/` | `.py` | ❌ No |
@@ -249,12 +249,13 @@ Drag programs into place from the homepage's edit mode, or manually edit `genera
     │   └── workflows/
     │       └── update-order.yml   # Regenerates generated/ and commits after every push to main
     ├── api/              # Serverless functions powering the web editor
-    │   ├── commit.js         # Add one new file
-    │   ├── update.js         # Edit an existing file's content in place
-    │   ├── delete.js         # Delete one file
-    │   ├── batch-commit.js   # Add multiple new files in a single commit
-    │   ├── batch-save.js     # Apply edits + deletions + reorder in a single commit
-    │   └── verify.js         # Check the editor access code
+    │   ├── _lib.js            # Shared helpers (sanitizing, languages.json loading/lookup) used by every endpoint below
+    │   ├── commit.js          # Add one new file
+    │   ├── update.js          # Edit an existing file's content in place
+    │   ├── delete.js          # Delete one file
+    │   ├── batch-commit.js    # Add multiple new files in a single commit
+    │   ├── batch-save.js      # Apply edits + deletions + reorder in a single commit
+    │   └── verify.js          # Check the editor access code
     ├── assets/
     ├── generated/
     ├── programs/

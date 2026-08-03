@@ -10,7 +10,7 @@ const EDITOR_SESSION_KEY = "lr_editor_session_code";
 const State = {
   languages: null,      // generated/language-index.json content (array)
   languageIndex: [],    // generated/language-index.json content
-  searchIndex: {},      // generated/search-index.json content (for duplicate checks + Manage Files)
+  searchIndex: {},      // generated/search-index.json content (for duplicate checks against existing filenames)
   selectedFolder: null, // e.g. "C"
   selectedLangEntry: null, // matching entry from State.languages
   filename: "",
@@ -1241,8 +1241,8 @@ async function saveProgram() {
       throw new Error(data.error || "Unknown error");
     }
 
-    // Keep the local file list in sync so Manage Files reflects the
-    // new file without needing a refetch.
+    // Keep the local file list in sync so the next duplicate-filename
+    // check sees this file without needing a refetch.
     if (!State.searchIndex[State.selectedFolder]) {
       State.searchIndex[State.selectedFolder] = [];
     }

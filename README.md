@@ -226,7 +226,7 @@ Delete it from the homepage's edit mode, or delete the source file directly on G
 Git doesn't track empty folders, so once the last program inside a language folder is gone, the folder itself is gone too — no separate "delete folder" step exists or is needed.
 
 You can get there either way:
-* **From the website:** delete every program in that folder through the editor (one at a time, or via **Manage Files**). Once it's empty, the folder — and the homepage's language button for it — disappears on the next deploy.
+* **From the website:** open that folder in edit mode and delete each program from its card, one at a time. Once it's empty, the folder — and the homepage's language button for it — disappears on the next deploy.
 * **On GitHub:** delete the folder directly.
 
 ✅ The homepage language button disappears.

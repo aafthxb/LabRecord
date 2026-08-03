@@ -12,7 +12,16 @@
     ],
     "extensions": [
       ".c"
-    ]
+    ],
+    "comments": {
+      "line": [
+        "//"
+      ],
+      "block": [
+        "/*",
+        "*/"
+      ]
+    }
   },
   {
     "id": "java",
@@ -27,6 +36,15 @@
     ],
     "extensions": [
       ".java"
-    ]
+    ],
+    "comments": {
+      "line": [
+        "//"
+      ],
+      "block": [
+        "/*",
+        "*/"
+      ]
+    }
   }
 ]

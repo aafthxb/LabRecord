@@ -33,7 +33,26 @@ function $(id) {
   return document.getElementById(id);
 }
 
-function el(tag, className, html) {
+// el(tag, className, text) — `text` is always set via textContent, so
+// whatever string you pass can never be interpreted as markup. This is
+// the one to reach for anywhere the string might ultimately trace back
+// to user- or file-supplied content (a filename, a title, an error
+// message that echoes one back, etc.) — which in this editor is most
+// places.
+function el(tag, className, text) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+// elHtml(tag, className, html) — the explicit "this is real markup"
+// escape hatch, for the rare case where the string itself contains
+// tags we want rendered (e.g. batchFilePreviewHtml()'s <strong>
+// labels). Anything user/file-derived interpolated into that markup
+// must already be escaped by the caller before it reaches here — never
+// pass raw user content into this directly.
+function elHtml(tag, className, html) {
   const e = document.createElement(tag);
   if (className) e.className = className;
   if (html !== undefined) e.innerHTML = html;
@@ -594,7 +613,13 @@ function moveImage(index, delta) {
 }
 
 function removeImage(index) {
-  State.images.splice(index, 1);
+  // Each image's url was created with URL.createObjectURL() in
+  // addImageFiles() — that blob stays alive in memory for the life of
+  // the tab unless explicitly revoked, so release it here rather than
+  // just dropping our only reference to it.
+  const [removed] = State.images.splice(index, 1);
+  if (removed) URL.revokeObjectURL(removed.url);
+
   renderImageList();
   updateImageInputStatus();
   updateNextEnabled();
@@ -1023,7 +1048,7 @@ function renderBatchList() {
     head.appendChild(removeBtn);
 
     let { title, description } = parseTitleDescription(entry.code);
-    const meta = el("div", "batch-file-meta", batchFilePreviewHtml(title, description));
+    const meta = elHtml("div", "batch-file-meta", batchFilePreviewHtml(title, description));
 
     let helperBox = title ? null : buildBatchFileHelper(entry, () => renderBatchList());
 
@@ -1057,10 +1082,9 @@ function renderBatchList() {
     item.appendChild(head);
     if (entry.error) {
       // entry.error can echo back the raw filename the person picked
-      // (e.g. `"<name>" already exists in ...`) — that filename came
-      // straight from their own file picker, so escape before it goes
-      // into innerHTML the same way title/description do above.
-      item.appendChild(el("div", "batch-file-error-text", escapeHtml(entry.error)));
+      // (e.g. `"<name>" already exists in ...`) — safe now because
+      // el() renders this text via textContent by default.
+      item.appendChild(el("div", "batch-file-error-text", entry.error));
     }
     item.appendChild(meta);
     if (helperBox) item.appendChild(helperBox);
@@ -1321,6 +1345,11 @@ function initStep4() {
 // context the person is already working in) and jumps back to the
 // filename step, rather than clearing everything back to step 1.
 function resetWizard() {
+  // Same reasoning as removeImage() — anything still in State.images at
+  // this point still has a live blob backing it, and we're about to
+  // drop every reference to it.
+  State.images.forEach((img) => URL.revokeObjectURL(img.url));
+
   State.filename = "";
   State.images = [];
   State.imageTexts = [];

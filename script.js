@@ -568,11 +568,13 @@ function syncOrderFromDom(folder) {
 function initCardDrag(card, handle, folder) {
     let dragging = false;
     let container = null;
+    let lastPointerY = 0;
+    let autoScrollFrame = null;
 
-    function onPointerMove(e) {
-        if (!dragging) return;
+    const EDGE = 80;       // px from the viewport top/bottom that triggers auto-scroll
+    const MAX_SPEED = 18;  // px scrolled per frame right at the very edge
 
-        const y = e.clientY;
+    function reorderAt(y) {
         const siblings = Array.from(container.querySelectorAll(".program-card"))
             .filter(el => el !== card);
 
@@ -594,12 +596,50 @@ function initCardDrag(card, handle, folder) {
         renumberCards(folder);
     }
 
+    // Keeps scrolling the page while the pointer sits near the top/bottom
+    // edge during a drag, and keeps re-evaluating the drop position as the
+    // page moves underneath the (otherwise stationary) pointer — without
+    // this, dragging a card past the visible viewport in a long folder
+    // would mean dropping, manually scrolling, and re-grabbing in stages.
+    function autoScrollStep() {
+        if (!dragging) {
+            autoScrollFrame = null;
+            return;
+        }
+
+        const viewportHeight = window.innerHeight;
+        let speed = 0;
+
+        if (lastPointerY < EDGE) {
+            speed = -MAX_SPEED * (1 - lastPointerY / EDGE);
+        } else if (lastPointerY > viewportHeight - EDGE) {
+            speed = MAX_SPEED * (1 - (viewportHeight - lastPointerY) / EDGE);
+        }
+
+        if (speed !== 0) {
+            window.scrollBy(0, speed);
+            reorderAt(lastPointerY);
+        }
+
+        autoScrollFrame = requestAnimationFrame(autoScrollStep);
+    }
+
+    function onPointerMove(e) {
+        if (!dragging) return;
+        lastPointerY = e.clientY;
+        reorderAt(lastPointerY);
+    }
+
     function onPointerUp() {
         if (!dragging) return;
         dragging = false;
         card.classList.remove("dragging");
         document.removeEventListener("pointermove", onPointerMove);
         document.removeEventListener("pointerup", onPointerUp);
+        if (autoScrollFrame) {
+            cancelAnimationFrame(autoScrollFrame);
+            autoScrollFrame = null;
+        }
         syncOrderFromDom(folder);
     }
 
@@ -611,9 +651,11 @@ function initCardDrag(card, handle, folder) {
         dragging = true;
         container = card.parentElement;
         card.classList.add("dragging");
+        lastPointerY = e.clientY;
 
         document.addEventListener("pointermove", onPointerMove);
         document.addEventListener("pointerup", onPointerUp);
+        autoScrollFrame = requestAnimationFrame(autoScrollStep);
     });
 
     handle.addEventListener("click", (e) => e.stopPropagation());

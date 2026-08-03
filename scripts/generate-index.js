@@ -211,7 +211,8 @@ for (const language of discoveredLanguages) {
     description: language.description,
     searchPlaceholder: language.searchPlaceholder,
     aliases: language.aliases,
-    extensions: language.extensions
+    extensions: language.extensions,
+    comments: language.comments
 });
 
   const folderPath = path.join("./programs", folder);
@@ -260,24 +261,44 @@ console.log(`➕ Added ${folder}/${file} to order.json`);
 const lines = code.split(/\r?\n/);
 const commentLines = [];
 
+// Which prefixes count as a leading comment for this language — e.g.
+// "//" and "/* */" for C-family languages, "#" for Python. Falls back
+// to the C-style default if a language predates this field in
+// languages.json, so existing configs don't need updating.
+const lineMarkers = (language.comments && language.comments.line) || ["//"];
+const blockMarkers = (language.comments && language.comments.block) || ["/*", "*/"];
+const [blockOpen, blockClose] = blockMarkers;
+
 for (const line of lines) {
 
   const trimmed = line.trim();
 
   if (!trimmed) continue;
 
-  if (
-    trimmed.startsWith("//") ||
-    trimmed.startsWith("/*") ||
-    trimmed.startsWith("*")
-  ) {
+  const isLineComment = lineMarkers.some(marker => trimmed.startsWith(marker));
+  const isBlockComment =
+    blockOpen && (trimmed.startsWith(blockOpen) || trimmed.startsWith("*"));
 
-    const cleanLine = trimmed
-      .replace(/^\/\/\s*/, "")
-      .replace(/^\/\*\s*/, "")
-      .replace(/\*\/$/, "")
-      .replace(/^\*\s*/, "")
-      .trim();
+  if (isLineComment || isBlockComment) {
+
+    let cleanLine = trimmed;
+
+    for (const marker of lineMarkers) {
+      if (cleanLine.startsWith(marker)) {
+        cleanLine = cleanLine.slice(marker.length).trim();
+        break;
+      }
+    }
+
+    if (blockOpen && cleanLine.startsWith(blockOpen)) {
+      cleanLine = cleanLine.slice(blockOpen.length).trim();
+    }
+    if (blockClose && cleanLine.endsWith(blockClose)) {
+      cleanLine = cleanLine.slice(0, -blockClose.length).trim();
+    }
+    if (blockOpen && cleanLine.startsWith("*")) {
+      cleanLine = cleanLine.slice(1).trim();
+    }
 
     if (cleanLine.length > 0) {
       commentLines.push(cleanLine);

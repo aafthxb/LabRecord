@@ -6,7 +6,8 @@
     "aliases": ["c"],
     "extensions": [".c"],
     "compiler": "c",
-    "prism": "c"
+    "prism": "c",
+    "comments": { "line": ["//"], "block": ["/*", "*/"] }
   },
 
   "cpp": {
@@ -16,7 +17,8 @@
     "aliases": ["cpp", "c++"],
     "extensions": [".cpp", ".cc", ".cxx"],
     "compiler": "cpp",
-    "prism": "cpp"
+    "prism": "cpp",
+    "comments": { "line": ["//"], "block": ["/*", "*/"] }
   },
 
   "java": {
@@ -26,7 +28,8 @@
     "aliases": ["java"],
     "extensions": [".java"],
     "compiler": "java",
-    "prism": "java"
+    "prism": "java",
+    "comments": { "line": ["//"], "block": ["/*", "*/"] }
   },
 
   "python": {
@@ -36,7 +39,8 @@
     "aliases": ["python", "py"],
     "extensions": [".py"],
     "compiler": "python",
-    "prism": "python"
+    "prism": "python",
+    "comments": { "line": ["#"], "block": [] }
   },
 
   "javascript": {
@@ -46,6 +50,7 @@
     "aliases": ["javascript", "js"],
     "extensions": [".js"],
     "compiler": "javascript",
-    "prism": "javascript"
+    "prism": "javascript",
+    "comments": { "line": ["//"], "block": ["/*", "*/"] }
   }
 }

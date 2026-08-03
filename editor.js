@@ -1091,28 +1091,38 @@ function removeBatchFile(index) {
 // ---------------------------------------------------------------
 
 function commentPrefixForFolder() {
-  return State.selectedLangEntry?.id === "python" ? "#" : "//";
+  return State.selectedLangEntry?.comments?.line?.[0] || "//";
 }
 
 function parseTitleDescription(code) {
   const lines = code.split(/\r?\n/);
   const comments = [];
 
+  const langComments = State.selectedLangEntry?.comments;
+  const lineMarkers = langComments?.line || ["//"];
+  const blockMarkers = langComments?.block || ["/*", "*/"];
+  const [blockOpen, blockClose] = blockMarkers;
+
   for (const raw of lines) {
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
-      const clean = trimmed
-        .replace(/^\/\/\s*/, "")
-        .replace(/^\/\*\s*/, "")
-        .replace(/\*\/$/, "")
-        .replace(/^\*\s*/, "")
-        .trim();
-      if (clean) comments.push(clean);
-      if (comments.length === 2) break;
-    } else if (trimmed.startsWith("#")) {
-      const clean = trimmed.replace(/^#\s*/, "").trim();
+    const isLineComment = lineMarkers.some(marker => trimmed.startsWith(marker));
+    const isBlockComment = blockOpen && (trimmed.startsWith(blockOpen) || trimmed.startsWith("*"));
+
+    if (isLineComment || isBlockComment) {
+      let clean = trimmed;
+
+      for (const marker of lineMarkers) {
+        if (clean.startsWith(marker)) {
+          clean = clean.slice(marker.length).trim();
+          break;
+        }
+      }
+      if (blockOpen && clean.startsWith(blockOpen)) clean = clean.slice(blockOpen.length).trim();
+      if (blockClose && clean.endsWith(blockClose)) clean = clean.slice(0, -blockClose.length).trim();
+      if (blockOpen && clean.startsWith("*")) clean = clean.slice(1).trim();
+
       if (clean) comments.push(clean);
       if (comments.length === 2) break;
     } else {
@@ -1131,7 +1141,6 @@ function updateReviewPreview() {
   $("preview-desc").textContent = description || "— not detected —";
 
   $("no-comment-helper").style.display = title ? "none" : "block";
-  $("python-warning").style.display = commentPrefixForFolder() === "#" ? "block" : "none";
 }
 
 function initStep3() {

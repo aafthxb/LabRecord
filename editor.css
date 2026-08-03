@@ -257,11 +257,6 @@
   padding: 14px;
 }
 
-.file-drop.dragover {
-  border-color: var(--primary);
-  background: var(--surface-alt);
-}
-
 .file-input-hidden {
   position: absolute;
   width: 1px;
@@ -440,74 +435,6 @@
   margin-bottom: 16px;
 }
 
-/* ---------- Mode select (Add Program / Manage Files) ---------- */
-
-.mode-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.mode-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  text-align: left;
-  background: var(--surface);
-  color: var(--text);
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow-md);
-  padding: 24px 22px;
-  cursor: pointer;
-  font-family: 'Courier Prime', monospace;
-  transition:
-    transform .08s ease,
-    box-shadow .08s ease,
-    background-color .12s ease,
-    color .12s ease;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-@media (hover: hover) {
-  .mode-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-lg);
-  }
-}
-
-.mode-card:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 0 var(--border);
-}
-
-.mode-icon {
-  font-size: 1.8rem;
-  line-height: 1;
-}
-
-.mode-title {
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 4px;
-}
-
-.mode-desc {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.mode-card-danger:hover {
-  border-color: var(--danger);
-}
-
 /* ---------- Step 2: two-path method cards ---------- */
 
 .method-grid {
@@ -578,104 +505,6 @@
   padding-top: 14px;
   min-height: 50px;
   width: 100%;
-}
-
-/* ---------- Manage / delete files (full panel, not a modal — should
-   feel just as light and welcoming as the rest of the wizard) ---------- */
-
-.manage-intro {
-  max-width: 60ch;
-  margin-bottom: 22px !important;
-}
-
-select.editor-input {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--text) 50%),
-    linear-gradient(135deg, var(--text) 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) calc(50% - 3px),
-    calc(100% - 13px) calc(50% - 3px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 34px;
-  cursor: pointer;
-}
-
-.manage-search {
-  margin-top: 18px;
-}
-
-.manage-file-list {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.manage-file-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: var(--surface-alt);
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  padding: 14px 16px;
-  transition: transform .08s ease, box-shadow .08s ease, opacity .15s ease;
-}
-
-@media (hover: hover) {
-  .manage-file-item:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: var(--shadow-md);
-  }
-}
-
-.manage-file-item.search-hidden {
-  display: none;
-}
-
-.manage-delete-btn {
-  color: var(--danger);
-  border-color: var(--danger);
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  padding: 6px 12px;
-  min-height: 34px;
-}
-
-@media (hover: hover) {
-  .manage-delete-btn:hover {
-    background: var(--danger);
-    color: #fff;
-  }
-}
-
-.manage-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 4px;
-  padding: 40px 20px;
-  border: 2px dashed var(--border);
-  background: var(--surface-alt);
-}
-
-.manage-empty-icon {
-  font-size: 1.8rem;
-}
-
-@media (max-width: 480px) {
-  .manage-file-item {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .manage-delete-btn {
-    width: 100%;
-  }
 }
 
 /* ---------- Disabled-state feedback (buttons across the site never

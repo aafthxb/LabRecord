@@ -221,13 +221,13 @@ module.exports = async (req, res) => {
     }));
 
     // One companion blob per file that has test/data attachments — read
-    // back by generate-index.js (as `<filename>.attach.json`) and folded
-    // into that program's search-index entry so the Run button can send
-    // them to the sandbox alongside the source.
+    // back by generate-index.js (as `attachments/<filename>.attach.json`)
+    // and folded into that program's search-index entry so the Run
+    // button can send them to the sandbox alongside the source.
     for (const f of cleanFiles) {
       if (!f.attachments.length) continue;
       treeEntries.push({
-        path: `programs/${cleanFolder}/${f.filename}.attach.json`,
+        path: `programs/${cleanFolder}/attachments/${f.filename}.attach.json`,
         mode: "100644",
         type: "blob",
         content: JSON.stringify(f.attachments, null, 2) + "\n",

@@ -93,7 +93,7 @@ module.exports = async (req, res) => {
     // Best-effort cleanup of the companion attachments file, if this
     // program had one. Not every program has one, so a 404 here is the
     // normal case, not a failure — only report a real error back.
-    const attachPath = `${filePath}.attach.json`;
+    const attachPath = `programs/${cleanFolder}/attachments/${cleanFilename}.attach.json`;
     const attachUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${attachPath
       .split("/")
       .map(encodeURIComponent)

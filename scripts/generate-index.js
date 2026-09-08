@@ -258,13 +258,13 @@ console.log(`➕ Added ${folder}/${file} to order.json`);
     const code = fs.readFileSync(filePath, "utf8");
     const search = normalizeSearchText(code);
 
-    // Optional companion file: programs/<Folder>/<file>.attach.json —
+    // Optional companion file: programs/<Folder>/attachments/<file>.attach.json —
     // test/data files (e.g. "students.txt") a program reads at run
     // time, added via the editor's attachments UI. Folded straight
     // into the search-index entry (not lazily fetched at run time)
     // since it's what script.js's `program` objects come from.
     let attachments = [];
-    const attachPath = `${filePath}.attach.json`;
+    const attachPath = path.join(folderPath, "attachments", `${file}.attach.json`);
     if (fs.existsSync(attachPath)) {
       try {
         const parsed = JSON.parse(fs.readFileSync(attachPath, "utf8"));

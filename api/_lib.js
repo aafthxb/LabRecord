@@ -30,11 +30,13 @@ function sanitizeFolder(folder) {
 
 // Attachments are optional companion data files a program reads at run
 // time (e.g. "students.txt" for a file-handling exercise). They're
-// stored as a sibling `<filename>.attach.json` blob next to the
-// program itself — never executable, never part of languages.json's
-// extension whitelist — so validation here is deliberately generic
-// (same filename rules as sanitizeFilename) rather than reusing the
-// per-language extension check.
+// stored as a `<filename>.attach.json` blob inside an `attachments/`
+// subfolder of the program's language folder (e.g.
+// programs/Java/attachments/Foo.java.attach.json) — never executable,
+// never part of languages.json's extension whitelist — so validation
+// here is deliberately generic (same filename rules as
+// sanitizeFilename) rather than reusing the per-language extension
+// check.
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 200 * 1024; // 200 KB — generous for lab input files
 

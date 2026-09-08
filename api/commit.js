@@ -139,7 +139,7 @@ module.exports = async (req, res) => {
     // retry adding the test file later without re-uploading the code.
     let attachmentsError = null;
     if (cleanAttachments.length) {
-      const attachPath = `${filePath}.attach.json`;
+      const attachPath = `programs/${cleanFolder}/attachments/${cleanFilename}.attach.json`;
       const attachUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${attachPath
         .split("/")
         .map(encodeURIComponent)

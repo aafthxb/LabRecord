@@ -975,9 +975,8 @@ function buildBatchFileHelper(entry, onInsert) {
     const prefix = commentPrefixForFolder();
     const lines = [`${prefix} ${title}`];
     if (description) lines.push(`${prefix} ${description}`);
-    lines.push("");
 
-    entry.code = lines.join("\n") + entry.code;
+    entry.code = lines.join("\n") + "\n\n" + entry.code;
     onInsert();
   });
 
@@ -1367,10 +1366,9 @@ function initStep3() {
     const prefix = commentPrefixForFolder();
     const lines = [`${prefix} ${title}`];
     if (desc) lines.push(`${prefix} ${desc}`);
-    lines.push("");
 
     const textarea = $("code-textarea");
-    textarea.value = lines.join("\n") + textarea.value;
+    textarea.value = lines.join("\n") + "\n\n" + textarea.value;
     updateReviewPreview();
   });
 }

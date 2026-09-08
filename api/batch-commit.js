@@ -17,7 +17,7 @@
 //             current relative order).
 
 const path = require("path");
-const { sanitizeFilename, sanitizeFolder, loadLanguages, findLanguageForFolder } = require("./_lib");
+const { sanitizeFilename, sanitizeFolder, loadLanguages, findLanguageForFolder, sanitizeAttachments } = require("./_lib");
 
 // Keeps a single commit's tree (and the request payload) from growing
 // unbounded. Raise this if you genuinely need bigger batches.
@@ -101,7 +101,15 @@ module.exports = async (req, res) => {
       return;
     }
 
-    cleanFiles.push({ filename: cleanFilename, code: f.code });
+    let cleanAttachments;
+    try {
+      cleanAttachments = sanitizeAttachments(f && f.attachments);
+    } catch (e) {
+      res.status(400).json({ error: `"${cleanFilename}": ${e.message}` });
+      return;
+    }
+
+    cleanFiles.push({ filename: cleanFilename, code: f.code, attachments: cleanAttachments });
   }
 
   const owner = process.env.GITHUB_OWNER;
@@ -211,6 +219,20 @@ module.exports = async (req, res) => {
       type: "blob",
       content: f.code,
     }));
+
+    // One companion blob per file that has test/data attachments — read
+    // back by generate-index.js (as `<filename>.attach.json`) and folded
+    // into that program's search-index entry so the Run button can send
+    // them to the sandbox alongside the source.
+    for (const f of cleanFiles) {
+      if (!f.attachments.length) continue;
+      treeEntries.push({
+        path: `programs/${cleanFolder}/${f.filename}.attach.json`,
+        mode: "100644",
+        type: "blob",
+        content: JSON.stringify(f.attachments, null, 2) + "\n",
+      });
+    }
 
     treeEntries.push({
       path: "generated/order.json",

@@ -1668,6 +1668,25 @@ copyBtn.onclick = (e) => {
 };
 let iframe = null;
 
+// Builds the `files` array sent to OneCompiler: the program's own
+// source, plus any companion test/data files it was uploaded with
+// (program.attachments -- see generate-index.js / the editor's
+// attachments UI). Most programs have none, so this is usually just
+// the one entry it always was.
+function buildRunFiles(runSource) {
+    const files = [{ name: program.file, content: runSource }];
+
+    if (Array.isArray(program.attachments)) {
+        program.attachments.forEach((a) => {
+            if (a && typeof a.name === "string" && typeof a.content === "string") {
+                files.push({ name: a.name, content: a.content });
+            }
+        });
+    }
+
+    return files;
+}
+
 runBtn.onclick = (e) => {
 
     e.stopPropagation();
@@ -1729,10 +1748,7 @@ runBtn.onclick = (e) => {
                 iframe.contentWindow.postMessage({
                     eventType: "populateCode",
                     language: lang,
-                    files: [{
-                        name: program.file,
-                        content: runSource
-                    }]
+                    files: buildRunFiles(runSource)
                 }, "*");
 
                 setTimeout(() => {
@@ -1765,10 +1781,7 @@ runBtn.onclick = (e) => {
             iframe.contentWindow.postMessage({
                 eventType: "populateCode",
                 language: lang,
-                files: [{
-                    name: program.file,
-                    content: runSource
-                }]
+                files: buildRunFiles(runSource)
             }, "*");
 
             setTimeout(() => {

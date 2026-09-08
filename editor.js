@@ -20,7 +20,8 @@ const State = {
   accessCode: "",        // kept in memory only, never persisted — asked for on every visit
   skippedStep1: false,   // true when the folder arrived preset via ?folder=, so step 1 (language) was never shown
   batchMode: false,      // true while Step 3 is showing the multi-file review list instead of the single-file one
-  batchFiles: [],        // [{ id, filename, code, error }] — the "upload multiple files at once" path
+  batchFiles: [],        // [{ id, filename, code, error, attachments }] — the "upload multiple files at once" path
+  attachments: [],       // [{ id, name, content }] — single-file path's optional test/data files
 };
 
 let tesseractLoadPromise = null;
@@ -668,6 +669,7 @@ function goToManualEntry() {
   clearWizardError();
   State.imageTexts = [];
   State.mergeNotes = [];
+  State.attachments = [];
 
   showSingleReview();
   $("code-textarea").value = "";
@@ -710,6 +712,7 @@ async function runExtraction() {
     $("loading-text").textContent = "Merging pages…";
     const { mergedCode, notes } = mergeImageTexts(State.imageTexts);
     State.mergeNotes = notes;
+    State.attachments = [];
 
     showSingleReview();
     $("code-textarea").value = mergedCode;
@@ -874,8 +877,8 @@ function handleBatchFilesSelected(e) {
   Promise.all(
     files.map((file) =>
       readFileAsText(file)
-        .then((code) => ({ id: uid(), filename: file.name, code, error: null }))
-        .catch((err) => ({ id: uid(), filename: file.name, code: "", error: err.message }))
+        .then((code) => ({ id: uid(), filename: file.name, code, error: null, attachments: [] }))
+        .catch((err) => ({ id: uid(), filename: file.name, code: "", error: err.message, attachments: [] }))
     )
   ).then((entries) => {
     State.batchFiles.push(...entries);
@@ -986,6 +989,152 @@ function buildBatchFileHelper(entry, onInsert) {
   return box;
 }
 
+// ---------------------------------------------------------------
+// Step 3: optional test/data file attachments
+//
+// Some programs (file-handling, and any "thread + file" combo lab
+// exercise) expect a file like "students.txt" to already exist when
+// they run — something the online sandbox that powers the Run button
+// can't know about unless it's uploaded alongside the code. This box
+// lets the uploader attach those files once, here, so Run works for
+// everyone afterwards. Entirely optional — most programs need nothing
+// here, and skipping it just means Run behaves as it always has.
+// ---------------------------------------------------------------
+
+// Best-effort scan for filenames a program reads from disk at run
+// time (new FileReader("x.txt"), fopen("x.txt", "r"), etc.), so the
+// box can offer one-click "+ name" suggestion chips. Purely a nudge —
+// it never blocks saving, and a name it misses can always be added
+// with the ADD FILE button below.
+function detectAttachmentSuggestions(code, existingNamesLower) {
+  const readNames = new Set();
+  const writeNames = new Set();
+
+  const collect = (patterns, set) => {
+    patterns.forEach((re) => {
+      let m;
+      while ((m = re.exec(code)) !== null) {
+        if (m[1]) set.add(m[1].trim());
+      }
+    });
+  };
+
+  collect([
+    /new\s+File(?:Reader|InputStream)\s*\(\s*"([^"]+)"/g,
+    /new\s+Scanner\s*\(\s*new\s+File\s*\(\s*"([^"]+)"/g,
+    /new\s+File\s*\(\s*"([^"]+)"/g,
+    /Files\s*\.\s*(?:readAllLines|readAllBytes|newBufferedReader)\s*\(\s*Paths\s*\.\s*get\s*\(\s*"([^"]+)"/g,
+    /fopen\s*\(\s*"([^"]+)"\s*,\s*"[rR]/g,
+  ], readNames);
+
+  collect([
+    /new\s+File(?:Writer|OutputStream)\s*\(\s*"([^"]+)"/g,
+    /new\s+PrintWriter\s*\(\s*"([^"]+)"/g,
+    /fopen\s*\(\s*"([^"]+)"\s*,\s*"[wWaA]/g,
+  ], writeNames);
+
+  return [...readNames].filter(
+    (name) => !writeNames.has(name) && !existingNamesLower.has(name.toLowerCase())
+  );
+}
+
+// Renders a self-contained attachments box into `container`, backed
+// directly by the `attachments` array (mutated in place, never
+// replaced — so the caller's reference stays valid). `getCode()` is
+// re-called on every (re)paint so suggestion chips reflect the latest
+// code. Returns the repaint function so a caller can trigger a
+// refresh (e.g. after the code textarea changes) without rebuilding
+// everything else around it.
+function renderAttachmentsEditor(container, attachments, getCode) {
+  function render() {
+    container.innerHTML = "";
+
+    const box = el("div", "attachments-box");
+    box.appendChild(el("p", "attachments-heading", "Test/data files this program reads (optional)"));
+    box.appendChild(el(
+      "p",
+      "attachments-subtext",
+      "Only needed if the program opens a file that must already exist (e.g. students.txt). Skip this if it creates its own file before reading it back."
+    ));
+
+    const existingNamesLower = new Set(
+      attachments.map((a) => (a.name || "").trim().toLowerCase()).filter(Boolean)
+    );
+    const suggestions = detectAttachmentSuggestions(getCode() || "", existingNamesLower);
+
+    if (suggestions.length) {
+      const chipRow = el("div", "attachment-suggestions");
+      suggestions.forEach((name) => {
+        const chip = el("button", "attachment-suggestion-chip", `+ ${name}`);
+        chip.type = "button";
+        chip.addEventListener("click", () => {
+          attachments.push({ id: uid(), name, content: "" });
+          render();
+        });
+        chipRow.appendChild(chip);
+      });
+      box.appendChild(chipRow);
+    }
+
+    attachments.forEach((attachment, index) => {
+      const row = el("div", "attachment-row");
+      const head = el("div", "attachment-row-head");
+
+      const nameInput = el("input", "editor-input attachment-name-input");
+      nameInput.type = "text";
+      nameInput.placeholder = "filename, e.g. students.txt";
+      nameInput.value = attachment.name;
+      nameInput.addEventListener("input", () => {
+        attachment.name = nameInput.value;
+      });
+
+      const removeBtn = el("button", "action-btn attachment-remove", "REMOVE");
+      removeBtn.type = "button";
+      removeBtn.addEventListener("click", () => {
+        attachments.splice(index, 1);
+        render();
+      });
+
+      head.appendChild(nameInput);
+      head.appendChild(removeBtn);
+
+      const contentArea = el("textarea", "attachment-content-textarea");
+      contentArea.spellcheck = false;
+      contentArea.placeholder = "File contents the program should read";
+      contentArea.value = attachment.content;
+      contentArea.addEventListener("input", () => {
+        attachment.content = contentArea.value;
+      });
+
+      row.appendChild(head);
+      row.appendChild(contentArea);
+      box.appendChild(row);
+    });
+
+    const addBtn = el("button", "action-btn attachment-add-btn", "+ ADD FILE");
+    addBtn.type = "button";
+    addBtn.addEventListener("click", () => {
+      attachments.push({ id: uid(), name: "", content: "" });
+      render();
+    });
+    box.appendChild(addBtn);
+
+    container.appendChild(box);
+  }
+
+  render();
+  return render;
+}
+
+// Trims/filters a raw attachments array down to what's worth sending
+// to the server — drops rows the uploader started but never finished
+// (no name, or no content) rather than erroring on them.
+function cleanAttachmentsForSave(attachments) {
+  return (attachments || [])
+    .map((a) => ({ name: (a.name || "").trim(), content: a.content || "" }))
+    .filter((a) => a.name && a.content.trim());
+}
+
 function renderBatchList() {
   const list = $("batch-list");
   list.innerHTML = "";
@@ -1052,6 +1201,10 @@ function renderBatchList() {
 
     let helperBox = title ? null : buildBatchFileHelper(entry, () => renderBatchList());
 
+    if (!Array.isArray(entry.attachments)) entry.attachments = [];
+    const attachContainer = el("div", "batch-file-attachments");
+    const refreshAttachments = renderAttachmentsEditor(attachContainer, entry.attachments, () => entry.code);
+
     const toggleBtn = el("button", "batch-file-code-toggle", "Show / edit code");
     toggleBtn.type = "button";
 
@@ -1071,6 +1224,7 @@ function renderBatchList() {
         helperBox.remove();
         helperBox = null;
       }
+      refreshAttachments();
     });
 
     toggleBtn.addEventListener("click", () => {
@@ -1090,6 +1244,7 @@ function renderBatchList() {
     if (helperBox) item.appendChild(helperBox);
     item.appendChild(toggleBtn);
     item.appendChild(textarea);
+    item.appendChild(attachContainer);
 
     list.appendChild(item);
   });
@@ -1179,6 +1334,14 @@ function parseTitleDescription(code) {
   return { title: comments[0] || null, description: comments[1] || null };
 }
 
+// Repaints the single-file attachments box against the live code
+// textarea — called from updateReviewPreview() so it refreshes on
+// every keystroke there, the same way renderBatchList() keeps each
+// batch entry's box in sync with its own code field.
+function renderSingleAttachments() {
+  renderAttachmentsEditor($("single-attachments"), State.attachments, () => $("code-textarea").value);
+}
+
 function updateReviewPreview() {
   const code = $("code-textarea").value;
   const { title, description } = parseTitleDescription(code);
@@ -1187,6 +1350,8 @@ function updateReviewPreview() {
   $("preview-desc").textContent = description || "— not detected —";
 
   $("no-comment-helper").style.display = title ? "none" : "block";
+
+  renderSingleAttachments();
 }
 
 function initStep3() {
@@ -1232,6 +1397,7 @@ async function saveProgram() {
         folder: State.selectedFolder,
         filename: State.filename,
         code: $("code-textarea").value,
+        attachments: cleanAttachmentsForSave(State.attachments),
       }),
     });
 
@@ -1252,7 +1418,9 @@ async function saveProgram() {
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    $("done-text").textContent = `Saved as ${data.path}.`;
+    $("done-text").textContent = data.attachmentsError
+      ? `Saved as ${data.path}. ${data.attachmentsError}`
+      : `Saved as ${data.path}.`;
 
     goToStep(4);
   } catch (err) {
@@ -1297,6 +1465,7 @@ async function saveBatchProgram() {
         files: State.batchFiles.map((f) => ({
           filename: f.filename.trim(),
           code: f.code,
+          attachments: cleanAttachmentsForSave(f.attachments),
         })),
       }),
     });

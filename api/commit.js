@@ -9,7 +9,7 @@
 //   EDITOR_ACCESS_CODE    - a passphrase you choose; required to use the editor at all
 
 const path = require("path");
-const { sanitizeFilename, sanitizeFolder, loadLanguages, findLanguageForFolder } = require("./_lib");
+const { sanitizeFilename, sanitizeFolder, loadLanguages, findLanguageForFolder, sanitizeAttachments } = require("./_lib");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, filename, code, commitMessage } = req.body || {};
+  const { accessCode, folder, filename, code, commitMessage, attachments } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -61,6 +61,14 @@ module.exports = async (req, res) => {
     res.status(400).json({
       error: `Filename must end with one of: ${langEntry.extensions.join(", ")}`,
     });
+    return;
+  }
+
+  let cleanAttachments;
+  try {
+    cleanAttachments = sanitizeAttachments(attachments);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
     return;
   }
 
@@ -125,10 +133,42 @@ module.exports = async (req, res) => {
 
     const putData = await putRes.json();
 
+    // Attachments are best-effort: the program file above is already
+    // committed at this point, so a failure here is reported back as a
+    // warning rather than turned into a 500 — the person can always
+    // retry adding the test file later without re-uploading the code.
+    let attachmentsError = null;
+    if (cleanAttachments.length) {
+      const attachPath = `${filePath}.attach.json`;
+      const attachUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${attachPath
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`;
+
+      try {
+        const attachRes = await fetch(attachUrl, {
+          method: "PUT",
+          headers: { ...ghHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `Add test file(s) for ${cleanFilename}`,
+            content: Buffer.from(JSON.stringify(cleanAttachments, null, 2), "utf8").toString("base64"),
+            branch,
+          }),
+        });
+
+        if (!attachRes.ok) {
+          attachmentsError = `Program saved, but the test file(s) failed to save: ${await attachRes.text()}`;
+        }
+      } catch (attachErr) {
+        attachmentsError = `Program saved, but the test file(s) failed to save: ${attachErr.message}`;
+      }
+    }
+
     res.status(200).json({
       ok: true,
       path: filePath,
       commitUrl: putData.commit?.html_url || null,
+      attachmentsError,
     });
   } catch (err) {
     res.status(500).json({ error: err.message || "Unexpected server error" });

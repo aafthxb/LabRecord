@@ -90,6 +90,36 @@ module.exports = async (req, res) => {
 
     const delData = await delRes.json();
 
+    // Best-effort cleanup of the companion attachments file, if this
+    // program had one. Not every program has one, so a 404 here is the
+    // normal case, not a failure — only report a real error back.
+    const attachPath = `${filePath}.attach.json`;
+    const attachUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${attachPath
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/")}`;
+
+    try {
+      const attachLookup = await fetch(`${attachUrl}?ref=${encodeURIComponent(branch)}`, {
+        headers: ghHeaders,
+      });
+
+      if (attachLookup.status === 200) {
+        const attachData = await attachLookup.json();
+        await fetch(attachUrl, {
+          method: "DELETE",
+          headers: { ...ghHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `Delete test file(s) for ${cleanFilename}`,
+            sha: attachData.sha,
+            branch,
+          }),
+        });
+      }
+    } catch {
+      // Non-fatal — the program itself is already deleted successfully.
+    }
+
     res.status(200).json({
       ok: true,
       path: filePath,

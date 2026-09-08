@@ -28,6 +28,53 @@ function sanitizeFolder(folder) {
   return folder;
 }
 
+// Attachments are optional companion data files a program reads at run
+// time (e.g. "students.txt" for a file-handling exercise). They're
+// stored as a sibling `<filename>.attach.json` blob next to the
+// program itself — never executable, never part of languages.json's
+// extension whitelist — so validation here is deliberately generic
+// (same filename rules as sanitizeFilename) rather than reusing the
+// per-language extension check.
+const MAX_ATTACHMENTS = 10;
+const MAX_ATTACHMENT_BYTES = 200 * 1024; // 200 KB — generous for lab input files
+
+function sanitizeAttachments(attachments) {
+  if (attachments === undefined || attachments === null) return [];
+  if (!Array.isArray(attachments)) {
+    throw new Error("attachments must be an array");
+  }
+  if (attachments.length > MAX_ATTACHMENTS) {
+    throw new Error(`Too many attachments (max ${MAX_ATTACHMENTS})`);
+  }
+
+  const clean = [];
+  const seen = new Set();
+
+  for (const a of attachments) {
+    const name = sanitizeFilename(a && a.name);
+    if (!name) {
+      throw new Error(`Invalid attachment filename: ${(a && a.name) || ""}`);
+    }
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) {
+      throw new Error(`Duplicate attachment filename: ${name}`);
+    }
+    seen.add(key);
+
+    if (typeof (a && a.content) !== "string" || !a.content.trim()) {
+      throw new Error(`Attachment "${name}" has no content`);
+    }
+    if (Buffer.byteLength(a.content, "utf8") > MAX_ATTACHMENT_BYTES) {
+      throw new Error(`Attachment "${name}" is too large (max ${Math.floor(MAX_ATTACHMENT_BYTES / 1024)} KB)`);
+    }
+
+    clean.push({ name, content: a.content });
+  }
+
+  return clean;
+}
+
 function loadLanguages() {
   // languages.json lives in scripts/ (it's a build-time config file, not
   // a published asset) — these two candidates are just two ways a Vercel
@@ -65,4 +112,5 @@ module.exports = {
   sanitizeFolder,
   loadLanguages,
   findLanguageForFolder,
+  sanitizeAttachments,
 };

@@ -938,4 +938,5 @@ body.site-edit-mode .card-delete-btn {
 .attachment-add-btn {
   font-size: 0.78rem;
   padding: 8px 14px;
+  margin-top: 10px;
 }

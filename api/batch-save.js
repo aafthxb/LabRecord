@@ -172,16 +172,28 @@ module.exports = async (req, res) => {
     currentOrderJson[cleanFolder] = cleanOrder;
 
     // 3. Build one tree with every change: each deletion becomes a
-    //    tree entry with sha: null (removes the path), each edit
-    //    becomes a tree entry with the file's new content (same path,
-    //    so it replaces the existing blob rather than renaming
-    //    anything), plus the updated order.json content.
-    const treeEntries = cleanDeletions.map((filename) => ({
-      path: `programs/${cleanFolder}/${filename}`,
-      mode: "100644",
-      type: "blob",
-      sha: null,
-    }));
+    //    tree entry with sha: null (removes the path), plus a second
+    //    sha: null entry for that program's companion attachments
+    //    file if it has one (no-op if it doesn't — removing a path
+    //    that isn't in the tree is harmless). Each edit becomes a tree
+    //    entry with the file's new content (same path, so it replaces
+    //    the existing blob rather than renaming anything), plus the
+    //    updated order.json content.
+    const treeEntries = [];
+    cleanDeletions.forEach((filename) => {
+      treeEntries.push({
+        path: `programs/${cleanFolder}/${filename}`,
+        mode: "100644",
+        type: "blob",
+        sha: null,
+      });
+      treeEntries.push({
+        path: `programs/${cleanFolder}/attachments/${filename}.attach.json`,
+        mode: "100644",
+        type: "blob",
+        sha: null,
+      });
+    });
 
     finalEdits.forEach((e) => {
       treeEntries.push({

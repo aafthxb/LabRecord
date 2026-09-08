@@ -92,19 +92,6 @@
       "path": "programs/Java/SumOfTwoNumbers.java",
       "code": "//Sum of two numbers\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class SumOfTwoNumbers {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter first number: \");\r\n        int num1 = sc.nextInt();\r\n\r\n        System.out.print(\"Enter second number: \");\r\n        int num2 = sc.nextInt();\r\n\r\n        int sum = num1 + num2;\r\n\r\n        System.out.println(\"Sum = \" + sum);\r\n\r\n        sc.close();\r\n    }\r\n}\r\n",
       "search": "sum of two numbers import java util scanner public class sumoftwonumbers public static void main string args scanner sc new scanner system in system out print enter first number int num1 sc nextint system out print enter second number int num2 sc nextint int sum num1 num2 system out println sum sum sc close"
-    },
-    {
-      "number": 2,
-      "file": "FileReadWriteExample.java",
-      "path": "programs/Java/FileReadWriteExample.java",
-      "code": "// File read write\nimport java.io.BufferedReader;\nimport java.io.BufferedWriter;\nimport java.io.FileReader;\nimport java.io.FileWriter;\nimport java.io.IOException;\n\npublic class FileReadWriteExample {\n    public static void main(String[] args) {\n        String inputFile = \"input.txt\";\n        String outputFile = \"output.txt\";\n\n        // Using try-with-resources to automatically close streams\n        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));\n             BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {\n            \n            String line;\n            // Read line by line until end of file\n            while ((line = reader.readLine()) != null) {\n                // Write each line to the output file\n                writer.write(line);\n                writer.newLine();\n                System.out.println(\"Read: \" + line);\n            }\n            System.out.println(\"File written successfully to \" + outputFile);\n            \n        } catch (IOException e) {\n            System.err.println(\"An error occurred: \" + e.getMessage());\n            e.printStackTrace();\n        }\n    }\n}   ",
-      "search": "file read write import java io bufferedreader import java io bufferedwriter import java io filereader import java io filewriter import java io ioexception public class filereadwriteexample public static void main string args string inputfile input txt string outputfile output txt using try with resources to automatically close streams try bufferedreader reader new bufferedreader new filereader inputfile bufferedwriter writer new bufferedwriter new filewriter outputfile string line read line by line until end of file while line reader readline null write each line to the output file writer write line writer newline system out println read line system out println file written successfully to outputfile catch ioexception e system err println an error occurred e getmessage e printstacktrace",
-      "attachments": [
-        {
-          "name": "input.txt",
-          "content": "Hello, this is line 1.\nJava file I/O is simple.\nThis is the last line.   "
-        }
-      ]
     }
   ]
 }

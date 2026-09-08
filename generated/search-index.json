@@ -92,19 +92,6 @@
       "path": "programs/Java/SumOfTwoNumbers.java",
       "title": "Sum of two numbers",
       "description": ""
-    },
-    {
-      "number": 2,
-      "file": "FileReadWriteExample.java",
-      "path": "programs/Java/FileReadWriteExample.java",
-      "title": "File read write",
-      "description": "",
-      "attachments": [
-        {
-          "name": "input.txt",
-          "content": "Hello, this is line 1.\nJava file I/O is simple.\nThis is the last line.   "
-        }
-      ]
     }
   ]
 }

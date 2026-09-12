@@ -149,6 +149,27 @@ module.exports = async (req, res) => {
     const commitData = await commitRes.json();
     const baseTreeSha = commitData.tree.sha;
 
+    // 1b. Full recursive listing of the base tree. Needed so deletions
+    //     below only emit a `sha: null` entry for paths that actually
+    //     exist — GitHub's Git Data API returns 422
+    //     ("GitRPC::BadObjectState") if you ask it to delete a path
+    //     that isn't present in base_tree, so a program with no
+    //     companion attachments file must NOT get a delete entry for
+    //     one, or the whole commit (including the real deletion) fails.
+    const baseTreeListRes = await fetch(
+      `${apiBase}/git/trees/${baseTreeSha}?recursive=1`,
+      { headers: ghHeaders }
+    );
+    if (!baseTreeListRes.ok) {
+      throw new Error(`Unable to read base tree: ${await baseTreeListRes.text()}`);
+    }
+    const baseTreeListData = await baseTreeListRes.json();
+    const existingPaths = new Set(
+      (Array.isArray(baseTreeListData.tree) ? baseTreeListData.tree : [])
+        .filter((entry) => entry.type === "blob")
+        .map((entry) => entry.path)
+    );
+
     // 2. Read the current generated/order.json so only this folder's
     //    key changes — every other folder's order is left as-is.
     let currentOrderJson = {};
@@ -173,26 +194,35 @@ module.exports = async (req, res) => {
 
     // 3. Build one tree with every change: each deletion becomes a
     //    tree entry with sha: null (removes the path), plus a second
-    //    sha: null entry for that program's companion attachments
-    //    file if it has one (no-op if it doesn't — removing a path
-    //    that isn't in the tree is harmless). Each edit becomes a tree
-    //    entry with the file's new content (same path, so it replaces
-    //    the existing blob rather than renaming anything), plus the
-    //    updated order.json content.
+    //    sha: null entry for that program's companion attachments file
+    //    — but only when that attachments file actually exists in
+    //    existingPaths (see step 1b: GitHub's API rejects a sha: null
+    //    entry for a path that isn't in base_tree, so we must skip it
+    //    rather than emit it unconditionally). Each edit becomes a
+    //    tree entry with the file's new content (same path, so it
+    //    replaces the existing blob rather than renaming anything),
+    //    plus the updated order.json content.
     const treeEntries = [];
     cleanDeletions.forEach((filename) => {
-      treeEntries.push({
-        path: `programs/${cleanFolder}/${filename}`,
-        mode: "100644",
-        type: "blob",
-        sha: null,
-      });
-      treeEntries.push({
-        path: `programs/${cleanFolder}/attachments/${filename}.attach.json`,
-        mode: "100644",
-        type: "blob",
-        sha: null,
-      });
+      const programPath = `programs/${cleanFolder}/${filename}`;
+      if (existingPaths.has(programPath)) {
+        treeEntries.push({
+          path: programPath,
+          mode: "100644",
+          type: "blob",
+          sha: null,
+        });
+      }
+
+      const attachPath = `programs/${cleanFolder}/attachments/${filename}.attach.json`;
+      if (existingPaths.has(attachPath)) {
+        treeEntries.push({
+          path: attachPath,
+          mode: "100644",
+          type: "blob",
+          sha: null,
+        });
+      }
     });
 
     finalEdits.forEach((e) => {

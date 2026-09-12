@@ -258,28 +258,6 @@ console.log(`➕ Added ${folder}/${file} to order.json`);
     const code = fs.readFileSync(filePath, "utf8");
     const search = normalizeSearchText(code);
 
-    // Optional companion file: programs/<Folder>/attachments/<file>.attach.json —
-    // test/data files (e.g. "students.txt") a program reads at run
-    // time, added via the editor's attachments UI. Folded straight
-    // into the search-index entry (not lazily fetched at run time)
-    // since it's what script.js's `program` objects come from.
-    let attachments = [];
-    const attachPath = path.join(folderPath, "attachments", `${file}.attach.json`);
-    if (fs.existsSync(attachPath)) {
-      try {
-        const parsed = JSON.parse(fs.readFileSync(attachPath, "utf8"));
-        if (Array.isArray(parsed)) {
-          attachments = parsed.filter(
-            (a) => a && typeof a.name === "string" && typeof a.content === "string"
-          );
-        } else {
-          console.warn(`⚠ ${folder}/${file}.attach.json is not an array — ignoring.`);
-        }
-      } catch {
-        console.warn(`⚠ Unable to parse ${folder}/${file}.attach.json — ignoring.`);
-      }
-    }
-
     // Extract title and description
 const lines = code.split(/\r?\n/);
 const commentLines = [];
@@ -352,16 +330,14 @@ const description = commentLines[1] || "";
   file,
   path: `programs/${folder}/${file}`,
   title,
-  description,
-  ...(attachments.length ? { attachments } : {})
+  description
 });
 codeIndex[folder].push({
   number: index + 1,
   file,
   path: `programs/${folder}/${file}`,
   code,
-  search,
-  ...(attachments.length ? { attachments } : {})
+  search
 });
 
   }

@@ -153,9 +153,7 @@ module.exports = async (req, res) => {
     //     below only emit a `sha: null` entry for paths that actually
     //     exist — GitHub's Git Data API returns 422
     //     ("GitRPC::BadObjectState") if you ask it to delete a path
-    //     that isn't present in base_tree, so a program with no
-    //     companion attachments file must NOT get a delete entry for
-    //     one, or the whole commit (including the real deletion) fails.
+    //     that isn't present in base_tree.
     const baseTreeListRes = await fetch(
       `${apiBase}/git/trees/${baseTreeSha}?recursive=1`,
       { headers: ghHeaders }
@@ -193,13 +191,8 @@ module.exports = async (req, res) => {
     currentOrderJson[cleanFolder] = cleanOrder;
 
     // 3. Build one tree with every change: each deletion becomes a
-    //    tree entry with sha: null (removes the path), plus a second
-    //    sha: null entry for that program's companion attachments file
-    //    — but only when that attachments file actually exists in
-    //    existingPaths (see step 1b: GitHub's API rejects a sha: null
-    //    entry for a path that isn't in base_tree, so we must skip it
-    //    rather than emit it unconditionally). Each edit becomes a
-    //    tree entry with the file's new content (same path, so it
+    //    tree entry with sha: null (removes the path). Each edit becomes
+    //    a tree entry with the file's new content (same path, so it
     //    replaces the existing blob rather than renaming anything),
     //    plus the updated order.json content.
     const treeEntries = [];
@@ -208,16 +201,6 @@ module.exports = async (req, res) => {
       if (existingPaths.has(programPath)) {
         treeEntries.push({
           path: programPath,
-          mode: "100644",
-          type: "blob",
-          sha: null,
-        });
-      }
-
-      const attachPath = `programs/${cleanFolder}/attachments/${filename}.attach.json`;
-      if (existingPaths.has(attachPath)) {
-        treeEntries.push({
-          path: attachPath,
           mode: "100644",
           type: "blob",
           sha: null,

@@ -1,0 +1,5 @@
+{
+  "name": "Greeter Demo",
+  "description": "A small multi-class Java package: a reusable Greeter class plus a runner that uses it.",
+  "language": "java"
+}

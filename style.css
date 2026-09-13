@@ -1173,3 +1173,76 @@ mark{
 @media (prefers-reduced-motion: reduce){
     mark{ animation:none; }
 }
+
+/* ============================= */
+/* Packages (custom multi-file programs) */
+/* ============================= */
+
+/* File-count badge on a collapsed package card — same visual role as
+   .file-badge, just reused verbatim for the count instead of a
+   filename, so it needs no styling of its own. */
+
+/* Small hint shown when a package only matched because of a file
+   inside it, not its own name/description — same look as
+   .code-match-badge (which has no dedicated rule of its own either;
+   both simply inherit the plain block styling of their container). */
+.package-match-badge {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Inline file-list preview shown when a package card is expanded.
+   Reuses .code-wrapper (dark panel, same collapse/expand rule) but
+   swaps the dark code background for a plain surface, since this is
+   metadata, not source code. */
+.package-file-list {
+    background: var(--surface) !important;
+    padding: 10px 18px;
+}
+
+.package-file-list-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.package-file-list-items li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 0.85rem;
+}
+
+.package-file-list-items li:last-child {
+    border-bottom: none;
+}
+
+.package-file-list-title {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.package-file-list-name {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* CHECK PACKAGE toolbar, sitting between a package's search bar and
+   its file cards. Reuses .header-actions purely so the existing
+   mobile rule (.header-actions .action-btn.run-btn { display:none })
+   hides it on mobile too, exactly like RUN PROGRAM/RUN FILE. */
+.package-check-toolbar {
+    justify-content: flex-start;
+    margin: 0 0 16px 0;
+}
+
+.package-check-runner {
+    margin-bottom: 20px;
+}

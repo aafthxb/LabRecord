@@ -197,40 +197,6 @@ Every program card gets its title and description from the **first two comment l
 
 ---
 
-## 🧩 Custom Packages (Multi-File Programs)
-
-Some programs — a Java class and the runner that uses it, for example — aren't a single file. **Packages** are the site's answer to that: a folder of files that browse, search, and run together as one unit, shown separately from the regular single-file Programs pages.
-
-There's no in-browser editor for packages yet — add one by creating a folder under `packages/` with a `meta.json` plus its source files, then let the generator pick it up.
-
-**Example:**
-
-    packages/
-    └── GreeterDemo/
-        ├── meta.json
-        ├── Greeter.java
-        └── Main.java
-
-**`meta.json`:**
-
-    {
-      "name": "Greeter Demo",
-      "description": "A small multi-class Java package: a reusable Greeter class plus a runner that uses it.",
-      "language": "java"
-    }
-
-* `name` / `description` — shown on the package's card in the Packages list.
-* `language` — optional, defaults to `"java"`. Must match one of the language IDs in `scripts/languages.json`.
-* Every other file in the folder is treated as a source file (using that language's file extensions) and gets its own title/description from its first two comment lines, exactly like a regular program.
-
-After committing and running the generator:
-* A package card appears on the **CUSTOM PACKAGES** page (linked from the home screen), showing its name, description, and file count.
-* Opening a package shows its files as full program cards — browse, search, copy, and run each one individually.
-* A **CHECK PACKAGE** button sends every file in the package to the runner together in one go, so multi-class packages (where one file has no `main` of its own) can be verified as a whole.
-* The top-level Packages list only searches names/descriptions (its own and its files'), and points you at a small "Match in …" hint when a hit only came from a file inside — searching actual code only happens once you've opened a package.
-
----
-
 ## ➕ Adding Another Programming Language
 
 Only do this if the language is **not** already listed above (e.g., Rust, Go, Kotlin, Swift).

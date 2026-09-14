@@ -1,0 +1,42 @@
+name: Auto Update Indexes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-indexes:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate indexes
+        run: npm run generate
+
+      - name: Commit updated indexes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add generated/
+
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+          else
+            git commit -m "auto: update generated files"
+            git push
+          fi

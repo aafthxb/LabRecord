@@ -41,6 +41,29 @@
             <p id="editor-subtitle" class="app-subtitle" style="opacity:1;">
               Upload screenshots or paste code to add a new program.
             </p>
+            <script>
+              // Sets the title/subtitle from ?mode= as early as possible —
+              // synchronously, during initial HTML parsing, well before
+              // enterWizard() gets a chance to run (it waits on the access
+              // gate and an async site-data fetch first). Without this,
+              // the page paints "ADD PROGRAM" for a moment before flipping
+              // to "ADD PACKAGE" / "ADD FILE TO PACKAGE". Same technique as
+              // the theme flash-prevention script in <head>.
+              (() => {
+                const mode = new URLSearchParams(window.location.search).get("mode");
+                if (mode === "package") {
+                  document.title = "LabRecord – Add Package";
+                  document.getElementById("editor-title").textContent = "ADD PACKAGE";
+                  document.getElementById("editor-subtitle").textContent =
+                    "Add a new multi-file package.";
+                } else if (mode === "package-file") {
+                  document.title = "LabRecord – Add File to Package";
+                  document.getElementById("editor-title").textContent = "ADD FILE TO PACKAGE";
+                  document.getElementById("editor-subtitle").textContent =
+                    "Add another source file to an existing package.";
+                }
+              })();
+            </script>
           </div>
 
           <div class="header-actions-right">
@@ -120,6 +143,9 @@
             <label class="field-label">Package name</label>
             <input id="pkg-name-input" type="text" class="editor-input" placeholder="e.g. Greeter Demo" />
             <div id="pkg-name-status" class="banner" style="display:none;"></div>
+
+            <label class="field-label" style="margin-top:16px;">Description <span class="field-hint" style="display:inline;margin:0;">(optional)</span></label>
+            <input id="pkg-description-input" type="text" class="editor-input" placeholder="One line describing what this package demonstrates" />
 
             <div class="btn-row">
               <button id="pkg-step1-back" class="action-btn">« HOME</button>
@@ -220,12 +246,10 @@
             <button id="step2-batch-next" class="action-btn run-btn method-cta" style="margin-top:14px;">REVIEW FILES »</button>
           </div>
 
-          <!-- Add Package mode only: optional description + the button
-               that finally commits the package (meta.json + every
-               pending file) in one commit. -->
+          <!-- Add Package mode only: the button that finally commits the
+               package (meta.json + every pending file) in one commit.
+               Name/description were already asked on Step 1. -->
           <div id="step2-package-finish" style="display:none;">
-            <label class="field-label" style="margin-top:26px;">Description <span class="field-hint" style="display:inline;margin:0;">(optional)</span></label>
-            <input id="pkg-description-input" type="text" class="editor-input" placeholder="One line describing what this package demonstrates" />
             <div id="pkg-create-error" class="banner banner-error" style="display:none;"></div>
             <div class="btn-row">
               <button id="pkg-create-btn" class="action-btn run-btn" disabled>CREATE PACKAGE</button>

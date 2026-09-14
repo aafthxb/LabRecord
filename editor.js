@@ -21,6 +21,18 @@ const State = {
   skippedStep1: false,   // true when the folder arrived preset via ?folder=, so step 1 (language) was never shown
   batchMode: false,      // true while Step 3 is showing the multi-file review list instead of the single-file one
   batchFiles: [],        // [{ id, filename, code, error }] — the "upload multiple files at once" path
+
+  // ---- Add Package / Add File to Package (see enterPackageWizard /
+  // enterPackageFileWizard below) ----
+  pkgFolder: null,        // language folder the new package belongs to, e.g. "Java"
+  pkgLangEntry: null,
+  pkgFileRows: [],        // [{ id, el, filenameInput, textarea, errorEl }]
+  createdPackageFolder: null,
+
+  pkgFileTargetFolder: null,   // language folder of the package a file is being added to
+  pkgFileTargetPackage: null,  // that package's own folder name
+  pkgFileLangEntry: null,
+  pkgFileAddRows: [],          // same shape as pkgFileRows, kept separate so the two wizards never share state
 };
 
 let tesseractLoadPromise = null;
@@ -231,6 +243,20 @@ function ensureSiteDataLoaded() {
 // via the site's "+" button (editor.html?folder=C), the language is
 // already known, so step 1 is skipped entirely.
 async function enterWizard() {
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get("mode"); // "package" | "package-file" | null (= add program)
+  const folderParam = params.get("folder");
+
+  if (mode === "package") {
+    await enterPackageWizard(folderParam);
+    return;
+  }
+
+  if (mode === "package-file") {
+    await enterPackageFileWizard(folderParam, params.get("package"));
+    return;
+  }
+
   revealSection($("wizard"));
   preloadTesseract();
 
@@ -243,8 +269,6 @@ async function enterWizard() {
 
   buildLangGrid();
 
-  const params = new URLSearchParams(window.location.search);
-  const folderParam = params.get("folder");
   const presetLang = folderParam
     ? State.languageIndex.find((l) => l.folder === folderParam)
     : null;
@@ -1375,6 +1399,433 @@ function resetWizard() {
 }
 
 // ---------------------------------------------------------------
+// Add Package (?mode=package&folder=<Language>)
+// ---------------------------------------------------------------
+//
+// A trimmed-down sibling of the program wizard above: no OCR, no
+// batch-upload — just a package name/description and a small set of
+// hand-entered files (filename + code each), committed together in one
+// request to /api/commit-package. Packages aren't part of the
+// reorder/edit/commit system programs use, so this deliberately doesn't
+// reuse any of that code; it talks to its own endpoint instead.
+
+// Builds one filename+code row and appends it to both `container` (the
+// DOM) and `rows` (the tracking array) — shared by the Add Package and
+// Add File to Package wizards, which each keep their own `rows` array.
+function buildPkgFileRow(container, rows, langEntry) {
+  const id = uid();
+
+  const row = el("div", "pkg-file-row");
+  row.dataset.id = id;
+
+  const head = el("div", "pkg-file-row-head");
+
+  const filenameInput = document.createElement("input");
+  filenameInput.type = "text";
+  filenameInput.className = "editor-input";
+  const exampleExt = langEntry?.extensions?.[0] || "";
+  filenameInput.placeholder = `Filename (e.g. Greeter${exampleExt})`;
+
+  const removeBtn = el("button", "action-btn batch-file-remove", "REMOVE");
+  removeBtn.type = "button";
+  removeBtn.addEventListener("click", () => {
+    const idx = rows.findIndex((r) => r.id === id);
+    if (idx !== -1) rows.splice(idx, 1);
+    row.remove();
+  });
+
+  head.appendChild(filenameInput);
+  head.appendChild(removeBtn);
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "code-textarea";
+  textarea.spellcheck = false;
+  textarea.placeholder = "Paste or type this file's code here…";
+
+  const errorEl = el("div", "pkg-file-row-error");
+  errorEl.style.display = "none";
+
+  row.appendChild(head);
+  row.appendChild(textarea);
+  row.appendChild(errorEl);
+  container.appendChild(row);
+
+  const entry = { id, el: row, filenameInput, textarea, errorEl };
+  rows.push(entry);
+  return entry;
+}
+
+// Validates every row with content, skipping fully-blank rows (so an
+// unused extra row someone added and then didn't fill in doesn't block
+// saving). Returns { files, error } — error is a { row, message } pair
+// naming the offending row, or null if everything checked out.
+function collectPkgFiles(rows, langEntry) {
+  const files = [];
+  const seen = new Set();
+
+  for (const row of rows) {
+    row.errorEl.style.display = "none";
+
+    const filename = row.filenameInput.value.trim();
+    const code = row.textarea.value;
+
+    if (!filename && !code.trim()) continue; // untouched extra row
+
+    if (!filename) {
+      return { files: null, error: { row, message: "Filename is required." } };
+    }
+
+    const dot = filename.lastIndexOf(".");
+    const ext = dot === -1 ? "" : filename.slice(dot).toLowerCase();
+
+    if (!ext || !langEntry.extensions.includes(ext)) {
+      return {
+        files: null,
+        error: {
+          row,
+          message: `Filename must end with one of: ${langEntry.extensions.join(", ")}`,
+        },
+      };
+    }
+
+    if (!code.trim()) {
+      return { files: null, error: { row, message: "Code is empty." } };
+    }
+
+    const key = filename.toLowerCase();
+    if (seen.has(key)) {
+      return { files: null, error: { row, message: "Duplicate filename in this batch." } };
+    }
+    seen.add(key);
+
+    files.push({ filename, code });
+  }
+
+  return { files, error: null };
+}
+
+function findLangEntryForFolder(folder) {
+  const normalized = (folder || "").toLowerCase();
+  return Object.values(State.languages || {}).find(
+    (l) => Array.isArray(l.aliases) && l.aliases.includes(normalized)
+  ) || null;
+}
+
+// Turns a package display name into a safe, file-system-friendly folder
+// name (letters/numbers only, spaces stripped) — e.g. "Greeter Demo" ->
+// "GreeterDemo". Only used to *pre-fill* the folder-name field; the
+// person can still edit it before saving.
+function slugifyPackageFolder(name) {
+  return (name || "").replace(/[^A-Za-z0-9_-]+/g, "").slice(0, 60);
+}
+
+function showPkgError(message) {
+  const box = $("pkg-wizard-error");
+  box.textContent = message;
+  box.style.display = "block";
+}
+
+function clearPkgError() {
+  $("pkg-wizard-error").style.display = "none";
+  $("pkg-save-error").style.display = "none";
+}
+
+function goToPkgStep(n) {
+  document.querySelectorAll("#package-wizard .step-panel").forEach((panel) => {
+    panel.classList.remove("active");
+  });
+  $(`pkg-step-${n}`).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Returns to this language's Packages view (not just Home) — same idea
+// as goHome() for the program wizard, so saving (or bailing out) drops
+// the person back where they were working instead of the plain homepage.
+function pkgGoHome(focusPackage) {
+  const folder = State.pkgFolder;
+  if (!folder) {
+    window.location.href = "index.html";
+    return;
+  }
+  const params = new URLSearchParams({ folder, mode: "package" });
+  if (focusPackage) params.set("package", focusPackage);
+  window.location.href = `index.html?${params.toString()}`;
+}
+
+async function enterPackageWizard(folderParam) {
+  revealSection($("package-wizard"));
+  $("editor-title").textContent = "ADD PACKAGE";
+  document.title = "LabRecord – Add Package";
+  $("editor-subtitle").textContent = "Add a new multi-file package to a language's Packages view.";
+
+  try {
+    await ensureSiteDataLoaded();
+  } catch (err) {
+    showPkgError("Failed to load site data: " + err.message);
+    return;
+  }
+
+  const langEntry = findLangEntryForFolder(folderParam);
+  const displayLang = State.languageIndex.find((l) => l.folder === folderParam);
+
+  if (!folderParam || !langEntry || !displayLang) {
+    showPkgError(
+      "No language folder specified. Go back and use the packages toggle's [ + ] button on a language's page."
+    );
+    return;
+  }
+
+  State.pkgFolder = folderParam;
+  State.pkgLangEntry = langEntry;
+
+  $("pkg-lang-label").textContent = `(${displayLang.displayName})`;
+  $("pkg-path-preview").textContent = `packages/${folderParam}/<PackageFolder>/`;
+
+  $("pkg-name-input").value = "";
+  $("pkg-folder-input").value = "";
+  $("pkg-desc-input").value = "";
+  $("pkg-file-rows").innerHTML = "";
+  State.pkgFileRows = [];
+
+  // Start with two rows — most packages are at least "a class" + "a
+  // runner that uses it" — the person can add more or remove down to
+  // whatever they actually need.
+  buildPkgFileRow($("pkg-file-rows"), State.pkgFileRows, langEntry);
+  buildPkgFileRow($("pkg-file-rows"), State.pkgFileRows, langEntry);
+
+  goToPkgStep(1);
+}
+
+async function submitPackage() {
+  clearPkgError();
+
+  const name = $("pkg-name-input").value.trim();
+  const folderSlug = $("pkg-folder-input").value.trim();
+  const description = $("pkg-desc-input").value.trim();
+
+  if (!name) return showPkgError("Package name is required.");
+
+  if (!/^[A-Za-z0-9_-]+$/.test(folderSlug)) {
+    return showPkgError(
+      "Folder name can only contain letters, numbers, hyphens and underscores."
+    );
+  }
+
+  const { files, error } = collectPkgFiles(State.pkgFileRows, State.pkgLangEntry);
+
+  if (error) {
+    error.row.errorEl.textContent = error.message;
+    error.row.errorEl.style.display = "block";
+    error.row.el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  if (!files || files.length === 0) {
+    return showPkgError("Add at least one file.");
+  }
+
+  const saveBtn = $("pkg-step1-save");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "SAVING…";
+
+  try {
+    const res = await fetch("/api/commit-package", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessCode: getAccessCode(),
+        folder: State.pkgFolder,
+        packageName: name,
+        packageFolder: folderSlug,
+        description,
+        files,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed.");
+
+    State.createdPackageFolder = folderSlug;
+    $("pkg-done-text").textContent =
+      `"${name}" was added at packages/${State.pkgFolder}/${folderSlug}/.`;
+    goToPkgStep(2);
+  } catch (err) {
+    $("pkg-save-error").textContent = err.message;
+    $("pkg-save-error").style.display = "block";
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "CREATE PACKAGE";
+  }
+}
+
+function initPackageWizard() {
+  $("pkg-name-input").addEventListener("input", () => {
+    // Only auto-fill the folder field while the person hasn't
+    // customized it themselves yet — once they've typed into it
+    // directly, their choice sticks even if they keep editing the name.
+    if (!$("pkg-folder-input").dataset.touched) {
+      $("pkg-folder-input").value = slugifyPackageFolder($("pkg-name-input").value);
+    }
+  });
+
+  $("pkg-folder-input").addEventListener("input", (e) => {
+    e.target.dataset.touched = "1";
+  });
+
+  $("pkg-add-file-row").addEventListener("click", () => {
+    buildPkgFileRow($("pkg-file-rows"), State.pkgFileRows, State.pkgLangEntry)
+      .el.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  $("pkg-step1-save").addEventListener("click", submitPackage);
+  $("pkg-step1-back").addEventListener("click", () => pkgGoHome());
+  $("pkg-menu-btn").addEventListener("click", () => pkgGoHome());
+  $("pkg-done-menu-btn").addEventListener("click", () => pkgGoHome(State.createdPackageFolder));
+}
+
+// ---------------------------------------------------------------
+// Add File to Package (?mode=package-file&folder=<Language>&package=<Folder>)
+// ---------------------------------------------------------------
+
+function showPkgFileError(message) {
+  const box = $("pkgfile-wizard-error");
+  box.textContent = message;
+  box.style.display = "block";
+}
+
+function clearPkgFileError() {
+  $("pkgfile-wizard-error").style.display = "none";
+  $("pkgfile-save-error").style.display = "none";
+}
+
+function goToPkgFileStep(n) {
+  document.querySelectorAll("#package-file-wizard .step-panel").forEach((panel) => {
+    panel.classList.remove("active");
+  });
+  $(`pkgfile-step-${n}`).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function pkgFileGoHome() {
+  const folder = State.pkgFileTargetFolder;
+  const pkg = State.pkgFileTargetPackage;
+  if (!folder) {
+    window.location.href = "index.html";
+    return;
+  }
+  const params = new URLSearchParams({ folder, mode: "package-file" });
+  if (pkg) params.set("package", pkg);
+  window.location.href = `index.html?${params.toString()}`;
+}
+
+async function enterPackageFileWizard(folderParam, packageParam) {
+  revealSection($("package-file-wizard"));
+  $("editor-title").textContent = "ADD FILE TO PACKAGE";
+  document.title = "LabRecord – Add File to Package";
+  $("editor-subtitle").textContent = "Add another source file to an existing package.";
+
+  try {
+    await ensureSiteDataLoaded();
+  } catch (err) {
+    showPkgFileError("Failed to load site data: " + err.message);
+    return;
+  }
+
+  const langEntry = findLangEntryForFolder(folderParam);
+
+  if (!folderParam || !packageParam || !langEntry) {
+    showPkgFileError(
+      "No package specified. Go back and use the [ + ] button while a package is open."
+    );
+    return;
+  }
+
+  State.pkgFileTargetFolder = folderParam;
+  State.pkgFileTargetPackage = packageParam;
+  State.pkgFileLangEntry = langEntry;
+
+  let displayName = packageParam;
+  try {
+    const packagesIndex = await fetchJson("/generated/packages-index.json");
+    const match = packagesIndex.find(
+      (p) => p.languageFolder === folderParam && p.folder === packageParam
+    );
+    if (match) displayName = match.name;
+  } catch {
+    // Fall back to the raw folder name in the label — not fatal, the
+    // server still authoritatively checks the package exists on save.
+  }
+
+  $("pkgfile-pkg-label").textContent = displayName;
+  $("pkgfile-path-preview").textContent = `packages/${folderParam}/${packageParam}/`;
+
+  $("pkgfile-file-rows").innerHTML = "";
+  State.pkgFileAddRows = [];
+  buildPkgFileRow($("pkgfile-file-rows"), State.pkgFileAddRows, langEntry);
+
+  goToPkgFileStep(1);
+}
+
+async function submitPackageFile() {
+  clearPkgFileError();
+
+  const { files, error } = collectPkgFiles(State.pkgFileAddRows, State.pkgFileLangEntry);
+
+  if (error) {
+    error.row.errorEl.textContent = error.message;
+    error.row.errorEl.style.display = "block";
+    error.row.el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  if (!files || files.length === 0) {
+    return showPkgFileError("Add at least one file.");
+  }
+
+  const saveBtn = $("pkgfile-step1-save");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "SAVING…";
+
+  try {
+    const res = await fetch("/api/commit-package-file", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessCode: getAccessCode(),
+        folder: State.pkgFileTargetFolder,
+        package: State.pkgFileTargetPackage,
+        files,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed.");
+
+    $("pkgfile-done-text").textContent =
+      `Added ${files.map((f) => f.filename).join(", ")} to packages/${State.pkgFileTargetFolder}/${State.pkgFileTargetPackage}/.`;
+    goToPkgFileStep(2);
+  } catch (err) {
+    $("pkgfile-save-error").textContent = err.message;
+    $("pkgfile-save-error").style.display = "block";
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "ADD TO PACKAGE";
+  }
+}
+
+function initPackageFileWizard() {
+  $("pkgfile-add-file-row").addEventListener("click", () => {
+    buildPkgFileRow($("pkgfile-file-rows"), State.pkgFileAddRows, State.pkgFileLangEntry)
+      .el.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  $("pkgfile-step1-save").addEventListener("click", submitPackageFile);
+  $("pkgfile-step1-back").addEventListener("click", pkgFileGoHome);
+  $("pkgfile-menu-btn").addEventListener("click", pkgFileGoHome);
+  $("pkgfile-done-menu-btn").addEventListener("click", pkgFileGoHome);
+}
+
+// ---------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------
 
@@ -1384,4 +1835,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initStep2();
   initStep3();
   initStep4();
+  initPackageWizard();
+  initPackageFileWizard();
 });

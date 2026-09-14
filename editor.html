@@ -37,7 +37,7 @@
       <header class="app-header">
         <div class="header-bar">
           <div>
-            <h1 class="app-title title-visible">ADD PROGRAM</h1>
+            <h1 class="app-title title-visible" id="editor-title">ADD PROGRAM</h1>
             <p id="editor-subtitle" class="app-subtitle" style="opacity:1;">
               Upload screenshots or paste code to add a new program.
             </p>
@@ -233,6 +233,104 @@
           <div class="btn-row">
             <button id="done-menu-btn" class="action-btn">« BACK TO HOME</button>
             <button id="add-another" class="action-btn run-btn">ADD ANOTHER PROGRAM</button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ============ Add Package wizard ============ -->
+      <div id="package-wizard" style="display:none;">
+
+        <div class="wizard-topbar">
+          <button id="pkg-menu-btn" class="back-btn" type="button">« HOME</button>
+        </div>
+
+        <div id="pkg-wizard-error" class="banner banner-error" style="display:none;"></div>
+
+        <!-- Step P1: package details + files -->
+        <section class="step-panel active" id="pkg-step-1">
+          <h2 class="step-heading">New package <span id="pkg-lang-label"></span></h2>
+          <p class="field-hint" style="margin-top:0;">
+            A package is a small folder of cooperating source files (e.g. a class plus the runner
+            that uses it) — added as <code id="pkg-path-preview">packages/&lt;Language&gt;/&lt;PackageFolder&gt;/</code>.
+          </p>
+
+          <label class="field-label">Package name</label>
+          <input id="pkg-name-input" type="text" class="editor-input" placeholder="e.g. Greeter Demo" />
+
+          <label class="field-label" style="margin-top:16px;">Folder name</label>
+          <input id="pkg-folder-input" type="text" class="editor-input" placeholder="e.g. GreeterDemo" />
+          <p class="field-hint">Letters, numbers, hyphens and underscores only — this becomes the folder name on disk. Auto-filled from the package name; edit it if you want something different.</p>
+
+          <label class="field-label" style="margin-top:16px;">Description</label>
+          <input id="pkg-desc-input" type="text" class="editor-input" placeholder="One line describing what this package demonstrates" />
+
+          <label class="field-label" style="margin-top:26px;">Files</label>
+          <p class="field-hint" style="margin-top:0;">Add each source file with its filename and code. Most packages need at least two (e.g. a class and a runner with <code>main</code>).</p>
+
+          <div id="pkg-file-rows"></div>
+
+          <div class="btn-row">
+            <button id="pkg-add-file-row" class="action-btn" type="button">+ ADD FILE</button>
+          </div>
+
+          <div id="pkg-save-error" class="banner banner-error" style="display:none;"></div>
+
+          <div class="btn-row">
+            <button id="pkg-step1-back" class="action-btn">« HOME</button>
+            <button id="pkg-step1-save" class="action-btn run-btn">CREATE PACKAGE</button>
+          </div>
+        </section>
+
+        <!-- Step P2: Done -->
+        <section class="step-panel" id="pkg-step-2">
+          <h2 class="step-heading">Saved ✓</h2>
+          <p class="field-hint" id="pkg-done-text"></p>
+          <p class="field-hint">Your package has been saved successfully. It should appear on the language's Packages view in about a minute.</p>
+          <div class="btn-row">
+            <button id="pkg-done-menu-btn" class="action-btn">« BACK TO PACKAGES</button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ============ Add File to Package wizard ============ -->
+      <div id="package-file-wizard" style="display:none;">
+
+        <div class="wizard-topbar">
+          <button id="pkgfile-menu-btn" class="back-btn" type="button">« HOME</button>
+        </div>
+
+        <div id="pkgfile-wizard-error" class="banner banner-error" style="display:none;"></div>
+
+        <!-- Step F1: files -->
+        <section class="step-panel active" id="pkgfile-step-1">
+          <h2 class="step-heading">Add file to <span id="pkgfile-pkg-label">package</span></h2>
+          <p class="field-hint" style="margin-top:0;">
+            New files are added straight to <code id="pkgfile-path-preview">packages/&lt;Language&gt;/&lt;Package&gt;/</code>.
+          </p>
+
+          <div id="pkgfile-file-rows"></div>
+
+          <div class="btn-row">
+            <button id="pkgfile-add-file-row" class="action-btn" type="button">+ ADD ANOTHER FILE</button>
+          </div>
+
+          <div id="pkgfile-save-error" class="banner banner-error" style="display:none;"></div>
+
+          <div class="btn-row">
+            <button id="pkgfile-step1-back" class="action-btn">« HOME</button>
+            <button id="pkgfile-step1-save" class="action-btn run-btn">ADD TO PACKAGE</button>
+          </div>
+        </section>
+
+        <!-- Step F2: Done -->
+        <section class="step-panel" id="pkgfile-step-2">
+          <h2 class="step-heading">Saved ✓</h2>
+          <p class="field-hint" id="pkgfile-done-text"></p>
+          <p class="field-hint">The file has been added successfully. It should appear inside the package in about a minute.</p>
+          <div class="btn-row">
+            <button id="pkgfile-done-menu-btn" class="action-btn">« BACK TO PACKAGE</button>
           </div>
         </section>
 

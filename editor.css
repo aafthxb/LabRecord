@@ -837,3 +837,40 @@ body.site-edit-mode .card-delete-btn {
   color: var(--danger);
   font-weight: 700;
 }
+
+/* ---------- Add Package / Add File to Package: file rows ---------- */
+/* Deliberately reuses the same shell/spacing as .batch-file-item above
+   (border, shadow, surface-alt background) since it's the same idea —
+   one file, a filename plus its code — just entered by hand instead of
+   coming from an upload. */
+
+.pkg-file-row {
+  border: 2px solid var(--border);
+  background: var(--surface-alt);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+
+.pkg-file-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pkg-file-row-head .editor-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.pkg-file-row .code-textarea {
+  min-height: 200px;
+  margin-top: 10px;
+}
+
+.pkg-file-row-error {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--danger);
+  font-weight: 700;
+}

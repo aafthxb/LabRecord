@@ -156,6 +156,16 @@
     <span class="theme-icon">🌙</span>
 </button>
 
+        <button
+    id="folder-mode-toggle"
+    class="theme-btn"
+    type="button"
+    style="display:none;"
+    title="View packages"
+    aria-label="Switch to packages">
+    <span class="theme-icon">📦</span>
+</button>
+
         <a class="back-btn"
                 id="add-program-btn"
                 style="display:none;"
@@ -166,7 +176,7 @@
 
         <button class="back-btn"
                 id="back-btn"
-                onclick="showHome(event)">
+                onclick="handleBack(event)">
             [ BACK ]
         </button>
 
@@ -185,6 +195,9 @@
 
       <!-- Program Containers -->
       <div id="language-views"></div>
+
+      <!-- Packages: list view + one view per opened package -->
+      <div id="packages-views"></div>
       <footer class="app-footer" id="app-footer"></footer>
     </div>
   </div>

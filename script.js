@@ -146,9 +146,12 @@ function openFolder(folder, event) {
         // collapse its cards now so they're reset if the user comes back.
         if (App.currentFolder && App.currentFolder !== folder) {
             collapseAllCards(App.currentFolder);
+            if (App.folderMode === "packages") collapseAllPackageCards(App.currentFolder);
         }
 
         App.currentFolder = folder;
+        App.folderMode = "programs";
+        App.packages.openPackage = null;
 
         document.getElementById("home-view").style.display = "none";
         document.getElementById("back-btn").style.display = "inline-block";
@@ -205,6 +208,7 @@ function openFolder(folder, event) {
                 language.description || "";
         }
 
+        updateFolderModeToggle();
         refreshEditUI();
 
         window.scrollTo({
@@ -214,11 +218,137 @@ function openFolder(folder, event) {
     });
 }
 
+// Syncs the packages/programs toggle button's visibility, icon, title
+// and "on" state to App.currentFolder / App.folderMode. Hidden entirely
+// on the home screen and while a specific package is open (BACK already
+// covers getting back to the packages list from there).
+function updateFolderModeToggle() {
+    const toggle = document.getElementById("folder-mode-toggle");
+
+    if (!App.currentFolder || App.packages.openPackage) {
+        toggle.style.display = "none";
+        return;
+    }
+
+    toggle.style.display = "flex";
+
+    const inPackages = App.folderMode === "packages";
+    toggle.classList.toggle("is-active", inPackages);
+    toggle.querySelector(".theme-icon").textContent = inPackages ? "📄" : "📦";
+    toggle.title = inPackages ? "View programs" : "View packages";
+    toggle.setAttribute("aria-label", inPackages ? "Switch to programs" : "Switch to packages");
+}
+
+// Flips the currently open language folder between its Programs view
+// and its Packages view — same folder, same [ BACK ] destination
+// (home), just a different sub-view swapped in underneath the header.
+function toggleFolderMode(event) {
+    const folder = App.currentFolder;
+    if (!folder || App.packages.openPackage) return;
+
+    runWithTactileDelay(event, () => {
+        if (App.folderMode === "packages") {
+            collapseAllPackageCards(folder);
+            showProgramsView(folder);
+        } else {
+            collapseAllCards(folder);
+            showPackagesListView(folder);
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+}
+
+function showProgramsView(folder) {
+    App.folderMode = "programs";
+
+    document.querySelectorAll(".view-container").forEach(c => c.classList.remove("active"));
+
+    const container = document.getElementById(`${folder}-container`);
+    if (container) {
+        container.classList.add("active");
+        container.classList.add("view-enter");
+        container.addEventListener(
+            "animationend",
+            () => container.classList.remove("view-enter"),
+            { once: true }
+        );
+    }
+
+    const language = App.languageIndex.find(l => l.folder === folder);
+    if (language) {
+        document.getElementById("page-title").textContent =
+            `${language.displayName.toUpperCase()} PROGRAMS`;
+        document.getElementById("page-subtitle").textContent =
+            language.description || "";
+    }
+
+    updateFolderModeToggle();
+    refreshEditUI();
+}
+
+function showPackagesListView(folder) {
+    App.folderMode = "packages";
+
+    document.querySelectorAll(".view-container").forEach(c => c.classList.remove("active"));
+
+    const listContainer = ensurePackagesListContainer(folder);
+
+    listContainer.classList.add("active");
+    listContainer.classList.add("view-enter");
+    listContainer.addEventListener(
+        "animationend",
+        () => listContainer.classList.remove("view-enter"),
+        { once: true }
+    );
+
+    const language = App.languageIndex.find(l => l.folder === folder);
+    const displayName = language?.displayName || folder;
+
+    document.getElementById("page-title").textContent =
+        `${displayName.toUpperCase()} PACKAGES`;
+    document.getElementById("page-subtitle").textContent =
+        `Multi-file ${displayName} packages — browse, search, and check them together.`;
+
+    updateFolderModeToggle();
+    refreshEditUI();
+}
+
+// Creates (once, lazily) and returns the packages-list container for a
+// given language folder, filtered to just that language's packages.
+function ensurePackagesListContainer(folder) {
+    let container = document.getElementById(`packages-list-${folder}-container`);
+
+    if (!container) {
+        container = document.createElement("div");
+        container.id = `packages-list-${folder}-container`;
+        container.className = "view-container";
+        document.getElementById("packages-views").appendChild(container);
+    }
+
+    if (!App.packages.builtLists.has(folder)) {
+        buildPackagesListUI(container, folder);
+        App.packages.builtLists.add(folder);
+    }
+
+    return container;
+}
+
 function showHome(event) {
   runWithTactileDelay(event, () => {
     if (App.currentFolder) {
-        collapseAllCards(App.currentFolder);
+        if (App.folderMode === "packages") {
+            collapseAllPackageCards(App.currentFolder);
+        } else {
+            collapseAllCards(App.currentFolder);
+        }
     }
+
+    if (App.packages.openPackage) {
+        collapseAllPackageFileCards(App.packages.openPackage);
+    }
+    App.packages.openPackage = null;
+    App.folderMode = "programs";
 
     const home = document.getElementById("home-view");
 
@@ -249,10 +379,46 @@ function showHome(event) {
         "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
 
     App.currentFolder = null;
+    updateFolderModeToggle();
     refreshEditUI();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
+
+// Routes the top-bar [ BACK ] button. Two levels deep only ever happens
+// inside Packages (packages-list -> a package's file view), so this is
+// the only place that needs to know about that extra level — everywhere
+// else (a language folder, or the packages list itself) still just
+// means "go home", exactly like before Packages existed.
+function handleBack(event) {
+
+    if (App.packages.openPackage) {
+        runWithTactileDelay(event, () => {
+
+            const id = App.packages.openPackage;
+            const pkg = App.packages.byId.get(id);
+            const folder = pkg?.languageFolder || App.currentFolder;
+
+            collapseAllPackageFileCards(id);
+            document.getElementById(`package-${packageDomId(id)}-container`)
+                ?.classList.remove("active");
+
+            App.packages.openPackage = null;
+
+            document.getElementById("home-view").style.display = "none";
+            document.getElementById("back-btn").style.display = "inline-block";
+            document.getElementById("theme-btn").style.display = "none";
+            document.getElementById("editor-btn").style.display = "none";
+
+            showPackagesListView(folder);
+
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        return;
+    }
+
+    showHome(event);
 }
 
 // ==========================
@@ -367,22 +533,45 @@ function hasUnsavedEdits() {
     });
 }
 
-// Shows/hides the "+" button and the pending-changes save bar to match
-// whichever folder is currently open and whether editing is unlocked.
+// Shows/hides the "+" button (and retargets what it does) plus the
+// pending-changes save bar, to match whichever folder/sub-view is
+// currently open and whether editing is unlocked. The "+" button
+// means three different things depending on context:
+//   - Programs view of a language        -> add a program (existing)
+//   - Packages view of a language        -> add a package to it
+//   - Inside a specific package          -> add a file to that package
 function refreshEditUI() {
     const addBtn = document.getElementById("add-program-btn");
     const folder = App.currentFolder;
+    const openPkgId = App.packages.openPackage;
 
-    if (folder && App.edit.unlocked) {
-        addBtn.style.display = "inline-block";
-        addBtn.href = `editor.html?folder=${encodeURIComponent(folder)}`;
-        ensurePending(folder);
-    } else {
+    if (!folder || !App.edit.unlocked) {
         addBtn.style.display = "none";
         addBtn.removeAttribute("href");
+        updateSaveBar(null);
+        return;
     }
 
-    updateSaveBar(folder);
+    addBtn.style.display = "inline-block";
+
+    if (openPkgId) {
+        const pkg = App.packages.byId.get(openPkgId);
+        addBtn.href = `editor.html?mode=package-file&folder=${encodeURIComponent(pkg?.languageFolder || folder)}&package=${encodeURIComponent(pkg?.folder || "")}`;
+        addBtn.title = "Add a file to this package";
+        addBtn.setAttribute("aria-label", "Add a file to this package");
+        updateSaveBar(null);
+    } else if (App.folderMode === "packages") {
+        addBtn.href = `editor.html?mode=package&folder=${encodeURIComponent(folder)}`;
+        addBtn.title = "Add a new package";
+        addBtn.setAttribute("aria-label", "Add a new package");
+        updateSaveBar(null);
+    } else {
+        addBtn.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+        addBtn.title = "Add a new program";
+        addBtn.setAttribute("aria-label", "Add a new program");
+        ensurePending(folder);
+        updateSaveBar(folder);
+    }
 }
 
 function setEditMode(on, code) {
@@ -885,8 +1074,49 @@ const App = {
     codeLookup: {},
 
     loadedPrograms: new Map(),
-    builtFolders: new Set()
+    builtFolders: new Set(),
+
+    // Which sub-view of the currently open language folder is showing:
+    // "programs" (the default) or "packages". Only meaningful while
+    // currentFolder is set and no specific package is open.
+    folderMode: "programs",
+
+    // Packages: read-only, browse/search/check layer for custom
+    // multi-file programs (generated/packages-index.json +
+    // generated/packages-code/<languageFolder>/<folder>.json). Each
+    // package now lives inside its own language's page (a toggle next
+    // to that language's [ BACK ] button switches between Programs and
+    // Packages) rather than a separate top-level page, and only the
+    // packages belonging to that language are ever shown there.
+    // Deliberately separate from the reorder/edit/commit system above —
+    // packages are added via a dedicated editor.html flow, not the
+    // inline program editor.
+    packages: {
+        list: [],                 // every package, across all languages
+        byLanguage: new Map(),    // languageFolder -> [pkg, ...]
+        byId: new Map(),          // "languageFolder/folder" -> pkg
+        cards: new Map(),         // languageFolder -> [card, ...]
+        fileCards: new Map(),     // "languageFolder/folder" -> [card, ...]
+        builtLists: new Set(),    // languageFolder(s) whose list UI is built
+        builtPackages: new Set(), // "languageFolder/folder"(s) already built
+        codeIndexLoaded: new Set(),
+        codeLookup: {},
+        openPackage: null // "languageFolder/folder" or null
+    }
 };
+
+// A package is uniquely identified by its language folder + its own
+// folder name (two different languages could otherwise have a
+// same-named package). This id is used for Map keys, DOM container
+// ids, and the packages-code fetch path.
+function packageId(languageFolder, folder) {
+    return `${languageFolder}/${folder}`;
+}
+
+// DOM ids can't contain "/", so container ids swap it for "--".
+function packageDomId(id) {
+    return id.replace(/\//g, "--");
+}
 // ==========================
 // Load Metadata
 // ==========================
@@ -1001,6 +1231,879 @@ App.languageIndex.forEach(language => {
 
 function getPrograms(folder) {
     return App.metadata[folder] || [];
+}
+
+// ==========================
+// Packages (custom multi-file programs)
+// ==========================
+//
+// Mirrors normalizeSearchText() in scripts/generate-index.js so a
+// package's own name/description can be normalized client-side the
+// same way its rolled-up searchText was built server-side.
+function normalizeForSearch(text) {
+    return String(text)
+        .toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+async function loadPackagesIndex() {
+    try {
+        const response = await fetch("/generated/packages-index.json");
+        if (!response.ok) throw new Error("not ok");
+
+        App.packages.list = await response.json();
+    } catch {
+        App.packages.list = [];
+    }
+
+    App.packages.byLanguage = new Map();
+    App.packages.byId = new Map();
+
+    App.packages.list.forEach(pkg => {
+        pkg.id = packageId(pkg.languageFolder, pkg.folder);
+        App.packages.byId.set(pkg.id, pkg);
+
+        if (!App.packages.byLanguage.has(pkg.languageFolder)) {
+            App.packages.byLanguage.set(pkg.languageFolder, []);
+        }
+        App.packages.byLanguage.get(pkg.languageFolder).push(pkg);
+    });
+}
+
+function getPackagesForFolder(folder) {
+    return App.packages.byLanguage.get(folder) || [];
+}
+
+function collapseAllPackageCards(folder) {
+    (App.packages.cards.get(folder) || []).forEach(card => {
+        card.classList.add("collapsed");
+        const icon = card.querySelector(".expand-icon");
+        if (icon) icon.textContent = "▼";
+    });
+}
+
+// `pkgId` is the compound "languageFolder/folder" id (see packageId()).
+function collapseAllPackageFileCards(pkgId) {
+    (App.packages.fileCards.get(pkgId) || []).forEach(card => {
+        card._collapse?.();
+    });
+}
+
+function createPackagesSearchUI(container) {
+    const searchContainer = document.createElement("div");
+    searchContainer.className = "search-container";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "search-wrapper";
+
+    const input = document.createElement("input");
+    input.className = "search-input";
+    input.type = "text";
+    input.placeholder = "Search packages...";
+
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "search-clear";
+    clearBtn.innerHTML = "&times;";
+    clearBtn.style.display = "none";
+
+    const status = document.createElement("div");
+    status.className = "search-status";
+
+    const noResults = document.createElement("p");
+    noResults.className = "no-results";
+    noResults.textContent = "No matching packages found.";
+    noResults.style.display = "none";
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(clearBtn);
+
+    searchContainer.appendChild(wrapper);
+    searchContainer.appendChild(status);
+
+    container.appendChild(searchContainer);
+    container.appendChild(noResults);
+
+    return { input, clearBtn, status, noResults };
+}
+
+// Package cards reuse the exact .program-card shell (collapse/expand,
+// card-enter stagger, shadows) so they look and behave like every other
+// card on the site — a file-count badge stands in for the run button a
+// program card would show, and expanding one previews its file list
+// instead of source code. Opening a package for real (OPEN ▶) is a
+// separate navigation, into that package's own file-cards page.
+function createPackageCard(pkg, index) {
+    const card = document.createElement("div");
+    card.className = "program-card collapsed";
+
+    card.dataset.number = String(index + 1);
+    card.dataset.title = pkg.name.toLowerCase();
+    card.dataset.search = pkg.searchText;
+    card.dataset.ownSearch = normalizeForSearch(`${pkg.name} ${pkg.description || ""}`);
+
+    card._pkg = pkg;
+
+    const safeName = escapeHtml(pkg.name);
+    const safeDescription = escapeHtml(pkg.description || "");
+
+    const header = document.createElement("div");
+    header.className = "card-header";
+
+    header.innerHTML = `
+        <div class="card-left">
+            <div class="title-group">
+                <h3 class="card-title">
+                    <span class="serial-badge">${index + 1}</span>
+                    <span class="program-title-text">${safeName}</span>
+                </h3>
+                <span class="file-badge">[ ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} ]</span>
+                <p class="card-subtitle">${safeDescription}</p>
+                <div class="code-match-badge package-match-badge" style="display:none;"></div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="action-btn run-btn">OPEN ▶</button>
+            <span class="expand-icon">▼</span>
+        </div>
+    `;
+
+    card.appendChild(header);
+
+    const fileList = document.createElement("div");
+    fileList.className = "code-wrapper package-file-list";
+    fileList.innerHTML = `
+        <ul class="package-file-list-items">
+            ${pkg.files.map(f => `
+                <li>
+                    <span class="package-file-list-title">${escapeHtml(f.title)}</span>
+                    <span class="package-file-list-name">[ ${escapeHtml(f.file)} ]</span>
+                </li>
+            `).join("")}
+        </ul>
+    `;
+    card.appendChild(fileList);
+
+    const expandIcon = card.querySelector(".expand-icon");
+    const openBtn = card.querySelector(".action-btn.run-btn");
+
+    header.onclick = (e) => {
+        if (e.target.closest(".action-btn")) return;
+        runWithTactileDelay(e, () => {
+            const collapsed = card.classList.toggle("collapsed");
+            expandIcon.textContent = collapsed ? "▼" : "▲";
+        }, card);
+    };
+
+    openBtn.onclick = (e) => {
+        e.stopPropagation();
+        openPackage(pkg.id, e);
+    };
+
+    card.originalContent = {
+        title: pkg.name,
+        description: pkg.description || ""
+    };
+
+    return card;
+}
+
+function buildPackagesListUI(container, folder) {
+    container.innerHTML = "";
+
+    const search = createPackagesSearchUI(container);
+
+    const cards = [];
+    App.packages.cards.set(folder, cards);
+
+    getPackagesForFolder(folder).forEach((pkg, index) => {
+        const card = createPackageCard(pkg, index);
+        card.classList.add("card-enter");
+        card.style.setProperty("--stagger-index", Math.min(index, 14));
+
+        card.addEventListener(
+            "animationend",
+            () => card.classList.remove("card-enter"),
+            { once: true }
+        );
+
+        container.appendChild(card);
+        cards.push(card);
+    });
+
+    setupPackagesListSearch(search, cards);
+}
+
+// Fast/metadata-tier search only — deliberately never touches a
+// package's code content, even as a fallback. A search for actual code
+// naturally belongs inside the package you already suspect contains it
+// (see chat notes: this scope cut was intentional, not an oversight).
+function setupPackagesListSearch(search, cards) {
+    const { input, clearBtn, status, noResults } = search;
+
+    function filterCards() {
+        const query = input.value.trim().toLowerCase();
+        const keywords = query.split(/\s+/).filter(Boolean);
+
+        clearBtn.style.display = query ? "block" : "none";
+
+        let visible = 0;
+        const matchedCards = [];
+
+        cards.forEach(card => {
+            const matchBadge = card.querySelector(".package-match-badge");
+
+            let match = false;
+            if (!query) {
+                match = true;
+            } else if (/^\d+$/.test(query)) {
+                match = card.dataset.number === query;
+            } else {
+                match = keywords.every(word => card.dataset.search.includes(word));
+            }
+
+            // If this only matched because of a file inside the
+            // package (its own name/description didn't mention the
+            // query), name which file — rather than silently
+            // highlighting the package card and making the user click
+            // in to find out why it matched.
+            matchBadge.style.display = "none";
+
+            if (match && query && !/^\d+$/.test(query)) {
+                const ownMatch = keywords.every(word => card.dataset.ownSearch.includes(word));
+
+                if (!ownMatch) {
+                    const pkg = card._pkg;
+                    const hitFile = (pkg.files || []).find(f => {
+                        const fileSearch = `${f.title} ${f.file} ${f.description || ""}`.toLowerCase();
+                        return keywords.every(word => fileSearch.includes(word));
+                    });
+
+                    if (hitFile) {
+                        matchBadge.textContent = `Match in ${hitFile.file}`;
+                        matchBadge.style.display = "inline-block";
+                    }
+                }
+            }
+
+            animateCard(card, match);
+
+            if (match) {
+                visible++;
+
+                let score = 0;
+                if (query === card.dataset.number) score = 100;
+                else if (card.dataset.title.startsWith(query)) score = 90;
+                else if (card.dataset.title.includes(query)) score = 80;
+                else score = 50;
+
+                matchedCards.push({ card, score });
+            }
+        });
+
+        cards.forEach(card => { card.style.order = ""; });
+
+        if (query) {
+            matchedCards
+                .sort((a, b) => b.score - a.score)
+                .forEach(({ card }, index) => { card.style.order = index; });
+        }
+
+        const total = cards.length;
+
+        status.textContent = query
+            ? `Showing ${visible} of ${total} package${total !== 1 ? "s" : ""}`
+            : `${total} package${total !== 1 ? "s" : ""} loaded`;
+
+        noResults.style.display = visible === 0 ? "block" : "none";
+    }
+
+    input.addEventListener("input", filterCards);
+
+    clearBtn.onclick = () => {
+        input.value = "";
+        filterCards();
+        input.focus();
+    };
+
+    filterCards();
+}
+
+// `id` is the compound "languageFolder/folder" id (see packageId()).
+async function loadPackageCodeIndex(id) {
+    if (App.packages.codeIndexLoaded.has(id)) return;
+
+    const response = await fetch(`/generated/packages-code/${id.split("/").map(encodeURIComponent).join("/")}.json`);
+    if (!response.ok) {
+        throw new Error("Unable to load this package's code index.");
+    }
+
+    const entries = await response.json();
+    entries.forEach(entry => {
+        App.packages.codeLookup[entry.path] = entry;
+    });
+
+    App.packages.codeIndexLoaded.add(id);
+}
+
+// A trimmed-down program-card: same shell, same COPY/RUN/expand
+// behavior and code view as a normal program card, but permanently
+// read-only (no drag handle, no delete, no inline editor). Packages
+// aren't part of the reorder/edit/commit system, so wiring one up to
+// App.currentFolder here would let an unlocked editor "save" straight
+// into the wrong path on disk — this avoids that risk entirely by just
+// not offering editing for package files yet.
+function createPackageFileCard(fileEntry, pkg) {
+    const lang = pkg.compiler;
+
+    const card = document.createElement("div");
+    card.className = "program-card collapsed";
+
+    card.dataset.number = String(fileEntry.number);
+    card.dataset.title = fileEntry.title.toLowerCase();
+    card.dataset.file = fileEntry.file.toLowerCase();
+    card.dataset.description = (fileEntry.description || "").toLowerCase();
+    card.dataset.path = fileEntry.path;
+    card.dataset.search = [
+        fileEntry.title,
+        fileEntry.file,
+        fileEntry.description || ""
+    ].join(" ").toLowerCase();
+    card.dataset.codeMatch = "false";
+
+    const header = document.createElement("div");
+    header.className = "card-header";
+
+    const safeTitle = escapeHtml(fileEntry.title);
+    const safeFile = escapeHtml(fileEntry.file);
+    const safeDescription = escapeHtml(fileEntry.description || "");
+
+    header.innerHTML = `
+        <div class="card-left">
+            <div class="title-group">
+                <h3 class="card-title">
+                    <span class="serial-badge">${fileEntry.number}</span>
+                    <span class="program-title-text">${safeTitle}</span>
+                </h3>
+                <span class="file-badge">[ ${safeFile} ]</span>
+                <p class="card-subtitle">${safeDescription}</p>
+                <div class="code-match-badge">Found in source code</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="action-btn">COPY</button>
+            <button class="action-btn run-btn">RUN FILE ▶</button>
+            <span class="expand-icon">▼</span>
+        </div>
+    `;
+
+    card.appendChild(header);
+
+    const codeWrapper = document.createElement("div");
+    codeWrapper.className = "code-wrapper";
+
+    const pre = document.createElement("pre");
+    const codeElement = document.createElement("code");
+    codeElement.className = `language-${lang}`;
+    pre.appendChild(codeElement);
+    codeWrapper.appendChild(pre);
+    card.appendChild(codeWrapper);
+
+    const editorWrapper = document.createElement("div");
+    editorWrapper.className = "editor-wrapper";
+    card.appendChild(editorWrapper);
+
+    const expandIcon = card.querySelector(".expand-icon");
+    const copyBtn = card.querySelector(".action-btn:not(.run-btn)");
+    const runBtn = card.querySelector(".run-btn");
+    const codeMatchBadge = card.querySelector(".code-match-badge");
+    codeMatchBadge.style.display = "none";
+
+    card.originalContent = {
+        title: fileEntry.title,
+        file: fileEntry.file,
+        description: fileEntry.description || ""
+    };
+
+    let loaded = false;
+    let source = null;
+    let skeleton = null;
+    let iframe = null;
+
+    async function ensureLoaded() {
+        if (loaded) return source;
+
+        skeleton = document.createElement("div");
+        skeleton.className = "code-skeleton";
+        for (let i = 0; i < 7; i++) {
+            const line = document.createElement("div");
+            line.className = "code-skeleton-line";
+            skeleton.appendChild(line);
+        }
+
+        pre.style.display = "none";
+        codeWrapper.insertBefore(skeleton, pre);
+
+        source = await loadProgramCode(fileEntry, lang);
+        loaded = true;
+
+        skeleton.remove();
+        skeleton = null;
+        pre.style.display = "block";
+
+        codeElement.textContent = source;
+        Prism.highlightElement(codeElement);
+
+        return source;
+    }
+
+    header.onclick = (e) => {
+        if (e.target.closest(".action-btn")) return;
+        runWithTactileDelay(e, async () => {
+            const collapsed = card.classList.toggle("collapsed");
+            expandIcon.textContent = collapsed ? "▼" : "▲";
+
+            if (collapsed) {
+                if (editorWrapper.classList.contains("active")) {
+                    editorWrapper.classList.remove("active");
+                    runBtn.textContent = "RUN FILE ▶";
+                }
+                return;
+            }
+
+            await ensureLoaded();
+        }, card);
+    };
+
+    copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        runWithTactileDelay(e, async () => {
+            try {
+                const code = await ensureLoaded();
+                await copyToClipboard(code, codeElement);
+                copyBtn.textContent = "COPIED!";
+                setTimeout(() => { copyBtn.textContent = "COPY"; }, 1500);
+            } catch {
+                copyBtn.textContent = "FAILED";
+                setTimeout(() => { copyBtn.textContent = "COPY"; }, 1500);
+            }
+        }, copyBtn);
+    };
+
+    function buildRunFiles(runSource) {
+        return [{ name: fileEntry.file, content: runSource }];
+    }
+
+    runBtn.onclick = (e) => {
+        e.stopPropagation();
+        runWithTactileDelay(e, async () => {
+
+            if (card.classList.contains("collapsed")) {
+                card.classList.remove("collapsed");
+                expandIcon.textContent = "▲";
+            }
+
+            const code = await ensureLoaded();
+
+            if (editorWrapper.classList.contains("active")) {
+                editorWrapper.classList.remove("active");
+                runBtn.textContent = "RUN FILE ▶";
+                return;
+            }
+
+            editorWrapper.classList.add("active");
+            runBtn.textContent = "CLOSE RUNNER ✖";
+
+            const runSource = lang === "c" ? cleanTurboC(code) : code;
+
+            if (!iframe) {
+                runBtn.classList.add("is-loading");
+
+                iframe = document.createElement("iframe");
+                iframe.src =
+                    `https://onecompiler.com/embed/${lang}?theme=dark&hideTitle=true&hideNew=true&hideEditorOptions=true&listenToEvents=true`;
+                editorWrapper.appendChild(iframe);
+
+                const populate = () => {
+                    iframe.contentWindow.postMessage({
+                        eventType: "populateCode",
+                        language: lang,
+                        files: buildRunFiles(runSource)
+                    }, "*");
+
+                    setTimeout(() => {
+                        iframe.contentWindow.postMessage({ eventType: "triggerRun" }, "*");
+                        runBtn.classList.remove("is-loading");
+                    }, 800);
+                };
+
+                window.addEventListener("message", (event) => {
+                    if (event.source !== iframe.contentWindow) return;
+                    if (event.data?.action === "onLoad") populate();
+                });
+
+                iframe.onload = () => setTimeout(populate, 1200);
+
+            } else {
+                runBtn.classList.add("is-loading");
+
+                iframe.contentWindow.postMessage({
+                    eventType: "populateCode",
+                    language: lang,
+                    files: buildRunFiles(runSource)
+                }, "*");
+
+                setTimeout(() => {
+                    iframe.contentWindow.postMessage({ eventType: "triggerRun" }, "*");
+                    runBtn.classList.remove("is-loading");
+                }, 500);
+            }
+        }, runBtn);
+    };
+
+    card._collapse = () => {
+        if (card.classList.contains("collapsed")) return;
+        card.classList.add("collapsed");
+        expandIcon.textContent = "▼";
+        if (editorWrapper.classList.contains("active")) {
+            editorWrapper.classList.remove("active");
+            runBtn.textContent = "RUN FILE ▶";
+        }
+    };
+
+    return card;
+}
+
+function createPackageFileSearchUI(container, pkg) {
+    const searchContainer = document.createElement("div");
+    searchContainer.className = "search-container";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "search-wrapper";
+
+    const input = document.createElement("input");
+    input.className = "search-input";
+    input.type = "text";
+    input.placeholder = `Search ${pkg.name} files...`;
+
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "search-clear";
+    clearBtn.innerHTML = "&times;";
+    clearBtn.style.display = "none";
+
+    const status = document.createElement("div");
+    status.className = "search-status";
+
+    const noResults = document.createElement("p");
+    noResults.className = "no-results";
+    noResults.textContent = "No matching files found.";
+    noResults.style.display = "none";
+
+    const mobileNote = document.createElement("p");
+    mobileNote.className = "mobile-run-note";
+    mobileNote.textContent = "ⓘ Run File and Check Package are available only on desktop.";
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(clearBtn);
+
+    searchContainer.appendChild(wrapper);
+    searchContainer.appendChild(status);
+    searchContainer.appendChild(mobileNote);
+
+    container.appendChild(searchContainer);
+    container.appendChild(noResults);
+
+    return { input, clearBtn, status, noResults };
+}
+
+// Full two-tier search, same shape as setupSearch() for regular
+// programs — fast metadata tier first, falling back to this package's
+// own (lazily-fetched) code index only when that comes up empty.
+function setupPackageFileSearch(search, pkg, cardsList) {
+    const { input, clearBtn, status, noResults } = search;
+
+    async function filterCards() {
+        const query = input.value.trim().toLowerCase();
+        const keywords = query.split(/\s+/).filter(Boolean);
+
+        clearBtn.style.display = query ? "block" : "none";
+
+        let visible = 0;
+        let metadataMatches = 0;
+        const matchedCards = [];
+
+        cardsList.forEach(card => {
+            let match = false;
+
+            if (!query) {
+                match = true;
+            } else if (/^\d+$/.test(query)) {
+                match = card.dataset.number === query;
+            } else {
+                match = keywords.every(word => card.dataset.search.includes(word));
+            }
+
+            animateCard(card, match);
+
+            const titleText = card.querySelector(".program-title-text");
+            const fileBadge = card.querySelector(".file-badge");
+            const subtitle = card.querySelector(".card-subtitle");
+            const codeBadge = card.querySelector(".code-match-badge");
+
+            if (!query) {
+                titleText.textContent = card.originalContent.title;
+                fileBadge.textContent = `[ ${card.originalContent.file} ]`;
+                subtitle.textContent = card.originalContent.description;
+                codeBadge.style.display = "none";
+                card.dataset.codeMatch = "false";
+            } else {
+                titleText.innerHTML = highlightText(card.originalContent.title, keywords);
+                fileBadge.innerHTML = highlightText(`[ ${card.originalContent.file} ]`, keywords);
+                subtitle.innerHTML = highlightText(card.originalContent.description, keywords);
+                codeBadge.style.display =
+                    card.dataset.codeMatch === "true" ? "inline-block" : "none";
+            }
+
+            if (match) {
+                visible++;
+                metadataMatches++;
+
+                let score = 0;
+                if (query === card.dataset.number) score = 100;
+                else if (card.dataset.title.startsWith(query)) score = 90;
+                else if (card.dataset.title.includes(query)) score = 80;
+                else if (card.dataset.file.includes(query)) score = 70;
+                else if (card.dataset.description.includes(query)) score = 60;
+
+                matchedCards.push({ card, score });
+            }
+        });
+
+        const total = cardsList.length;
+
+        if (query && metadataMatches === 0) {
+
+            try {
+                await loadPackageCodeIndex(pkg.id);
+            } catch {
+                // Fall through with metadataMatches === 0's already-applied
+                // hidden state rather than throwing mid-search.
+            }
+
+            visible = 0;
+
+            cardsList.forEach(card => {
+                const searchable = App.packages.codeLookup[card.dataset.path]?.search || "";
+                const codeMatch = keywords.every(word => searchable.includes(word));
+                const badge = card.querySelector(".code-match-badge");
+
+                if (codeMatch) {
+                    animateCard(card, true);
+                    card.dataset.codeMatch = "true";
+                    badge.style.display = "inline-block";
+                    visible++;
+                } else {
+                    animateCard(card, false);
+                    card.dataset.codeMatch = "false";
+                    badge.style.display = "none";
+                }
+            });
+        }
+
+        cardsList.forEach(card => { card.style.order = ""; });
+
+        if (query) {
+            matchedCards
+                .sort((a, b) => b.score - a.score)
+                .forEach(({ card }, index) => { card.style.order = index; });
+        }
+
+        status.textContent = query
+            ? `Showing ${visible} of ${total} file${total !== 1 ? "s" : ""}`
+            : `${total} file${total !== 1 ? "s" : ""} loaded`;
+
+        noResults.style.display = visible === 0 ? "block" : "none";
+    }
+
+    input.addEventListener("input", filterCards);
+
+    clearBtn.onclick = () => {
+        input.value = "";
+        filterCards();
+        input.focus();
+    };
+
+    filterCards();
+}
+
+// The package-level "CHECK PACKAGE" action: loads every file in the
+// package and sends them to OneCompiler together in one run, so a
+// package made of multiple cooperating classes (one of which may have
+// no `main` of its own) can actually be verified as a whole — this is
+// the RUN button's exact mechanism (same iframe embed, same postMessage
+// protocol, same loading state), just fed every file at once instead of
+// one.
+function buildPackageCheckToolbar(container, pkg) {
+    const toolbar = document.createElement("div");
+    toolbar.className = "header-actions package-check-toolbar";
+
+    const checkBtn = document.createElement("button");
+    checkBtn.className = "action-btn run-btn package-check-btn";
+    checkBtn.textContent = "CHECK PACKAGE ▶";
+    toolbar.appendChild(checkBtn);
+
+    container.appendChild(toolbar);
+
+    const runnerWrapper = document.createElement("div");
+    runnerWrapper.className = "editor-wrapper package-check-runner";
+    container.appendChild(runnerWrapper);
+
+    let iframe = null;
+
+    checkBtn.onclick = (e) => {
+        runWithTactileDelay(e, async () => {
+
+            if (runnerWrapper.classList.contains("active")) {
+                runnerWrapper.classList.remove("active");
+                checkBtn.textContent = "CHECK PACKAGE ▶";
+                return;
+            }
+
+            checkBtn.classList.add("is-loading");
+
+            let files;
+            try {
+                const codes = await Promise.all(
+                    pkg.files.map(f => loadProgramCode(f, pkg.compiler))
+                );
+                files = pkg.files.map((f, i) => ({
+                    name: f.file,
+                    content: pkg.compiler === "c" ? cleanTurboC(codes[i]) : codes[i]
+                }));
+            } catch (err) {
+                checkBtn.classList.remove("is-loading");
+                alert("Couldn't load this package's files: " + err.message);
+                return;
+            }
+
+            runnerWrapper.classList.add("active");
+            checkBtn.textContent = "CLOSE CHECK ✖";
+
+            const populate = () => {
+                iframe.contentWindow.postMessage({
+                    eventType: "populateCode",
+                    language: pkg.compiler,
+                    files
+                }, "*");
+
+                setTimeout(() => {
+                    iframe.contentWindow.postMessage({ eventType: "triggerRun" }, "*");
+                    checkBtn.classList.remove("is-loading");
+                }, 800);
+            };
+
+            if (!iframe) {
+                iframe = document.createElement("iframe");
+                iframe.src =
+                    `https://onecompiler.com/embed/${pkg.compiler}?theme=dark&hideTitle=true&hideNew=true&hideEditorOptions=true&listenToEvents=true`;
+                runnerWrapper.appendChild(iframe);
+
+                window.addEventListener("message", (event) => {
+                    if (event.source !== iframe.contentWindow) return;
+                    if (event.data?.action === "onLoad") populate();
+                });
+
+                iframe.onload = () => setTimeout(populate, 1200);
+            } else {
+                checkBtn.classList.add("is-loading");
+                setTimeout(populate, 300);
+            }
+
+        }, checkBtn);
+    };
+}
+
+function buildPackageFileView(container, pkg) {
+    container.innerHTML = "";
+
+    const search = createPackageFileSearchUI(container, pkg);
+    buildPackageCheckToolbar(container, pkg);
+
+    const cardsList = [];
+    App.packages.fileCards.set(pkg.id, cardsList);
+
+    pkg.files.forEach((fileEntry, index) => {
+        const card = createPackageFileCard(fileEntry, pkg);
+        card.classList.add("card-enter");
+        card.style.setProperty("--stagger-index", Math.min(index, 14));
+
+        card.addEventListener(
+            "animationend",
+            () => card.classList.remove("card-enter"),
+            { once: true }
+        );
+
+        container.appendChild(card);
+        cardsList.push(card);
+    });
+
+    setupPackageFileSearch(search, pkg, cardsList);
+}
+
+// `id` is the compound "languageFolder/folder" id (see packageId()).
+function openPackage(id, event) {
+    runWithTactileDelay(event, () => {
+
+        const pkg = App.packages.byId.get(id);
+        if (!pkg) return;
+
+        collapseAllPackageCards(pkg.languageFolder);
+
+        App.currentFolder = pkg.languageFolder;
+        App.folderMode = "packages";
+        App.packages.openPackage = id;
+
+        document.getElementById("home-view").style.display = "none";
+        document.getElementById("back-btn").style.display = "inline-block";
+        document.getElementById("theme-btn").style.display = "none";
+        document.getElementById("editor-btn").style.display = "none";
+
+        document.querySelectorAll(".view-container").forEach(c => c.classList.remove("active"));
+
+        const domId = packageDomId(id);
+        let container = document.getElementById(`package-${domId}-container`);
+
+        if (!container) {
+            container = document.createElement("div");
+            container.id = `package-${domId}-container`;
+            container.className = "view-container";
+            document.getElementById("packages-views").appendChild(container);
+        }
+
+        if (!App.packages.builtPackages.has(id)) {
+            buildPackageFileView(container, pkg);
+            App.packages.builtPackages.add(id);
+        } else {
+            collapseAllPackageFileCards(id);
+        }
+
+        container.classList.add("active");
+        container.classList.add("view-enter");
+        container.addEventListener(
+            "animationend",
+            () => container.classList.remove("view-enter"),
+            { once: true }
+        );
+
+        document.getElementById("page-title").textContent = pkg.name.toUpperCase();
+        document.getElementById("page-subtitle").textContent = pkg.description || "";
+
+        updateFolderModeToggle();
+        refreshEditUI();
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
 }
 
 function createSearchUI(container, folder) {
@@ -1908,6 +3011,7 @@ async function init() {
     buildLanguageUI();
 
     await loadSearchIndex();
+    await loadPackagesIndex();
 
     const siteInfo = await loadSiteInfo();
 
@@ -1926,9 +3030,23 @@ async function init() {
     // straight back into the folder they were working in.
     const params = new URLSearchParams(window.location.search);
     const returnFolder = params.get("folder");
+    const returnMode = params.get("mode");       // "package" | "package-file"
+    const returnPackage = params.get("package");  // package's own folder name
 
     if (returnFolder && App.languageIndex.some(l => l.folder === returnFolder)) {
         openFolder(returnFolder);
+
+        if (returnMode === "package" || returnMode === "package-file") {
+            showPackagesListView(returnFolder);
+
+            if (returnPackage) {
+                const id = packageId(returnFolder, returnPackage);
+                if (App.packages.byId.has(id)) {
+                    openPackage(id);
+                }
+            }
+        }
+
         history.replaceState(null, "", window.location.pathname);
     }
 
@@ -1936,6 +3054,9 @@ async function init() {
 const themeBtn = document.getElementById("theme-btn");
 
 themeBtn.addEventListener("click", toggleTheme);
+
+document.getElementById("folder-mode-toggle")
+    .addEventListener("click", toggleFolderMode);
 
 // See the .back-btn.is-departing comment in style.css: this is a real
 // navigation link (href swapped in by refreshEditUI), so freeze its

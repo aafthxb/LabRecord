@@ -1,5 +1,25 @@
 [
   {
+    "folder": "example",
+    "languageFolder": "Java",
+    "name": "example",
+    "description": "heyyy",
+    "language": "java",
+    "compiler": "java",
+    "prism": "java",
+    "fileCount": 1,
+    "searchText": "example heyyy hello hello java",
+    "files": [
+      {
+        "number": 1,
+        "file": "Hello.java",
+        "path": "packages/Java/example/Hello.java",
+        "title": "Hello",
+        "description": ""
+      }
+    ]
+  },
+  {
     "folder": "GreeterDemo",
     "languageFolder": "Java",
     "name": "Greeter Demo",

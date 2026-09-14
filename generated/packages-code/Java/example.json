@@ -1,0 +1,9 @@
+[
+  {
+    "number": 1,
+    "file": "Hello.java",
+    "path": "packages/Java/example/Hello.java",
+    "code": "// Hello\n\npackage myPackage;\n\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from myPackage!\");\n    }\n}   ",
+    "search": "hello package mypackage public class hello public static void main string args system out println hello from mypackage"
+  }
+]

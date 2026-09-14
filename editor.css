@@ -874,3 +874,32 @@ body.site-edit-mode .card-delete-btn {
   color: var(--danger);
   font-weight: 700;
 }
+
+/* ---------- Add Package: running "Files in this package" list ---------- */
+/* Step 2's summary of files accumulated so far — much lighter than
+   .pkg-file-row above since it's read-only at this point (name only,
+   no code shown/edited here); reuses .batch-file-remove for the button
+   so it matches every other "remove one item from a list" affordance
+   on this page. */
+
+.pkg-files-list {
+  margin-top: 10px;
+}
+
+.pkg-pending-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 2px solid var(--border);
+  background: var(--surface-alt);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+
+.pkg-pending-file-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  word-break: break-all;
+}

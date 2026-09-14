@@ -82,35 +82,74 @@
 
         <div id="wizard-error" class="banner banner-error" style="display:none;"></div>
 
-        <!-- Language selection (step-1) is skipped in the normal flow — you
-             only ever land here via the site's "+" button, which already
-             passes a folder. Its data-step values (2/3/4) are unchanged
-             so goToStep() keeps working; only the visible numbering here
-             is shifted down to 1/2/3 to match what people actually see. -->
+        <!-- Language selection (step-1) is skipped in the normal Add
+             Program flow — you only ever land here via the site's "+"
+             button, which already passes a folder. Its data-step
+             values (2/3/4) are unchanged so goToStep() keeps working;
+             only the visible numbering here is shifted down to 1/2/3
+             to match what people actually see. Add Package mode
+             doesn't skip step 1 (it's a one-field package-name prompt,
+             not a language grid), so it gets its own leading dot,
+             toggled on by enterPackageWizard(). -->
         <div class="stepper">
+          <div class="step-dot" data-step="1" id="step-dot-1" style="display:none;">1<span>Package Name</span></div>
           <div class="step-dot active" data-step="2">1<span>Add Code</span></div>
           <div class="step-dot" data-step="3">2<span>Review</span></div>
           <div class="step-dot" data-step="4">3<span>Done</span></div>
         </div>
 
-        <!-- Step 1: Language -->
+        <!-- Step 1: Language (Add Program) / Package name (Add Package) -->
         <section class="step-panel active" id="step-1">
-          <h2 class="step-heading">Choose a language folder</h2>
-          <div id="lang-grid" class="lang-grid"></div>
 
-          <div class="btn-row">
-            <button id="step1-back" class="action-btn">« HOME</button>
+          <div id="step1-program">
+            <h2 class="step-heading">Choose a language folder</h2>
+            <div id="lang-grid" class="lang-grid"></div>
+
+            <div class="btn-row">
+              <button id="step1-back" class="action-btn">« HOME</button>
+            </div>
           </div>
+
+          <div id="step1-package" style="display:none;">
+            <h2 class="step-heading">New package <span id="pkg-lang-label"></span></h2>
+            <p class="field-hint" style="margin-top:0;">
+              A package is a small folder of cooperating source files — e.g. a class plus the
+              runner that uses it.
+            </p>
+
+            <label class="field-label">Package name</label>
+            <input id="pkg-name-input" type="text" class="editor-input" placeholder="e.g. Greeter Demo" />
+            <div id="pkg-name-status" class="banner" style="display:none;"></div>
+
+            <div class="btn-row">
+              <button id="pkg-step1-back" class="action-btn">« HOME</button>
+              <button id="pkg-step1-next" class="action-btn run-btn">NEXT »</button>
+            </div>
+          </div>
+
         </section>
 
         <!-- Step 2: Filename + Images -->
         <section class="step-panel" id="step-2">
-          <h2 class="step-heading">File name &amp; code</h2>
+          <h2 class="step-heading">Add the code</h2>
 
-          <label class="field-label">File Name</label>
-          <input id="filename-input" type="text" class="editor-input" placeholder="e.g. Bubble Sort.c" />
-          <div id="filename-status" class="banner" style="display:none;"></div>
-          <p class="field-hint">Only used for the two options below. Uploading multiple files keeps each file's own name instead.</p>
+          <div id="step2-filename-block">
+            <label class="field-label">File Name</label>
+            <input id="filename-input" type="text" class="editor-input" placeholder="e.g. Bubble Sort.c" />
+            <div id="filename-status" class="banner" style="display:none;"></div>
+            <p class="field-hint">Only used for the two options below. Uploading multiple files keeps each file's own name instead.</p>
+          </div>
+
+          <!-- Add Package mode only: running list of files added to this
+               package so far, plus the field/button that finally commits
+               everything together. No per-file filename field here — that's
+               asked on Step 3, once a method's actually been picked (see
+               #step3-filename-block). -->
+          <div id="step2-package-summary" style="display:none;">
+            <label class="field-label">Files in this package</label>
+            <p class="field-hint" id="pkg-files-empty-hint" style="margin-top:0;">No files added yet — add your first one below.</p>
+            <div id="pkg-files-list" class="pkg-files-list"></div>
+          </div>
 
           <label class="field-label" style="margin-top:26px;">How do you want to add the code?</label>
           <div class="method-grid">
@@ -181,6 +220,18 @@
             <button id="step2-batch-next" class="action-btn run-btn method-cta" style="margin-top:14px;">REVIEW FILES »</button>
           </div>
 
+          <!-- Add Package mode only: optional description + the button
+               that finally commits the package (meta.json + every
+               pending file) in one commit. -->
+          <div id="step2-package-finish" style="display:none;">
+            <label class="field-label" style="margin-top:26px;">Description <span class="field-hint" style="display:inline;margin:0;">(optional)</span></label>
+            <input id="pkg-description-input" type="text" class="editor-input" placeholder="One line describing what this package demonstrates" />
+            <div id="pkg-create-error" class="banner banner-error" style="display:none;"></div>
+            <div class="btn-row">
+              <button id="pkg-create-btn" class="action-btn run-btn" disabled>CREATE PACKAGE</button>
+            </div>
+          </div>
+
           <div class="btn-row">
             <button id="step2-back" class="action-btn">« BACK</button>
           </div>
@@ -193,7 +244,13 @@
           <div id="merge-notes"></div>
 
           <div id="single-review">
-            <label class="field-label">Code (edit freely — this is exactly what gets committed)</label>
+            <div id="step3-filename-block" style="display:none;">
+              <label class="field-label">File name</label>
+              <input id="pkg-file-filename-input" type="text" class="editor-input" placeholder="e.g. Greeter.java" />
+              <div id="pkg-file-filename-status" class="banner" style="display:none;"></div>
+            </div>
+
+            <label class="field-label" style="margin-top:18px;">Code (edit freely — this is exactly what gets committed)</label>
             <textarea id="code-textarea" class="code-textarea" spellcheck="false"></textarea>
 
             <div class="preview-box">
@@ -229,66 +286,10 @@
         <section class="step-panel" id="step-4">
           <h2 class="step-heading">Saved ✓</h2>
           <p class="field-hint" id="done-text"></p>
-          <p class="field-hint">Your program has been saved successfully. It should appear on the homepage in about a minute.</p>
+          <p class="field-hint" id="done-subtext">Your program has been saved successfully. It should appear on the homepage in about a minute.</p>
           <div class="btn-row">
             <button id="done-menu-btn" class="action-btn">« BACK TO HOME</button>
             <button id="add-another" class="action-btn run-btn">ADD ANOTHER PROGRAM</button>
-          </div>
-        </section>
-
-      </div>
-
-      <!-- ============ Add Package wizard ============ -->
-      <div id="package-wizard" style="display:none;">
-
-        <div class="wizard-topbar">
-          <button id="pkg-menu-btn" class="back-btn" type="button">« HOME</button>
-        </div>
-
-        <div id="pkg-wizard-error" class="banner banner-error" style="display:none;"></div>
-
-        <!-- Step P1: package details + files -->
-        <section class="step-panel active" id="pkg-step-1">
-          <h2 class="step-heading">New package <span id="pkg-lang-label"></span></h2>
-          <p class="field-hint" style="margin-top:0;">
-            A package is a small folder of cooperating source files (e.g. a class plus the runner
-            that uses it) — added as <code id="pkg-path-preview">packages/&lt;Language&gt;/&lt;PackageFolder&gt;/</code>.
-          </p>
-
-          <label class="field-label">Package name</label>
-          <input id="pkg-name-input" type="text" class="editor-input" placeholder="e.g. Greeter Demo" />
-
-          <label class="field-label" style="margin-top:16px;">Folder name</label>
-          <input id="pkg-folder-input" type="text" class="editor-input" placeholder="e.g. GreeterDemo" />
-          <p class="field-hint">Letters, numbers, hyphens and underscores only — this becomes the folder name on disk. Auto-filled from the package name; edit it if you want something different.</p>
-
-          <label class="field-label" style="margin-top:16px;">Description</label>
-          <input id="pkg-desc-input" type="text" class="editor-input" placeholder="One line describing what this package demonstrates" />
-
-          <label class="field-label" style="margin-top:26px;">Files</label>
-          <p class="field-hint" style="margin-top:0;">Add each source file with its filename and code. Most packages need at least two (e.g. a class and a runner with <code>main</code>).</p>
-
-          <div id="pkg-file-rows"></div>
-
-          <div class="btn-row">
-            <button id="pkg-add-file-row" class="action-btn" type="button">+ ADD FILE</button>
-          </div>
-
-          <div id="pkg-save-error" class="banner banner-error" style="display:none;"></div>
-
-          <div class="btn-row">
-            <button id="pkg-step1-back" class="action-btn">« HOME</button>
-            <button id="pkg-step1-save" class="action-btn run-btn">CREATE PACKAGE</button>
-          </div>
-        </section>
-
-        <!-- Step P2: Done -->
-        <section class="step-panel" id="pkg-step-2">
-          <h2 class="step-heading">Saved ✓</h2>
-          <p class="field-hint" id="pkg-done-text"></p>
-          <p class="field-hint">Your package has been saved successfully. It should appear on the language's Packages view in about a minute.</p>
-          <div class="btn-row">
-            <button id="pkg-done-menu-btn" class="action-btn">« BACK TO PACKAGES</button>
           </div>
         </section>
 

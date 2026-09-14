@@ -22,39 +22,47 @@ const State = {
   batchMode: false,      // true while Step 3 is showing the multi-file review list instead of the single-file one
   batchFiles: [],        // [{ id, filename, code, error }] — the "upload multiple files at once" path
 
-  // ---- Add Package (?mode=package&folder=<Language>) ----
+  // ---- Add Package / Add File to Package ----
   //
-  // Reuses the exact same step-1..4 wizard as Add Program (see
-  // enterPackageWizard below) rather than a separate flow, so the two
-  // stay visually and behaviorally identical by construction. Only
-  // three things actually differ, each gated by wizardKind === "package":
-  //   - Step 1 asks for a package name instead of a language (the
-  //     language is already known from the folder the packages
-  //     toggle's [ + ] button was clicked from).
-  //   - Step 2 doesn't ask for a filename up front (a package has many
-  //     files, not one) — instead it shows a running list of files
-  //     added so far, plus the CREATE PACKAGE button.
-  //   - Step 3 asks for that one file's name (single-file paths only —
-  //     the upload-files path already asks per file) and, on save,
-  //     adds it to the pending list and loops back to Step 2 instead
-  //     of committing immediately.
-  wizardKind: "program",  // "program" | "package"
+  // Both reuse the exact same step-1..4 wizard as Add Program (see
+  // enterPackageWizard / enterPackageFileWizard below) rather than
+  // separate flows, so all three stay visually and behaviorally
+  // identical by construction. What differs, gated by wizardKind:
+  //   - "package" (?mode=package&folder=<Language>): Step 1 asks for a
+  //     package name instead of a language (the language's already
+  //     known). Step 2 doesn't ask for a filename up front — a package
+  //     has many files, not one — it shows a running list of files
+  //     added so far plus the CREATE PACKAGE button instead. Step 3
+  //     asks for that one file's name (single-file paths only — the
+  //     upload-files path already asks per file) and, on save, adds it
+  //     to the pending list and loops back to Step 2 instead of
+  //     committing immediately.
+  //   - "package-file" (?mode=package-file&folder=<Language>&package=<Folder>):
+  //     same as "package" minus Step 1 entirely — the language *and*
+  //     the package are already known, so this jumps straight to Step
+  //     2 — and the final button is ADD TO PACKAGE (posts to
+  //     /api/commit-package-file) instead of CREATE PACKAGE (no
+  //     meta.json to write, the package already exists).
+  wizardKind: "program",  // "program" | "package" | "package-file"
   pkgName: "",
   pkgFolderSlug: "",      // auto-derived from pkgName, never shown as its own field
-  pkgFileFilename: "",    // the file currently being named on Step 3, package mode only
-  pendingPackageFiles: [], // [{ filename, code }] accumulated so far, committed together on CREATE PACKAGE
-  packagesForFolder: [],  // generated/packages-index.json, filtered to the open language — for the duplicate-name check
-
-  // ---- Add File to Package (?mode=package-file&folder=<Language>&package=<Folder>) ----
-  // A separate, simpler flow for adding to an *existing* package —
-  // unaffected by the above.
-  pkgFileTargetFolder: null,   // language folder of the package a file is being added to
-  pkgFileTargetPackage: null,  // that package's own folder name
-  pkgFileLangEntry: null,
-  pkgFileAddRows: [],          // [{ id, el, filenameInput, textarea, errorEl }]
+  pkgFileFilename: "",    // the file currently being named on Step 3, package/package-file mode only
+  pendingPackageFiles: [], // [{ filename, code }] accumulated so far, committed together at the end
+  packagesForFolder: [],  // generated/packages-index.json, filtered to the open language — for the duplicate-name check ("package" mode)
+  pkgFileTargetPackage: null,  // the existing package's own folder name ("package-file" mode)
+  pkgFileExistingNames: [],    // that package's current filenames, lowercased — additional duplicate check ("package-file" mode)
 };
 
 let tesseractLoadPromise = null;
+
+// True for either package flow ("package" = create a new one, "package-file"
+// = add to an existing one) — they share almost everything (OCR, paste,
+// batch upload, the pending-files list, per-file naming on Step 3) and
+// only really diverge at Step 1 and the final commit, so most branches
+// just need "is this a package flow at all", not which one.
+function isPackageMode() {
+  return State.wizardKind === "package" || State.wizardKind === "package-file";
+}
 
 // ---------------------------------------------------------------
 // Small utilities
@@ -323,7 +331,8 @@ function presetLanguage(lang) {
 // Returns to the home page — back into the folder just being worked
 // on, if one is selected, so the person lands right where they left.
 // In package mode that means back into that language's *Packages*
-// view specifically (mode=package), not its Programs view.
+// view specifically (mode=package); in package-file mode, back into
+// the specific package a file was being added to.
 function goHome() {
   const folder = State.selectedFolder;
   if (!folder) {
@@ -332,6 +341,12 @@ function goHome() {
   }
   if (State.wizardKind === "package") {
     window.location.href = `index.html?folder=${encodeURIComponent(folder)}&mode=package`;
+    return;
+  }
+  if (State.wizardKind === "package-file") {
+    const params = new URLSearchParams({ folder, mode: "package-file" });
+    if (State.pkgFileTargetPackage) params.set("package", State.pkgFileTargetPackage);
+    window.location.href = `index.html?${params.toString()}`;
     return;
   }
   window.location.href = `index.html?folder=${encodeURIComponent(folder)}`;
@@ -490,11 +505,15 @@ function initStep2() {
 }
 
 // The set of filenames a new filename must not collide with — an
-// existing program in the folder (program mode), or a file already
-// added to this not-yet-committed package (package mode).
+// existing program in the folder (program mode), a file already added
+// to this not-yet-committed package (package mode), or either of those
+// plus the target package's current files (package-file mode, adding
+// to a package that already exists).
 function existingFilesInFolder() {
-  if (State.wizardKind === "package") {
-    return State.pendingPackageFiles.map((f) => f.filename.toLowerCase());
+  if (State.wizardKind === "package" || State.wizardKind === "package-file") {
+    const pending = State.pendingPackageFiles.map((f) => f.filename.toLowerCase());
+    const existing = State.wizardKind === "package-file" ? State.pkgFileExistingNames : [];
+    return [...pending, ...existing];
   }
   const list = State.searchIndex[State.selectedFolder] || [];
   return list.map((p) => p.file.toLowerCase());
@@ -713,7 +732,7 @@ function updateNextEnabled() {
 // instead, once a method's actually been picked, so this is always a
 // no-op pass-through there.
 function requireFilename() {
-  if (State.wizardKind === "package") return true;
+  if (isPackageMode()) return true;
 
   if (State.filename) return true;
 
@@ -739,7 +758,7 @@ function showSingleReview() {
   $("batch-review").style.display = "none";
   $("single-review").style.display = "block";
 
-  if (State.wizardKind === "package") {
+  if (isPackageMode()) {
     $("step3-save").textContent = "ADD FILE";
     $("pkg-file-filename-input").value = "";
     $("pkg-file-filename-status").style.display = "none";
@@ -1016,7 +1035,7 @@ function validateBatchFilename(rawName, existingLower, seenCounts) {
 
   const key = name.toLowerCase();
   if (existingLower.includes(key)) {
-    return State.wizardKind === "package"
+    return isPackageMode()
       ? `"${name}" is already added to this package.`
       : `"${name}" already exists in ${State.selectedFolder}/.`;
   }
@@ -1188,7 +1207,7 @@ function renderBatchList() {
 
   const saveBtn = $("step3-save");
   if (State.batchMode) {
-    saveBtn.textContent = State.wizardKind === "package"
+    saveBtn.textContent = isPackageMode()
       ? `ADD ${State.batchFiles.length} FILE${State.batchFiles.length === 1 ? "" : "S"} TO PACKAGE`
       : `SAVE ${State.batchFiles.length} FILE${State.batchFiles.length === 1 ? "" : "S"}`;
   }
@@ -1288,7 +1307,7 @@ function initStep3() {
   $("pkg-file-filename-input").addEventListener("input", validatePkgFileFilename);
   $("step3-back").addEventListener("click", () => goToStep(2));
   $("step3-save").addEventListener("click", () => {
-    if (State.wizardKind === "package") {
+    if (isPackageMode()) {
       if (State.batchMode) {
         addBatchToPendingPackage();
       } else {
@@ -1562,7 +1581,13 @@ function initPackageStep1() {
   });
   $("pkg-step1-back").addEventListener("click", goHome);
   $("pkg-step1-next").addEventListener("click", goToPackageStep2);
-  $("pkg-create-btn").addEventListener("click", createPackage);
+  $("pkg-create-btn").addEventListener("click", () => {
+    if (State.wizardKind === "package-file") {
+      addFilesToExistingPackage();
+    } else {
+      createPackage();
+    }
+  });
 }
 
 function goToPackageStep2() {
@@ -1596,10 +1621,11 @@ function renderPendingPackageFiles() {
     container.appendChild(item);
   });
 
+  const baseLabel = State.wizardKind === "package-file" ? "ADD TO PACKAGE" : "CREATE PACKAGE";
   createBtn.disabled = files.length === 0;
   createBtn.textContent = files.length
-    ? `CREATE PACKAGE (${files.length} FILE${files.length === 1 ? "" : "S"})`
-    : "CREATE PACKAGE";
+    ? `${baseLabel} (${files.length} FILE${files.length === 1 ? "" : "S"})`
+    : baseLabel;
 }
 
 // Step 3 "ADD FILE" — the single-file (screenshot/paste) path. Unlike
@@ -1812,6 +1838,164 @@ async function enterPackageWizard(folderParam) {
 }
 
 // ---------------------------------------------------------------
+// Add File to Package (?mode=package-file&folder=<Language>&package=<Folder>)
+// ---------------------------------------------------------------
+//
+// Same wizard again, minus Step 1 entirely — the language *and* the
+// package are already known from the URL (the [ + ] button is only
+// ever reachable from inside an already-open package), so this jumps
+// straight to Step 2. See isPackageMode() / the State.wizardKind
+// comment near the top of this file for what else differs.
+
+// Same idea as goHome(), but used only right after files were actually
+// just added — also focuses the specific package they were added to,
+// so the person lands straight back inside it.
+function goToUpdatedPackage() {
+  const folder = State.selectedFolder;
+  if (!folder) {
+    window.location.href = "index.html";
+    return;
+  }
+  const params = new URLSearchParams({ folder, mode: "package-file" });
+  if (State.pkgFileTargetPackage) params.set("package", State.pkgFileTargetPackage);
+  window.location.href = `index.html?${params.toString()}`;
+}
+
+// "ADD TO PACKAGE" — posts every pending file to the existing package
+// in one commit. No meta.json involved (the package already has one).
+async function addFilesToExistingPackage() {
+  const errorEl = $("pkg-create-error");
+  errorEl.style.display = "none";
+
+  if (!State.pendingPackageFiles.length) return;
+
+  const btn = $("pkg-create-btn");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "SAVING…";
+
+  try {
+    const res = await fetch("/api/commit-package-file", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessCode: getAccessCode(),
+        folder: State.selectedFolder,
+        package: State.pkgFileTargetPackage,
+        files: State.pendingPackageFiles,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed.");
+
+    btn.textContent = "✓ SAVED!";
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    $("done-text").textContent =
+      `Added ${State.pendingPackageFiles.map((f) => f.filename).join(", ")} to packages/${State.selectedFolder}/${State.pkgFileTargetPackage}/.`;
+
+    goToStep(4);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = "block";
+  } finally {
+    btn.disabled = State.pendingPackageFiles.length === 0;
+    btn.textContent = originalText;
+  }
+}
+
+// Resets and jumps back to Step 2 (there's no Step 1 in this mode) for
+// adding another file — same idea as resetPackageWizard(), minus the
+// package-name bits, which don't apply here.
+function resetPackageFileWizard() {
+  State.images.forEach((img) => URL.revokeObjectURL(img.url));
+
+  State.filename = "";
+  State.images = [];
+  State.imageTexts = [];
+  State.mergeNotes = [];
+  State.batchFiles = [];
+  State.pendingPackageFiles = [];
+  State.pkgFileFilename = "";
+
+  $("image-list").innerHTML = "";
+  $("code-textarea").value = "";
+  $("merge-notes").innerHTML = "";
+  $("batch-list").innerHTML = "";
+  $("batch-input-status").textContent = "No files chosen";
+  $("batch-required-warning").style.display = "none";
+
+  showSingleReview();
+  updateImageInputStatus();
+  renderPendingPackageFiles();
+  goToStep(2);
+}
+
+async function enterPackageFileWizard(folderParam, packageParam) {
+  State.wizardKind = "package-file";
+
+  revealSection($("wizard"));
+  preloadTesseract();
+
+  $("step1-program").style.display = "none";
+  $("step1-package").style.display = "none";
+  $("step-dot-1").style.display = "none";
+  $("step2-filename-block").style.display = "none";
+  $("step2-package-summary").style.display = "block";
+  $("step2-package-finish").style.display = "block";
+  $("step3-filename-block").style.display = "block";
+  $("add-another").textContent = "ADD MORE FILES";
+  $("done-menu-btn").textContent = "« BACK TO PACKAGE";
+  $("done-subtext").textContent =
+    "The file has been added successfully. It should appear inside the package in about a minute.";
+
+  try {
+    await ensureSiteDataLoaded();
+  } catch (err) {
+    showWizardError("Failed to load site data: " + err.message);
+    return;
+  }
+
+  const langEntry = findLangEntryForFolder(folderParam);
+  const displayLang = State.languageIndex.find((l) => l.folder === folderParam);
+
+  if (!folderParam || !packageParam || !langEntry || !displayLang) {
+    showWizardError(
+      "No package specified. Go back and use the [ + ] button while a package is open."
+    );
+    return;
+  }
+
+  State.selectedFolder = folderParam;
+  State.selectedLangEntry = langEntry;
+  State.skippedStep1 = true; // this mode never shows Step 1
+  State.pkgFileTargetPackage = packageParam;
+  State.pkgFileExistingNames = [];
+
+  let displayName = packageParam;
+  try {
+    const allPackages = await fetchJson("/generated/packages-index.json");
+    const match = allPackages.find(
+      (p) => p.languageFolder === folderParam && p.folder === packageParam
+    );
+    if (match) {
+      displayName = match.name;
+      State.pkgFileExistingNames = (match.files || []).map((f) => f.file.toLowerCase());
+    }
+  } catch {
+    // Not fatal — the server still authoritatively checks for
+    // collisions/existence when the files are actually committed.
+  }
+
+  $("editor-subtitle").textContent = `Add a source file to "${displayName}".`;
+
+  updateBatchFileInputHints();
+  renderPendingPackageFiles();
+  goToStep(2);
+}
+
+// ---------------------------------------------------------------
 // Step 4: reset
 // ---------------------------------------------------------------
 
@@ -1819,6 +2003,8 @@ function initStep4() {
   $("add-another").addEventListener("click", () => {
     if (State.wizardKind === "package") {
       resetPackageWizard();
+    } else if (State.wizardKind === "package-file") {
+      resetPackageFileWizard();
     } else {
       resetWizard();
     }
@@ -1826,6 +2012,8 @@ function initStep4() {
   $("done-menu-btn").addEventListener("click", () => {
     if (State.wizardKind === "package") {
       goToCreatedPackage();
+    } else if (State.wizardKind === "package-file") {
+      goToUpdatedPackage();
     } else {
       goHome();
     }
@@ -1868,254 +2056,6 @@ function resetWizard() {
 }
 
 // ---------------------------------------------------------------
-// Add Package (?mode=package&folder=<Language>)
-// ---------------------------------------------------------------
-//
-// A trimmed-down sibling of the program wizard above: no OCR, no
-// batch-upload — just a package name/description and a small set of
-// hand-entered files (filename + code each), committed together in one
-// request to /api/commit-package. Packages aren't part of the
-// reorder/edit/commit system programs use, so this deliberately doesn't
-// reuse any of that code; it talks to its own endpoint instead.
-
-// Builds one filename+code row and appends it to both `container` (the
-// DOM) and `rows` (the tracking array) — shared by the Add Package and
-// Add File to Package wizards, which each keep their own `rows` array.
-function buildPkgFileRow(container, rows, langEntry) {
-  const id = uid();
-
-  const row = el("div", "pkg-file-row");
-  row.dataset.id = id;
-
-  const head = el("div", "pkg-file-row-head");
-
-  const filenameInput = document.createElement("input");
-  filenameInput.type = "text";
-  filenameInput.className = "editor-input";
-  const exampleExt = langEntry?.extensions?.[0] || "";
-  filenameInput.placeholder = `Filename (e.g. Greeter${exampleExt})`;
-
-  const removeBtn = el("button", "action-btn batch-file-remove", "REMOVE");
-  removeBtn.type = "button";
-  removeBtn.addEventListener("click", () => {
-    const idx = rows.findIndex((r) => r.id === id);
-    if (idx !== -1) rows.splice(idx, 1);
-    row.remove();
-  });
-
-  head.appendChild(filenameInput);
-  head.appendChild(removeBtn);
-
-  const textarea = document.createElement("textarea");
-  textarea.className = "code-textarea";
-  textarea.spellcheck = false;
-  textarea.placeholder = "Paste or type this file's code here…";
-
-  const errorEl = el("div", "pkg-file-row-error");
-  errorEl.style.display = "none";
-
-  row.appendChild(head);
-  row.appendChild(textarea);
-  row.appendChild(errorEl);
-  container.appendChild(row);
-
-  const entry = { id, el: row, filenameInput, textarea, errorEl };
-  rows.push(entry);
-  return entry;
-}
-
-// Validates every row with content, skipping fully-blank rows (so an
-// unused extra row someone added and then didn't fill in doesn't block
-// saving). Returns { files, error } — error is a { row, message } pair
-// naming the offending row, or null if everything checked out.
-function collectPkgFiles(rows, langEntry) {
-  const files = [];
-  const seen = new Set();
-
-  for (const row of rows) {
-    row.errorEl.style.display = "none";
-
-    const filename = row.filenameInput.value.trim();
-    const code = row.textarea.value;
-
-    if (!filename && !code.trim()) continue; // untouched extra row
-
-    if (!filename) {
-      return { files: null, error: { row, message: "Filename is required." } };
-    }
-
-    const dot = filename.lastIndexOf(".");
-    const ext = dot === -1 ? "" : filename.slice(dot).toLowerCase();
-
-    if (!ext || !langEntry.extensions.includes(ext)) {
-      return {
-        files: null,
-        error: {
-          row,
-          message: `Filename must end with one of: ${langEntry.extensions.join(", ")}`,
-        },
-      };
-    }
-
-    if (!code.trim()) {
-      return { files: null, error: { row, message: "Code is empty." } };
-    }
-
-    const key = filename.toLowerCase();
-    if (seen.has(key)) {
-      return { files: null, error: { row, message: "Duplicate filename in this batch." } };
-    }
-    seen.add(key);
-
-    files.push({ filename, code });
-  }
-
-  return { files, error: null };
-}
-
-// ---------------------------------------------------------------
-// Add File to Package (?mode=package-file&folder=<Language>&package=<Folder>)
-// ---------------------------------------------------------------
-
-function showPkgFileError(message) {
-  const box = $("pkgfile-wizard-error");
-  box.textContent = message;
-  box.style.display = "block";
-}
-
-function clearPkgFileError() {
-  $("pkgfile-wizard-error").style.display = "none";
-  $("pkgfile-save-error").style.display = "none";
-}
-
-function goToPkgFileStep(n) {
-  document.querySelectorAll("#package-file-wizard .step-panel").forEach((panel) => {
-    panel.classList.remove("active");
-  });
-  $(`pkgfile-step-${n}`).classList.add("active");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function pkgFileGoHome() {
-  const folder = State.pkgFileTargetFolder;
-  const pkg = State.pkgFileTargetPackage;
-  if (!folder) {
-    window.location.href = "index.html";
-    return;
-  }
-  const params = new URLSearchParams({ folder, mode: "package-file" });
-  if (pkg) params.set("package", pkg);
-  window.location.href = `index.html?${params.toString()}`;
-}
-
-async function enterPackageFileWizard(folderParam, packageParam) {
-  revealSection($("package-file-wizard"));
-  $("editor-title").textContent = "ADD FILE TO PACKAGE";
-  document.title = "LabRecord – Add File to Package";
-  $("editor-subtitle").textContent = "Add another source file to an existing package.";
-
-  try {
-    await ensureSiteDataLoaded();
-  } catch (err) {
-    showPkgFileError("Failed to load site data: " + err.message);
-    return;
-  }
-
-  const langEntry = findLangEntryForFolder(folderParam);
-
-  if (!folderParam || !packageParam || !langEntry) {
-    showPkgFileError(
-      "No package specified. Go back and use the [ + ] button while a package is open."
-    );
-    return;
-  }
-
-  State.pkgFileTargetFolder = folderParam;
-  State.pkgFileTargetPackage = packageParam;
-  State.pkgFileLangEntry = langEntry;
-
-  let displayName = packageParam;
-  try {
-    const packagesIndex = await fetchJson("/generated/packages-index.json");
-    const match = packagesIndex.find(
-      (p) => p.languageFolder === folderParam && p.folder === packageParam
-    );
-    if (match) displayName = match.name;
-  } catch {
-    // Fall back to the raw folder name in the label — not fatal, the
-    // server still authoritatively checks the package exists on save.
-  }
-
-  $("pkgfile-pkg-label").textContent = displayName;
-  $("pkgfile-path-preview").textContent = `packages/${folderParam}/${packageParam}/`;
-
-  $("pkgfile-file-rows").innerHTML = "";
-  State.pkgFileAddRows = [];
-  buildPkgFileRow($("pkgfile-file-rows"), State.pkgFileAddRows, langEntry);
-
-  goToPkgFileStep(1);
-}
-
-async function submitPackageFile() {
-  clearPkgFileError();
-
-  const { files, error } = collectPkgFiles(State.pkgFileAddRows, State.pkgFileLangEntry);
-
-  if (error) {
-    error.row.errorEl.textContent = error.message;
-    error.row.errorEl.style.display = "block";
-    error.row.el.scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
-
-  if (!files || files.length === 0) {
-    return showPkgFileError("Add at least one file.");
-  }
-
-  const saveBtn = $("pkgfile-step1-save");
-  saveBtn.disabled = true;
-  saveBtn.textContent = "SAVING…";
-
-  try {
-    const res = await fetch("/api/commit-package-file", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        accessCode: getAccessCode(),
-        folder: State.pkgFileTargetFolder,
-        package: State.pkgFileTargetPackage,
-        files,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Save failed.");
-
-    $("pkgfile-done-text").textContent =
-      `Added ${files.map((f) => f.filename).join(", ")} to packages/${State.pkgFileTargetFolder}/${State.pkgFileTargetPackage}/.`;
-    goToPkgFileStep(2);
-  } catch (err) {
-    $("pkgfile-save-error").textContent = err.message;
-    $("pkgfile-save-error").style.display = "block";
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "ADD TO PACKAGE";
-  }
-}
-
-function initPackageFileWizard() {
-  $("pkgfile-add-file-row").addEventListener("click", () => {
-    buildPkgFileRow($("pkgfile-file-rows"), State.pkgFileAddRows, State.pkgFileLangEntry)
-      .el.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
-
-  $("pkgfile-step1-save").addEventListener("click", submitPackageFile);
-  $("pkgfile-step1-back").addEventListener("click", pkgFileGoHome);
-  $("pkgfile-menu-btn").addEventListener("click", pkgFileGoHome);
-  $("pkgfile-done-menu-btn").addEventListener("click", pkgFileGoHome);
-}
-
-// ---------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------
 
@@ -2126,5 +2066,4 @@ document.addEventListener("DOMContentLoaded", () => {
   initStep3();
   initStep4();
   initPackageStep1();
-  initPackageFileWizard();
 });

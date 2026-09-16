@@ -7,18 +7,11 @@
     "language": "java",
     "compiler": "java",
     "prism": "java",
-    "fileCount": 2,
-    "searchText": "greeter demo a small multi class java package a reusable greeter class plus a runner that uses it greeter greeter java small reusable class that builds a greeting message main main java entry point that wires up greeter and prints its output",
+    "fileCount": 1,
+    "searchText": "greeter demo a small multi class java package a reusable greeter class plus a runner that uses it main main java entry point that wires up greeter and prints its output",
     "files": [
       {
         "number": 1,
-        "file": "Greeter.java",
-        "path": "programs/Java/packages/GreeterDemo/Greeter.java",
-        "title": "Greeter",
-        "description": "Small reusable class that builds a greeting message."
-      },
-      {
-        "number": 2,
         "file": "Main.java",
         "path": "programs/Java/packages/GreeterDemo/Main.java",
         "title": "Main",

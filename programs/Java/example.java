@@ -1,4 +1,0 @@
-// hello
-// welcome
-
-helloooo kooi

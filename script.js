@@ -3176,6 +3176,22 @@ async function init() {
 
     await loadLanguageIndex();
 
+    // If we're landing back here with ?folder=<folder> (e.g. returning
+    // from the editor wizard after adding a program), hide the home
+    // view *before* buildLanguageUI() below ever makes it visible,
+    // instead of only hiding it once openFolder() runs at the very end
+    // of this function. Three more `await`s (search index, packages
+    // index, site info) sit between those two points — each one yields
+    // to the browser, which was enough time for the fully-animated home
+    // grid to paint and then get yanked away the moment openFolder()
+    // finally ran. Hiding it here means it's never painted in the first
+    // place; its card-enter entrance animation simply plays later,
+    // whenever the person actually navigates back to the home screen.
+    const earlyReturnFolder = new URLSearchParams(window.location.search).get("folder");
+    if (earlyReturnFolder && App.languageIndex.some(l => l.folder === earlyReturnFolder)) {
+        document.getElementById("home-view").style.display = "none";
+    }
+
     buildLanguageUI();
 
     await loadSearchIndex();

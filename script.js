@@ -1152,6 +1152,29 @@ function packageId(languageFolder, folder) {
 function packageDomId(id) {
     return id.replace(/\//g, "--");
 }
+
+// A standalone program (Programs tab) can reference a custom package
+// via a plain Java `import <PackageFolder>.<Sub>.<Class>;` — matched
+// here by the package's own folder name being the import's leading
+// segment (the natural convention when a package folder is named
+// after the Java package it declares, e.g. folder "insystems" for
+// `package insystems.gumball;`). Returns every matching package so
+// its files can be sent alongside the program's own file when run.
+function detectReferencedPackages(programSource, folder) {
+    const packages = App.packages.byLanguage.get(folder) || [];
+    if (packages.length === 0) return [];
+
+    const importRegex = /^\s*import\s+([\w.]+)\s*;/gm;
+    const roots = new Set();
+    let match;
+    while ((match = importRegex.exec(programSource))) {
+        roots.add(match[1].split(".")[0]);
+    }
+
+    if (roots.size === 0) return [];
+
+    return packages.filter(pkg => roots.has(pkg.folder));
+}
 // ==========================
 // Load Metadata
 // ==========================
@@ -3172,9 +3195,33 @@ copyBtn.onclick = (e) => {
 };
 let iframe = null;
 
-// Builds the `files` array sent to OneCompiler.
-function buildRunFiles(runSource) {
-    return [{ name: program.file, content: runSource }];
+// Builds the `files` array sent to OneCompiler. A standalone program
+// can reference a custom package created in the Packages tab (e.g.
+// `import insystems.gumball.Gumball;`) — OneCompiler can't resolve
+// that unless the package's own file(s) are sent alongside this one,
+// so detectReferencedPackages() below finds any package(s) whose
+// folder name matches an import's leading segment, and every one of
+// their files gets pulled in here too.
+async function buildRunFiles(runSource) {
+    const thisFile = { name: program.file, content: runSource };
+
+    const referenced = detectReferencedPackages(runSource, cardFolder);
+    if (referenced.length === 0) return [thisFile];
+
+    const extraFiles = [];
+    for (const pkg of referenced) {
+        const codes = await Promise.all(
+            pkg.files.map(f => loadProgramCode(f, lang))
+        );
+        pkg.files.forEach((f, i) => {
+            extraFiles.push({
+                name: f.file,
+                content: lang === "c" ? cleanTurboC(codes[i]) : codes[i]
+            });
+        });
+    }
+
+    return [...extraFiles, thisFile];
 }
 
 runBtn.onclick = (e) => {
@@ -3233,12 +3280,14 @@ runBtn.onclick = (e) => {
             // cache, the editor textarea, or a commit.
             const runSource = lang === "c" ? cleanTurboC(source) : source;
 
-            const populate = () => {
+            const populate = async () => {
+
+                const files = await buildRunFiles(runSource);
 
                 iframe.contentWindow.postMessage({
                     eventType: "populateCode",
                     language: lang,
-                    files: buildRunFiles(runSource)
+                    files
                 }, "*");
 
                 setTimeout(() => {
@@ -3268,10 +3317,12 @@ runBtn.onclick = (e) => {
 
             const runSource = lang === "c" ? cleanTurboC(source) : source;
 
+            const files = await buildRunFiles(runSource);
+
             iframe.contentWindow.postMessage({
                 eventType: "populateCode",
                 language: lang,
-                files: buildRunFiles(runSource)
+                files
             }, "*");
 
             setTimeout(() => {

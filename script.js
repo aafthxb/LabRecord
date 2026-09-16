@@ -1367,7 +1367,7 @@ function createPackageCard(pkg, index) {
         </div>
         <div class="header-actions">
             <button class="action-btn card-delete-btn" type="button" title="Delete this package">DELETE</button>
-            <button class="action-btn run-btn">OPEN ▶</button>
+            <button class="action-btn run-btn package-open-btn">OPEN ▶</button>
             <span class="expand-icon">▼</span>
         </div>
     `;
@@ -3176,20 +3176,18 @@ async function init() {
 
     await loadLanguageIndex();
 
-    // If we're landing back here with ?folder=<folder> (e.g. returning
-    // from the editor wizard after adding a program), hide the home
-    // view *before* buildLanguageUI() below ever makes it visible,
-    // instead of only hiding it once openFolder() runs at the very end
-    // of this function. Three more `await`s (search index, packages
-    // index, site info) sit between those two points — each one yields
-    // to the browser, which was enough time for the fully-animated home
-    // grid to paint and then get yanked away the moment openFolder()
-    // finally ran. Hiding it here means it's never painted in the first
-    // place; its card-enter entrance animation simply plays later,
-    // whenever the person actually navigates back to the home screen.
+    // The pre-paint inline script in index.html's <head> already added
+    // .returning-to-folder to <html> (and the matching style.css rule
+    // hid #home-view) the instant it saw a `folder` param, before this
+    // script even started running — that's what actually stops the
+    // empty home grid from painting during the loadLanguageIndex fetch
+    // above. Now that App.languageIndex is loaded, confirm the folder
+    // is real: if it's not (stale/bad link), drop the class so home
+    // falls back to visible and plays its normal entrance animation,
+    // same as any other fresh visit.
     const earlyReturnFolder = new URLSearchParams(window.location.search).get("folder");
-    if (earlyReturnFolder && App.languageIndex.some(l => l.folder === earlyReturnFolder)) {
-        document.getElementById("home-view").style.display = "none";
+    if (!(earlyReturnFolder && App.languageIndex.some(l => l.folder === earlyReturnFolder))) {
+        document.documentElement.classList.remove("returning-to-folder");
     }
 
     buildLanguageUI();
@@ -3218,6 +3216,13 @@ async function init() {
     const returnPackage = params.get("package");  // package's own folder name
 
     if (returnFolder && App.languageIndex.some(l => l.folder === returnFolder)) {
+        // Done needing the pre-paint CSS hide — openFolder() below takes
+        // over hiding #home-view itself (via a plain inline style, same
+        // as every other folder-open). Drop the class now so a later
+        // trip back to the actual home screen isn't left permanently
+        // hidden behind the !important rule.
+        document.documentElement.classList.remove("returning-to-folder");
+
         openFolder(returnFolder);
 
         if (returnMode === "package" || returnMode === "package-file") {

@@ -92,13 +92,6 @@
       "path": "programs/Java/SumOfTwoNumbers.java",
       "code": "//Sum of two numbers\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class SumOfTwoNumbers {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter first number: \");\r\n        int num1 = sc.nextInt();\r\n\r\n        System.out.print(\"Enter second number: \");\r\n        int num2 = sc.nextInt();\r\n\r\n        int sum = num1 + num2;\r\n\r\n        System.out.println(\"Sum = \" + sum);\r\n\r\n        sc.close();\r\n    }\r\n}\r\n",
       "search": "sum of two numbers import java util scanner public class sumoftwonumbers public static void main string args scanner sc new scanner system in system out print enter first number int num1 sc nextint system out print enter second number int num2 sc nextint int sum num1 num2 system out println sum sum sc close"
-    },
-    {
-      "number": 2,
-      "file": "example.java",
-      "path": "programs/Java/example.java",
-      "code": "// hello\n// welcome\n\nhelloooo kooi",
-      "search": "hello welcome helloooo kooi"
     }
   ]
 }

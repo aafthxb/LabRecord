@@ -92,6 +92,13 @@
       "path": "programs/Java/SumOfTwoNumbers.java",
       "title": "Sum of two numbers",
       "description": ""
+    },
+    {
+      "number": 2,
+      "file": "example.java",
+      "path": "programs/Java/example.java",
+      "title": "hello",
+      "description": "welcome"
     }
   ]
 }

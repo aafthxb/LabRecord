@@ -559,12 +559,12 @@ function refreshEditUI() {
         addBtn.href = `editor.html?mode=package-file&folder=${encodeURIComponent(pkg?.languageFolder || folder)}&package=${encodeURIComponent(pkg?.folder || "")}`;
         addBtn.title = "Add a file to this package";
         addBtn.setAttribute("aria-label", "Add a file to this package");
-        updateSaveBar(null);
+        updatePackageFileSaveBar(pkg);
     } else if (App.folderMode === "packages") {
         addBtn.href = `editor.html?mode=package&folder=${encodeURIComponent(folder)}`;
         addBtn.title = "Add a new package";
         addBtn.setAttribute("aria-label", "Add a new package");
-        updateSaveBar(null);
+        updatePackagesSaveBar(folder);
     } else {
         addBtn.href = `editor.html?folder=${encodeURIComponent(folder)}`;
         addBtn.title = "Add a new program";
@@ -877,7 +877,34 @@ function initCardDrag(card, handle, folder) {
     handle.addEventListener("click", (e) => e.stopPropagation());
 }
 
+// SAVE CHANGES / DISCARD both do three different things depending on
+// which view is on screen (a specific package's files, a language's
+// packages list, or its programs list) — dispatch to whichever one
+// actually has something pending, matching refreshEditUI()'s own
+// openPkgId / folderMode checks above.
 async function saveChanges() {
+    const openPkgId = App.packages.openPackage;
+    if (openPkgId) {
+        return savePackageFileChanges(App.packages.byId.get(openPkgId));
+    }
+    if (App.folderMode === "packages") {
+        return savePackagesChanges(App.currentFolder);
+    }
+    return saveProgramChanges();
+}
+
+function discardChanges() {
+    const openPkgId = App.packages.openPackage;
+    if (openPkgId) {
+        return discardPackageFileChanges(App.packages.byId.get(openPkgId));
+    }
+    if (App.folderMode === "packages") {
+        return discardPackagesChanges(App.currentFolder);
+    }
+    return discardProgramChanges();
+}
+
+async function saveProgramChanges() {
     const folder = App.currentFolder;
     const pending = App.edit.pending[folder];
     if (!pending) return;
@@ -976,7 +1003,7 @@ async function saveChanges() {
 
 // Discards any pending reorder/delete by rebuilding the folder's cards
 // straight from the last-loaded metadata.
-function discardChanges() {
+function discardProgramChanges() {
     const folder = App.currentFolder;
     if (!folder) return;
 
@@ -1101,7 +1128,15 @@ const App = {
         builtPackages: new Set(), // "languageFolder/folder"(s) already built
         codeIndexLoaded: new Set(),
         codeLookup: {},
-        openPackage: null // "languageFolder/folder" or null
+        openPackage: null, // "languageFolder/folder" or null
+
+        // Mark-for-deletion state for the packages list and for a
+        // package's file view, mirroring App.edit.pending's
+        // deletions Set above so both use the same bottom
+        // "N marked for deletion" + SAVE CHANGES/DISCARD bar instead
+        // of an instant browser confirm().
+        pendingDeletions: new Map(),    // languageFolder -> Set<packageId>
+        filePendingDeletions: new Map() // packageId -> Set<filename>
     }
 };
 
@@ -1407,7 +1442,7 @@ function createPackageCard(pkg, index) {
 
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        deletePackage(pkg, card);
+        togglePackageDeletion(pkg, card);
     };
 
     card.originalContent = {
@@ -1418,70 +1453,146 @@ function createPackageCard(pkg, index) {
     return card;
 }
 
-// DELETE on a package card — an immediate, confirmed action (unlike
-// programs' mark-for-deletion + SAVE CHANGES batching): packages aren't
-// part of that pending-changes system, so this just asks, then commits
-// the removal straight away via /api/delete-package (one commit for
-// meta.json + every file in the package).
-async function deletePackage(pkg, card) {
-    if (!App.edit.unlocked) return;
+// DELETE on a package card — mark-for-deletion + SAVE CHANGES/DISCARD,
+// the same bottom-bar pattern the programs list uses (rather than an
+// instant browser confirm()). There's no batch endpoint for packages,
+// so SAVE CHANGES below just calls the existing single-package
+// /api/delete-package once per package marked.
+function updatePackagesSaveBar(folder) {
+    const bar = document.getElementById("edit-save-bar");
 
-    const confirmed = confirm(
-        `Delete the package "${pkg.name}"? This removes all ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} and can't be undone from here.`
-    );
-    if (!confirmed) return;
-
-    const deleteBtn = card.querySelector(".card-delete-btn");
-    if (deleteBtn) {
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = "DELETING…";
+    if (!folder || !App.edit.unlocked) {
+        bar.style.display = "none";
+        return;
     }
 
-    try {
-        const res = await fetch("/api/delete-package", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                accessCode: App.edit.code,
-                folder: pkg.languageFolder,
-                package: pkg.folder
-            })
-        });
+    const pending = App.packages.pendingDeletions.get(folder);
+    if (!pending || pending.size === 0) {
+        bar.style.display = "none";
+        return;
+    }
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Delete failed.");
+    document.getElementById("edit-save-status").textContent =
+        `${pending.size} package${pending.size === 1 ? "" : "s"} marked for deletion`;
+    bar.style.display = "flex";
+}
 
-        App.packages.list = App.packages.list.filter(p => p.id !== pkg.id);
-        App.packages.byId.delete(pkg.id);
+function togglePackageDeletion(pkg, card) {
+    if (!App.edit.unlocked) return;
 
-        const langList = App.packages.byLanguage.get(pkg.languageFolder) || [];
-        const langIndex = langList.indexOf(pkg);
-        if (langIndex !== -1) langList.splice(langIndex, 1);
+    let pending = App.packages.pendingDeletions.get(pkg.languageFolder);
+    if (!pending) {
+        pending = new Set();
+        App.packages.pendingDeletions.set(pkg.languageFolder, pending);
+    }
 
-        // Mutate the cards array in place (not a reassignment) — the
-        // packages-list search box's filterCards() closed over this
-        // exact array when the list was built, so splicing keeps its
-        // count/status text correct once we nudge it to re-run below.
-        const cardsForFolder = App.packages.cards.get(pkg.languageFolder) || [];
-        const cardIndex = cardsForFolder.indexOf(card);
-        if (cardIndex !== -1) cardsForFolder.splice(cardIndex, 1);
+    const deleteBtn = card.querySelector(".card-delete-btn");
 
-        card.remove();
+    if (pending.has(pkg.id)) {
+        pending.delete(pkg.id);
+        card.classList.remove("pending-delete");
+        if (deleteBtn) deleteBtn.textContent = "DELETE";
+    } else {
+        pending.add(pkg.id);
+        card.classList.add("pending-delete");
+        if (deleteBtn) deleteBtn.textContent = "UNDO";
+    }
 
-        cardsForFolder.forEach((c, index) => {
-            c.dataset.number = String(index + 1);
-            const badge = c.querySelector(".serial-badge");
-            if (badge) badge.textContent = index + 1;
-        });
+    updatePackagesSaveBar(pkg.languageFolder);
+}
 
-        const container = document.getElementById(`packages-list-${pkg.languageFolder}-container`);
-        container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
-    } catch (err) {
-        alert("Couldn't delete package: " + err.message);
-        if (deleteBtn) {
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = "DELETE";
+// Un-marks every package pending deletion in this folder, restoring
+// their cards — mirrors discardProgramChanges() but without needing a
+// full rebuild, since nothing has actually been sent to the server yet.
+function discardPackagesChanges(folder) {
+    const pending = App.packages.pendingDeletions.get(folder);
+    if (!pending || pending.size === 0) return;
+
+    const cardsForFolder = App.packages.cards.get(folder) || [];
+    cardsForFolder.forEach(card => {
+        if (!pending.has(card._pkg?.id)) return;
+        card.classList.remove("pending-delete");
+        const btn = card.querySelector(".card-delete-btn");
+        if (btn) btn.textContent = "DELETE";
+    });
+
+    pending.clear();
+    updatePackagesSaveBar(folder);
+}
+
+// Commits every package marked for deletion in this folder, one
+// /api/delete-package call each. Packages that fail stay marked (and
+// stay in the pending set) so the bar reflects what's still unsaved.
+async function savePackagesChanges(folder) {
+    const pending = App.packages.pendingDeletions.get(folder);
+    if (!pending || pending.size === 0) return;
+
+    const saveBtn = document.getElementById("edit-save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "SAVING…";
+
+    const cardsForFolder = App.packages.cards.get(folder) || [];
+    const errors = [];
+
+    for (const id of Array.from(pending)) {
+        const pkg = App.packages.byId.get(id);
+        if (!pkg) { pending.delete(id); continue; }
+
+        const card = cardsForFolder.find(c => c._pkg === pkg);
+        const deleteBtn = card?.querySelector(".card-delete-btn");
+        if (deleteBtn) deleteBtn.textContent = "DELETING…";
+
+        try {
+            const res = await fetch("/api/delete-package", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    accessCode: App.edit.code,
+                    folder: pkg.languageFolder,
+                    package: pkg.folder
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Delete failed.");
+
+            App.packages.list = App.packages.list.filter(p => p.id !== pkg.id);
+            App.packages.byId.delete(pkg.id);
+
+            const langList = App.packages.byLanguage.get(pkg.languageFolder) || [];
+            const langIndex = langList.indexOf(pkg);
+            if (langIndex !== -1) langList.splice(langIndex, 1);
+
+            // Mutate the cards array in place (not a reassignment) — the
+            // packages-list search box's filterCards() closed over this
+            // exact array when the list was built, so splicing keeps its
+            // count/status text correct once we nudge it to re-run below.
+            const cardIndex = cardsForFolder.indexOf(card);
+            if (cardIndex !== -1) cardsForFolder.splice(cardIndex, 1);
+            card?.remove();
+
+            pending.delete(id);
+        } catch (err) {
+            errors.push(`${pkg.name}: ${err.message}`);
+            if (deleteBtn) deleteBtn.textContent = "UNDO";
         }
+    }
+
+    cardsForFolder.forEach((c, index) => {
+        c.dataset.number = String(index + 1);
+        const badge = c.querySelector(".serial-badge");
+        if (badge) badge.textContent = index + 1;
+    });
+
+    const container = document.getElementById(`packages-list-${folder}-container`);
+    container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
+
+    updatePackagesSaveBar(folder);
+    saveBtn.disabled = false;
+    saveBtn.textContent = "SAVE CHANGES";
+
+    if (errors.length > 0) {
+        alert("Couldn't delete some packages:\n" + errors.join("\n"));
     }
 }
 
@@ -1701,8 +1812,11 @@ function createPackageFileCard(fileEntry, pkg) {
 
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        deletePackageFile(pkg, fileEntry, card);
+        togglePackageFileDeletion(pkg, fileEntry, card);
     };
+
+    card._pkg = pkg;
+    card._fileEntry = fileEntry;
 
     card.originalContent = {
         title: fileEntry.title,
@@ -2108,87 +2222,168 @@ function buildPackageCheckToolbar(container, pkg) {
     };
 }
 
-// DELETE on a file card inside a package — same immediate-commit
-// pattern as deletePackage() above, via /api/delete-package-file. The
-// server refuses to remove a package's last remaining file (a package
-// needs at least one); that error surfaces here as a plain alert
+// DELETE on a file card inside a package — mark-for-deletion +
+// SAVE CHANGES/DISCARD, same bottom-bar pattern as the packages list
+// above (instead of an instant browser confirm()). The server still
+// refuses to remove a package's last remaining file (a package needs
+// at least one); that error surfaces on SAVE CHANGES as a plain alert
 // rather than silently failing.
-async function deletePackageFile(pkg, fileEntry, card) {
-    if (!App.edit.unlocked) return;
+function updatePackageFileSaveBar(pkg) {
+    const bar = document.getElementById("edit-save-bar");
 
-    const confirmed = confirm(`Delete "${fileEntry.file}" from ${pkg.name}?`);
-    if (!confirmed) return;
-
-    const deleteBtn = card.querySelector(".card-delete-btn");
-    if (deleteBtn) {
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = "DELETING…";
+    if (!pkg || !App.edit.unlocked) {
+        bar.style.display = "none";
+        return;
     }
 
-    try {
-        const res = await fetch("/api/delete-package-file", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                accessCode: App.edit.code,
-                folder: pkg.languageFolder,
-                package: pkg.folder,
-                filename: fileEntry.file
-            })
-        });
+    const pending = App.packages.filePendingDeletions.get(pkg.id);
+    if (!pending || pending.size === 0) {
+        bar.style.display = "none";
+        return;
+    }
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Delete failed.");
+    document.getElementById("edit-save-status").textContent =
+        `${pending.size} file${pending.size === 1 ? "" : "s"} marked for deletion`;
+    bar.style.display = "flex";
+}
 
-        const fileIndex = pkg.files.indexOf(fileEntry);
-        if (fileIndex !== -1) pkg.files.splice(fileIndex, 1);
-        pkg.fileCount = pkg.files.length;
+function togglePackageFileDeletion(pkg, fileEntry, card) {
+    if (!App.edit.unlocked) return;
 
-        // Mutate in place, same reasoning as deletePackage() — this is
-        // the exact array setupPackageFileSearch()'s filterCards()
-        // closed over.
-        const cardsList = App.packages.fileCards.get(pkg.id) || [];
-        const cardIndex = cardsList.indexOf(card);
-        if (cardIndex !== -1) cardsList.splice(cardIndex, 1);
+    let pending = App.packages.filePendingDeletions.get(pkg.id);
+    if (!pending) {
+        pending = new Set();
+        App.packages.filePendingDeletions.set(pkg.id, pending);
+    }
 
-        card.remove();
+    const deleteBtn = card.querySelector(".card-delete-btn");
 
-        cardsList.forEach((c, index) => {
-            c.dataset.number = String(index + 1);
-            const badge = c.querySelector(".serial-badge");
-            if (badge) badge.textContent = index + 1;
-        });
+    if (pending.has(fileEntry.file)) {
+        pending.delete(fileEntry.file);
+        card.classList.remove("pending-delete");
+        if (deleteBtn) deleteBtn.textContent = "DELETE";
+    } else {
+        pending.add(fileEntry.file);
+        card.classList.add("pending-delete");
+        if (deleteBtn) deleteBtn.textContent = "UNDO";
+    }
 
-        const container = document.getElementById(`package-${packageDomId(pkg.id)}-container`);
-        container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
+    updatePackageFileSaveBar(pkg);
+}
 
-        // Keep the packages-list card (a different view, may not even
-        // be built yet) in sync too, so its file-count badge and
-        // collapsed file-list preview are correct if/when the person
-        // navigates back to it without a full page reload.
-        const listCard = (App.packages.cards.get(pkg.languageFolder) || [])
-            .find(c => c._pkg === pkg);
-        if (listCard) {
-            const fileBadge = listCard.querySelector(".file-badge");
-            if (fileBadge) {
-                fileBadge.textContent = `[ ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} ]`;
-            }
-            const listItems = listCard.querySelector(".package-file-list-items");
-            if (listItems) {
-                listItems.innerHTML = pkg.files.map(f => `
-                    <li>
-                        <span class="package-file-list-title">${escapeHtml(f.title)}</span>
-                        <span class="package-file-list-name">[ ${escapeHtml(f.file)} ]</span>
-                    </li>
-                `).join("");
-            }
+// Un-marks every file pending deletion in this package, restoring
+// their cards — mirrors discardPackagesChanges() above.
+function discardPackageFileChanges(pkg) {
+    if (!pkg) return;
+    const pending = App.packages.filePendingDeletions.get(pkg.id);
+    if (!pending || pending.size === 0) return;
+
+    const cardsList = App.packages.fileCards.get(pkg.id) || [];
+    cardsList.forEach(card => {
+        if (!pending.has(card._fileEntry?.file)) return;
+        card.classList.remove("pending-delete");
+        const btn = card.querySelector(".card-delete-btn");
+        if (btn) btn.textContent = "DELETE";
+    });
+
+    pending.clear();
+    updatePackageFileSaveBar(pkg);
+}
+
+// Commits every file marked for deletion in this package, one
+// /api/delete-package-file call each. Files that fail (e.g. the
+// server's last-file guard) stay marked so the bar still reflects
+// what's unsaved.
+async function savePackageFileChanges(pkg) {
+    if (!pkg) return;
+    const pending = App.packages.filePendingDeletions.get(pkg.id);
+    if (!pending || pending.size === 0) return;
+
+    const saveBtn = document.getElementById("edit-save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "SAVING…";
+
+    const cardsList = App.packages.fileCards.get(pkg.id) || [];
+    const errors = [];
+
+    for (const filename of Array.from(pending)) {
+        const fileEntry = pkg.files.find(f => f.file === filename);
+        const card = cardsList.find(c => c._fileEntry === fileEntry);
+        const deleteBtn = card?.querySelector(".card-delete-btn");
+        if (deleteBtn) deleteBtn.textContent = "DELETING…";
+
+        if (!fileEntry) { pending.delete(filename); continue; }
+
+        try {
+            const res = await fetch("/api/delete-package-file", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    accessCode: App.edit.code,
+                    folder: pkg.languageFolder,
+                    package: pkg.folder,
+                    filename: fileEntry.file
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Delete failed.");
+
+            const fileIndex = pkg.files.indexOf(fileEntry);
+            if (fileIndex !== -1) pkg.files.splice(fileIndex, 1);
+            pkg.fileCount = pkg.files.length;
+
+            // Mutate in place, same reasoning as savePackagesChanges()
+            // above — this is the exact array
+            // setupPackageFileSearch()'s filterCards() closed over.
+            const cardIndex = cardsList.indexOf(card);
+            if (cardIndex !== -1) cardsList.splice(cardIndex, 1);
+            card?.remove();
+
+            pending.delete(filename);
+        } catch (err) {
+            errors.push(`${fileEntry.file}: ${err.message}`);
+            if (deleteBtn) deleteBtn.textContent = "UNDO";
         }
-    } catch (err) {
-        alert("Couldn't delete file: " + err.message);
-        if (deleteBtn) {
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = "DELETE";
+    }
+
+    cardsList.forEach((c, index) => {
+        c.dataset.number = String(index + 1);
+        const badge = c.querySelector(".serial-badge");
+        if (badge) badge.textContent = index + 1;
+    });
+
+    const container = document.getElementById(`package-${packageDomId(pkg.id)}-container`);
+    container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
+
+    // Keep the packages-list card (a different view, may not even be
+    // built yet) in sync too, so its file-count badge and collapsed
+    // file-list preview are correct if/when the person navigates back
+    // to it without a full page reload.
+    const listCard = (App.packages.cards.get(pkg.languageFolder) || [])
+        .find(c => c._pkg === pkg);
+    if (listCard) {
+        const fileBadge = listCard.querySelector(".file-badge");
+        if (fileBadge) {
+            fileBadge.textContent = `[ ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} ]`;
         }
+        const listItems = listCard.querySelector(".package-file-list-items");
+        if (listItems) {
+            listItems.innerHTML = pkg.files.map(f => `
+                <li>
+                    <span class="package-file-list-title">${escapeHtml(f.title)}</span>
+                    <span class="package-file-list-name">[ ${escapeHtml(f.file)} ]</span>
+                </li>
+            `).join("");
+        }
+    }
+
+    updatePackageFileSaveBar(pkg);
+    saveBtn.disabled = false;
+    saveBtn.textContent = "SAVE CHANGES";
+
+    if (errors.length > 0) {
+        alert("Couldn't delete some files:\n" + errors.join("\n"));
     }
 }
 
@@ -2815,7 +3010,7 @@ async function getEffectiveCode() {
     return loadProgramCode(program, lang);
 }
 
-// Called from saveChanges() right after a successful commit.
+// Called from saveProgramChanges() right after a successful commit.
 // `newCode` is this card's just-committed content, or undefined if
 // this file wasn't part of the save.
 function onSaved(newCode) {

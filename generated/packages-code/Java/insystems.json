@@ -1,0 +1,9 @@
+[
+  {
+    "number": 1,
+    "file": "Gumball.java",
+    "path": "programs/Java/packages/insystems/Gumball.java",
+    "code": "// Gumball\n\npackage insystems;\n\npublic class Gumball {\n    private int count;\n\n    public Gumball(int count) {\n        this.count = count;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}   ",
+    "search": "gumball package insystems public class gumball private int count public gumball int count this count count public int getcount return count"
+  }
+]

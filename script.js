@@ -1650,6 +1650,17 @@ function setupPackagesListSearch(search, cards) {
                 match = keywords.every(word => card.dataset.search.includes(word));
             }
 
+            const titleText = card.querySelector(".program-title-text");
+            const subtitle = card.querySelector(".card-subtitle");
+
+            if (!query) {
+                titleText.textContent = card.originalContent.title;
+                subtitle.textContent = card.originalContent.description;
+            } else {
+                titleText.innerHTML = highlightText(card.originalContent.title, keywords);
+                subtitle.innerHTML = highlightText(card.originalContent.description, keywords);
+            }
+
             // If this only matched because of a file inside the
             // package (its own name/description didn't mention the
             // query), name which file — rather than silently
@@ -1889,8 +1900,31 @@ function createPackageFileCard(fileEntry, pkg) {
         }, copyBtn);
     };
 
-    function buildRunFiles(runSource) {
-        return [{ name: fileEntry.file, content: runSource }];
+    // RUN FILE compiles just this file on its own by default — fine
+    // for a self-contained file, but if it references another file in
+    // the same package (an import, a package-scoped class) that file
+    // has to be sent along too, or the compiler can't resolve it (the
+    // same "package X does not exist" / "cannot find symbol" errors
+    // CHECK PACKAGE avoids by always sending every file together).
+    // Lazily pull in the rest of the package here, keeping this file's
+    // just-edited/just-loaded source rather than re-fetching it.
+    async function buildRunFiles(runSource) {
+        const thisFile = { name: fileEntry.file, content: runSource };
+        const others = pkg.files.filter(f => f.file !== fileEntry.file);
+
+        if (others.length === 0) return [thisFile];
+
+        const otherCodes = await Promise.all(
+            others.map(f => loadProgramCode(f, lang))
+        );
+
+        return [
+            ...others.map((f, i) => ({
+                name: f.file,
+                content: lang === "c" ? cleanTurboC(otherCodes[i]) : otherCodes[i]
+            })),
+            thisFile
+        ];
     }
 
     runBtn.onclick = (e) => {
@@ -1923,11 +1957,13 @@ function createPackageFileCard(fileEntry, pkg) {
                     `https://onecompiler.com/embed/${lang}?theme=dark&hideTitle=true&hideNew=true&hideEditorOptions=true&listenToEvents=true`;
                 editorWrapper.appendChild(iframe);
 
-                const populate = () => {
+                const populate = async () => {
+                    const files = await buildRunFiles(runSource);
+
                     iframe.contentWindow.postMessage({
                         eventType: "populateCode",
                         language: lang,
-                        files: buildRunFiles(runSource)
+                        files
                     }, "*");
 
                     setTimeout(() => {
@@ -1946,10 +1982,12 @@ function createPackageFileCard(fileEntry, pkg) {
             } else {
                 runBtn.classList.add("is-loading");
 
+                const files = await buildRunFiles(runSource);
+
                 iframe.contentWindow.postMessage({
                     eventType: "populateCode",
                     language: lang,
-                    files: buildRunFiles(runSource)
+                    files
                 }, "*");
 
                 setTimeout(() => {

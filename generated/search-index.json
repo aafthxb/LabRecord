@@ -99,13 +99,6 @@
       "path": "programs/Java/example.java",
       "title": "hello",
       "description": "welcome"
-    },
-    {
-      "number": 3,
-      "file": "Main.java",
-      "path": "programs/Java/Main.java",
-      "title": "package use",
-      "description": ""
     }
   ]
 }

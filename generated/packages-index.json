@@ -1,41 +1,28 @@
 [
   {
-    "folder": "example",
+    "folder": "GreeterDemo",
     "languageFolder": "Java",
-    "name": "example",
-    "description": "",
+    "name": "Greeter Demo",
+    "description": "A small multi-class Java package: a reusable Greeter class plus a runner that uses it.",
     "language": "java",
     "compiler": "java",
     "prism": "java",
-    "fileCount": 1,
-    "searchText": "example example greeter java hello",
+    "fileCount": 2,
+    "searchText": "greeter demo a small multi class java package a reusable greeter class plus a runner that uses it greeter greeter java small reusable class that builds a greeting message main main java entry point that wires up greeter and prints its output",
     "files": [
       {
         "number": 1,
-        "file": "greeter.java",
-        "path": "programs/Java/packages/example/greeter.java",
-        "title": "example",
-        "description": "hello"
-      }
-    ]
-  },
-  {
-    "folder": "insystems",
-    "languageFolder": "Java",
-    "name": "insystems",
-    "description": "",
-    "language": "java",
-    "compiler": "java",
-    "prism": "java",
-    "fileCount": 1,
-    "searchText": "insystems gumball gumball java",
-    "files": [
+        "file": "Greeter.java",
+        "path": "programs/Java/packages/GreeterDemo/Greeter.java",
+        "title": "Greeter",
+        "description": "Small reusable class that builds a greeting message."
+      },
       {
-        "number": 1,
-        "file": "Gumball.java",
-        "path": "programs/Java/packages/insystems/Gumball.java",
-        "title": "Gumball",
-        "description": ""
+        "number": 2,
+        "file": "Main.java",
+        "path": "programs/Java/packages/GreeterDemo/Main.java",
+        "title": "Main",
+        "description": "Entry point that wires up Greeter and prints its output."
       }
     ]
   }

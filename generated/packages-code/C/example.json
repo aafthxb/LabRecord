@@ -1,0 +1,9 @@
+[
+  {
+    "number": 1,
+    "file": "greeting.c",
+    "path": "programs/C/packages/example/greeting.c",
+    "code": "//greeting\n",
+    "search": "greeting"
+  }
+]

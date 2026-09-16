@@ -1,5 +1,25 @@
 [
   {
+    "folder": "example",
+    "languageFolder": "C",
+    "name": "example",
+    "description": "",
+    "language": "c",
+    "compiler": "c",
+    "prism": "c",
+    "fileCount": 1,
+    "searchText": "example greeting greeting c",
+    "files": [
+      {
+        "number": 1,
+        "file": "greeting.c",
+        "path": "programs/C/packages/example/greeting.c",
+        "title": "greeting",
+        "description": ""
+      }
+    ]
+  },
+  {
     "folder": "GreeterDemo",
     "languageFolder": "Java",
     "name": "Greeter Demo",

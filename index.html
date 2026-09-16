@@ -116,24 +116,6 @@
 })();
 </script>
 
-  <!-- Same idea as the theme script above: runs before body parsing so
-       it beats first paint. If this load is a return trip from the
-       editor wizard (index.html?folder=<folder>...), #home-view would
-       otherwise be visible-by-default the instant it's parsed — its
-       .home-grid CSS rule is a plain `display: grid`, and script.js
-       doesn't hide it until after init()'s first `await` (loadLanguageIndex),
-       which is a network round trip, plenty of time for an empty home
-       grid to paint and read as "the home page" flashing by. Setting
-       this class here means style.css can hide it from the very first
-       frame instead. -->
-  <script>
-(() => {
-    if (new URLSearchParams(location.search).has("folder")) {
-        document.documentElement.classList.add("returning-to-folder");
-    }
-})();
-</script>
-
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="editor.css" />

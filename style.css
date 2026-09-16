@@ -465,17 +465,6 @@ box-shadow:var(--shadow-sm);
   z-index: 1;
 }
 
-/* Set by the pre-paint inline script in index.html's <head> whenever the
-   URL has a `folder` param (i.e. this load is a return trip from the
-   editor wizard, not a fresh visit). Hides #home-view from the very
-   first frame, before script.js has even started running, so the empty
-   home grid never paints in the gap before init()'s first `await`.
-   init() clears this class itself once it has decided whether it's
-   actually opening a folder/package view or falling back to home. */
-html.returning-to-folder #home-view {
-  display: none !important;
-}
-
 .folder-card {
   background:var(--surface);
   border:2px solid var(--border);
@@ -1025,18 +1014,11 @@ input:focus-visible,
     justify-content: space-between;
   }
 
-  /* Scoped to "run"-style header-actions buttons that actually launch
-     the OneCompiler runner: the program card's RUN PROGRAM, the
-     package-file card's RUN FILE, and the package-level CHECK PACKAGE.
-     This used to be a bare `.action-btn.run-btn` selector, which also
-     matched every other green button that reuses run-btn's styling
-     (the gate's UNLOCK, the editor wizard's EXTRACT/PASTE/SAVE, and the
-     inline editor's SAVE CHANGES), hiding all of them on mobile too.
-
-     The package card's OPEN button also reuses run-btn's styling (it's
-     the same "primary action" green look), but OPEN just navigates into
-     the package — it doesn't run anything — so it's excluded here via
-     .package-open-btn and stays visible on mobile. */
+  /* Scoped to the program-card "RUN PROGRAM" button only — this used to
+     be a bare `.action-btn.run-btn` selector, which also matched every
+     other green button that reuses run-btn's styling (the gate's
+     UNLOCK, the editor wizard's EXTRACT/PASTE/SAVE, and the inline
+     editor's SAVE CHANGES), hiding all of them on mobile too. */
   .header-actions .action-btn.run-btn:not(.package-open-btn) {
     display: none !important;
   }
@@ -1288,9 +1270,8 @@ mark{
 
 /* CHECK PACKAGE toolbar, sitting between a package's search bar and
    its file cards. Reuses .header-actions purely so the existing
-   mobile rule (.header-actions .action-btn.run-btn:not(.package-open-btn)
-   { display:none }) hides it on mobile too, exactly like RUN PROGRAM/
-   RUN FILE — it isn't .package-open-btn, so the :not() doesn't spare it. */
+   mobile rule (.header-actions .action-btn.run-btn { display:none })
+   hides it on mobile too, exactly like RUN PROGRAM/RUN FILE. */
 .package-check-toolbar {
     justify-content: flex-start;
     margin: 0 0 16px 0;

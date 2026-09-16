@@ -99,6 +99,13 @@
       "path": "programs/Java/example.java",
       "code": "// hello\n// welcome\n\nhelloooo kooi",
       "search": "hello welcome helloooo kooi"
+    },
+    {
+      "number": 3,
+      "file": "Main.java",
+      "path": "programs/Java/Main.java",
+      "code": "// package use\n\nimport insystems.gumball.Gumball; // Import specific class\n\npublic class Main {\n    public static void main(String[] args) {\n        Gumball gb = new Gumball(5);\n        System.out.println(\"Gumballs: \" + gb.getCount());\n    }\n}   ",
+      "search": "package use import insystems gumball gumball import specific class public class main public static void main string args gumball gb new gumball 5 system out println gumballs gb getcount"
     }
   ]
 }

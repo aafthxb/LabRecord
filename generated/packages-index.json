@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "folder": "example",
+    "languageFolder": "Java",
+    "name": "example",
+    "description": "",
+    "language": "java",
+    "compiler": "java",
+    "prism": "java",
+    "fileCount": 1,
+    "searchText": "example example greeter java hello",
+    "files": [
+      {
+        "number": 1,
+        "file": "greeter.java",
+        "path": "programs/Java/packages/example/greeter.java",
+        "title": "example",
+        "description": "hello"
+      }
+    ]
+  }
+]

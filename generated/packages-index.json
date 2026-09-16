@@ -1,5 +1,25 @@
 [
   {
+    "folder": "example",
+    "languageFolder": "Java",
+    "name": "example",
+    "description": "",
+    "language": "java",
+    "compiler": "java",
+    "prism": "java",
+    "fileCount": 1,
+    "searchText": "example example greeter java hello",
+    "files": [
+      {
+        "number": 1,
+        "file": "greeter.java",
+        "path": "programs/Java/packages/example/greeter.java",
+        "title": "example",
+        "description": "hello"
+      }
+    ]
+  },
+  {
     "folder": "GreeterDemo",
     "languageFolder": "Java",
     "name": "Greeter Demo",
@@ -23,6 +43,26 @@
         "path": "programs/Java/packages/GreeterDemo/Main.java",
         "title": "Main",
         "description": "Entry point that wires up Greeter and prints its output."
+      }
+    ]
+  },
+  {
+    "folder": "insystems",
+    "languageFolder": "Java",
+    "name": "insystems",
+    "description": "",
+    "language": "java",
+    "compiler": "java",
+    "prism": "java",
+    "fileCount": 1,
+    "searchText": "insystems gumball gumball java",
+    "files": [
+      {
+        "number": 1,
+        "file": "Gumball.java",
+        "path": "programs/Java/packages/insystems/Gumball.java",
+        "title": "Gumball",
+        "description": ""
       }
     ]
   }

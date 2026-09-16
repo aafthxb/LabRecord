@@ -15,6 +15,7 @@
   ],
   "Java": [
     "SumOfTwoNumbers.java",
-    "example.java"
+    "example.java",
+    "Main.java"
   ]
 }

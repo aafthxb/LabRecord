@@ -1,6 +1,6 @@
 // package use
 
-import insystems.gumball.Gumball; // Import specific class
+import insystems.Gumball; // Import specific class
 
 public class Main {
     public static void main(String[] args) {

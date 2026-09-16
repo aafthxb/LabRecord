@@ -1,6 +1,6 @@
 // api/commit-package.js
 //
-// Creates a new package — packages/<folder>/<packageFolder>/meta.json
+// Creates a new package — programs/<folder>/packages/<packageFolder>/meta.json
 // plus every submitted source file — in a single Git commit, using the
 // same lower-level Git Data API as batch-commit.js (blobs -> tree ->
 // commit -> ref update). No order.json involvement: unlike programs,
@@ -16,7 +16,7 @@
 //                   a package's language is just whichever folder it lives
 //                   under, same as programs)
 //   packageFolder - the new package's own folder name, e.g. "GreeterDemo"
-//                   (packages/<folder>/<packageFolder>/)
+//                   (programs/<folder>/packages/<packageFolder>/)
 //   packageName / description - written into that package's meta.json
 //   files         - the package's source files, in the order they should
 //                   appear on its file-cards page
@@ -138,7 +138,7 @@ module.exports = async (req, res) => {
     "X-GitHub-Api-Version": "2022-11-28",
   };
   const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
-  const packagePath = `packages/${cleanFolder}/${cleanPackageFolder}`;
+  const packagePath = `programs/${cleanFolder}/packages/${cleanPackageFolder}`;
 
   try {
     // 1. Authoritative check that this package folder doesn't already

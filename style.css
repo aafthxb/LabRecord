@@ -421,7 +421,6 @@ box-shadow:var(--shadow-sm);
     color .12s ease;
   white-space: nowrap;
   margin-right: 8px;
-  margin-top: 6px;
   flex-shrink: 0;
   user-select: none;
   -webkit-tap-highlight-color: transparent;

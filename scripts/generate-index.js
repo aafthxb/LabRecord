@@ -357,12 +357,13 @@ codeIndex[folder].push({
 // Custom packages (multi-file programs)
 // ==========================
 //
-// A "package" is a folder under ./packages/<LanguageFolder>/<PackageFolder>/
+// A "package" is a folder under ./programs/<LanguageFolder>/packages/<PackageFolder>/
 // containing a meta.json ({ name, description }) plus its source files.
-// Nesting packages inside each language's own folder (mirroring
-// programs/<LanguageFolder>/) means only that language's packages ever
-// show up on its page, and the repo's folder structure reads the same
-// way for both programs and packages. A package's language is just
+// Nesting packages inside each language's own programs/ folder means
+// only that language's packages ever show up on its page, and the
+// repo's folder structure reads the same way for both programs and
+// packages — programs/Java/SumOfTwoNumbers.java sits right next to
+// programs/Java/packages/GreeterDemo/. A package's language is just
 // whichever folder it lives under — meta.json can still set an explicit
 // "language" to override that (e.g. a package that doesn't match its
 // folder for some reason), but it's optional now.
@@ -438,13 +439,17 @@ function extractTitleDescriptionGeneric(code, language) {
   };
 }
 
-// Scans ./packages/<languageFolder>/ (one call per known language
-// folder — the same folders discovered under ./programs) for
-// subfolders containing a meta.json. Packages for a language that has
-// no ./packages/<languageFolder> directory at all simply don't exist
-// yet, same as a language with zero programs.
+// Scans ./programs/<languageFolder>/packages/ (one call per known
+// language folder — the same folders discovered under ./programs) for
+// subfolders containing a meta.json. Packages nest inside their
+// language's own programs/ folder — mirroring how programs/<folder>/
+// itself works — rather than living in a separate top-level packages/
+// tree, so the repo's folder structure reads the same way for both. A
+// language with no programs/<languageFolder>/packages/ directory at
+// all simply has no packages yet, same as a language with zero
+// programs.
 function discoverPackagesForLanguage(languageFolder) {
-  const root = path.join("./packages", languageFolder);
+  const root = path.join("./programs", languageFolder, "packages");
   if (!fs.existsSync(root)) return [];
 
   return fs
@@ -477,14 +482,14 @@ for (const language of discoveredLanguages) {
   fs.mkdirSync(langCodeDir, { recursive: true });
 
   for (const pkgFolder of packageFolders) {
-    const pkgPath = path.join("./packages", folder, pkgFolder);
+    const pkgPath = path.join("./programs", folder, "packages", pkgFolder);
     const metaPath = path.join(pkgPath, "meta.json");
 
     let meta = {};
     try {
       meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
     } catch (e) {
-      console.warn(`⚠ packages/${folder}/${pkgFolder}/meta.json is invalid JSON. Skipping package.`);
+      console.warn(`⚠ programs/${folder}/packages/${pkgFolder}/meta.json is invalid JSON. Skipping package.`);
       continue;
     }
 
@@ -499,7 +504,7 @@ for (const language of discoveredLanguages) {
       .sort((a, b) => a.localeCompare(b));
 
     if (files.length === 0) {
-      console.warn(`⚠ packages/${folder}/${pkgFolder} has no ${languageId || folder} source files. Skipping package.`);
+      console.warn(`⚠ programs/${folder}/packages/${pkgFolder} has no ${languageId || folder} source files. Skipping package.`);
       continue;
     }
 
@@ -519,7 +524,7 @@ for (const language of discoveredLanguages) {
       fileEntries.push({
         number: index + 1,
         file,
-        path: `packages/${folder}/${pkgFolder}/${file}`,
+        path: `programs/${folder}/packages/${pkgFolder}/${file}`,
         title: finalTitle,
         description: finalDescription
       });
@@ -527,7 +532,7 @@ for (const language of discoveredLanguages) {
       codeEntries.push({
         number: index + 1,
         file,
-        path: `packages/${folder}/${pkgFolder}/${file}`,
+        path: `programs/${folder}/packages/${pkgFolder}/${file}`,
         code,
         search
       });

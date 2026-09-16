@@ -1555,7 +1555,7 @@ function validatePackageName() {
 
   State.pkgName = raw;
   State.pkgFolderSlug = slug;
-  statusEl.textContent = `Will be created at: packages/${State.selectedFolder}/${slug}/`;
+  statusEl.textContent = `Will be created at: programs/${State.selectedFolder}/packages/${slug}/`;
   statusEl.classList.add("banner-success");
   statusEl.style.display = "block";
 }
@@ -1689,7 +1689,7 @@ function addBatchToPendingPackage() {
 }
 
 // "CREATE PACKAGE" — the one commit that actually creates
-// packages/<folder>/<pkgFolderSlug>/, with meta.json plus every file
+// programs/<folder>/packages/<pkgFolderSlug>/, with meta.json plus every file
 // accumulated in State.pendingPackageFiles so far.
 async function createPackage() {
   const errorEl = $("pkg-create-error");
@@ -1724,7 +1724,7 @@ async function createPackage() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     $("done-text").textContent =
-      `"${State.pkgName}" was added at packages/${State.selectedFolder}/${State.pkgFolderSlug}/ with ${State.pendingPackageFiles.length} file${State.pendingPackageFiles.length === 1 ? "" : "s"}.`;
+      `"${State.pkgName}" was added at programs/${State.selectedFolder}/packages/${State.pkgFolderSlug}/ with ${State.pendingPackageFiles.length} file${State.pendingPackageFiles.length === 1 ? "" : "s"}.`;
 
     goToStep(4);
   } catch (err) {
@@ -1893,7 +1893,7 @@ async function addFilesToExistingPackage() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     $("done-text").textContent =
-      `Added ${State.pendingPackageFiles.map((f) => f.filename).join(", ")} to packages/${State.selectedFolder}/${State.pkgFileTargetPackage}/.`;
+      `Added ${State.pendingPackageFiles.map((f) => f.filename).join(", ")} to programs/${State.selectedFolder}/packages/${State.pkgFileTargetPackage}/.`;
 
     goToStep(4);
   } catch (err) {

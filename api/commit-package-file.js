@@ -1,7 +1,7 @@
 // api/commit-package-file.js
 //
 // Adds one or more new source files to an *existing* package —
-// packages/<folder>/<package>/<filename> for each — in a single commit.
+// programs/<folder>/packages/<package>/<filename> for each — in a single commit.
 // Same Git Data API pattern as commit-package.js / batch-commit.js.
 // Doesn't touch meta.json: the package's name/description are
 // unaffected by adding a file to it.
@@ -114,7 +114,7 @@ module.exports = async (req, res) => {
     "X-GitHub-Api-Version": "2022-11-28",
   };
   const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
-  const packagePath = `packages/${cleanFolder}/${cleanPackageFolder}`;
+  const packagePath = `programs/${cleanFolder}/packages/${cleanPackageFolder}`;
 
   try {
     // 1. The package (and its meta.json) must already exist.

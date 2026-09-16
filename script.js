@@ -1334,6 +1334,8 @@ function createPackagesSearchUI(container) {
 // program card would show, and expanding one previews its file list
 // instead of source code. Opening a package for real (OPEN ▶) is a
 // separate navigation, into that package's own file-cards page.
+// DELETE (editor mode only) removes the whole package — meta.json and
+// every file — in one commit via /api/delete-package.
 function createPackageCard(pkg, index) {
     const card = document.createElement("div");
     card.className = "program-card collapsed";
@@ -1364,6 +1366,7 @@ function createPackageCard(pkg, index) {
             </div>
         </div>
         <div class="header-actions">
+            <button class="action-btn card-delete-btn" type="button" title="Delete this package">DELETE</button>
             <button class="action-btn run-btn">OPEN ▶</button>
             <span class="expand-icon">▼</span>
         </div>
@@ -1387,6 +1390,7 @@ function createPackageCard(pkg, index) {
 
     const expandIcon = card.querySelector(".expand-icon");
     const openBtn = card.querySelector(".action-btn.run-btn");
+    const deleteBtn = card.querySelector(".card-delete-btn");
 
     header.onclick = (e) => {
         if (e.target.closest(".action-btn")) return;
@@ -1401,12 +1405,84 @@ function createPackageCard(pkg, index) {
         openPackage(pkg.id, e);
     };
 
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deletePackage(pkg, card);
+    };
+
     card.originalContent = {
         title: pkg.name,
         description: pkg.description || ""
     };
 
     return card;
+}
+
+// DELETE on a package card — an immediate, confirmed action (unlike
+// programs' mark-for-deletion + SAVE CHANGES batching): packages aren't
+// part of that pending-changes system, so this just asks, then commits
+// the removal straight away via /api/delete-package (one commit for
+// meta.json + every file in the package).
+async function deletePackage(pkg, card) {
+    if (!App.edit.unlocked) return;
+
+    const confirmed = confirm(
+        `Delete the package "${pkg.name}"? This removes all ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} and can't be undone from here.`
+    );
+    if (!confirmed) return;
+
+    const deleteBtn = card.querySelector(".card-delete-btn");
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "DELETING…";
+    }
+
+    try {
+        const res = await fetch("/api/delete-package", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder: pkg.languageFolder,
+                package: pkg.folder
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Delete failed.");
+
+        App.packages.list = App.packages.list.filter(p => p.id !== pkg.id);
+        App.packages.byId.delete(pkg.id);
+
+        const langList = App.packages.byLanguage.get(pkg.languageFolder) || [];
+        const langIndex = langList.indexOf(pkg);
+        if (langIndex !== -1) langList.splice(langIndex, 1);
+
+        // Mutate the cards array in place (not a reassignment) — the
+        // packages-list search box's filterCards() closed over this
+        // exact array when the list was built, so splicing keeps its
+        // count/status text correct once we nudge it to re-run below.
+        const cardsForFolder = App.packages.cards.get(pkg.languageFolder) || [];
+        const cardIndex = cardsForFolder.indexOf(card);
+        if (cardIndex !== -1) cardsForFolder.splice(cardIndex, 1);
+
+        card.remove();
+
+        cardsForFolder.forEach((c, index) => {
+            c.dataset.number = String(index + 1);
+            const badge = c.querySelector(".serial-badge");
+            if (badge) badge.textContent = index + 1;
+        });
+
+        const container = document.getElementById(`packages-list-${pkg.languageFolder}-container`);
+        container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
+    } catch (err) {
+        alert("Couldn't delete package: " + err.message);
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = "DELETE";
+        }
+    }
 }
 
 function buildPackagesListUI(container, folder) {
@@ -1548,12 +1624,13 @@ async function loadPackageCodeIndex(id) {
 }
 
 // A trimmed-down program-card: same shell, same COPY/RUN/expand
-// behavior and code view as a normal program card, but permanently
-// read-only (no drag handle, no delete, no inline editor). Packages
-// aren't part of the reorder/edit/commit system, so wiring one up to
-// App.currentFolder here would let an unlocked editor "save" straight
-// into the wrong path on disk — this avoids that risk entirely by just
-// not offering editing for package files yet.
+// behavior and code view as a normal program card, and now DELETE too
+// (editor mode only, same body.site-edit-mode-gated button style) —
+// but still no drag-to-reorder handle or inline in-card editor.
+// Packages aren't part of the reorder/edit/commit system programs use,
+// so this deliberately stays a one-way "remove a file" action (via
+// /api/delete-package-file) rather than wiring up the full pending
+// edits/order staging that App.edit.pending drives for programs.
 function createPackageFileCard(fileEntry, pkg) {
     const lang = pkg.compiler;
 
@@ -1592,6 +1669,7 @@ function createPackageFileCard(fileEntry, pkg) {
             </div>
         </div>
         <div class="header-actions">
+            <button class="action-btn card-delete-btn" type="button" title="Delete this file">DELETE</button>
             <button class="action-btn">COPY</button>
             <button class="action-btn run-btn">RUN FILE ▶</button>
             <span class="expand-icon">▼</span>
@@ -1615,10 +1693,16 @@ function createPackageFileCard(fileEntry, pkg) {
     card.appendChild(editorWrapper);
 
     const expandIcon = card.querySelector(".expand-icon");
-    const copyBtn = card.querySelector(".action-btn:not(.run-btn)");
+    const copyBtn = card.querySelector(".action-btn:not(.card-delete-btn):not(.run-btn)");
     const runBtn = card.querySelector(".run-btn");
+    const deleteBtn = card.querySelector(".card-delete-btn");
     const codeMatchBadge = card.querySelector(".code-match-badge");
     codeMatchBadge.style.display = "none";
+
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deletePackageFile(pkg, fileEntry, card);
+    };
 
     card.originalContent = {
         title: fileEntry.title,
@@ -2022,6 +2106,90 @@ function buildPackageCheckToolbar(container, pkg) {
 
         }, checkBtn);
     };
+}
+
+// DELETE on a file card inside a package — same immediate-commit
+// pattern as deletePackage() above, via /api/delete-package-file. The
+// server refuses to remove a package's last remaining file (a package
+// needs at least one); that error surfaces here as a plain alert
+// rather than silently failing.
+async function deletePackageFile(pkg, fileEntry, card) {
+    if (!App.edit.unlocked) return;
+
+    const confirmed = confirm(`Delete "${fileEntry.file}" from ${pkg.name}?`);
+    if (!confirmed) return;
+
+    const deleteBtn = card.querySelector(".card-delete-btn");
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "DELETING…";
+    }
+
+    try {
+        const res = await fetch("/api/delete-package-file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder: pkg.languageFolder,
+                package: pkg.folder,
+                filename: fileEntry.file
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Delete failed.");
+
+        const fileIndex = pkg.files.indexOf(fileEntry);
+        if (fileIndex !== -1) pkg.files.splice(fileIndex, 1);
+        pkg.fileCount = pkg.files.length;
+
+        // Mutate in place, same reasoning as deletePackage() — this is
+        // the exact array setupPackageFileSearch()'s filterCards()
+        // closed over.
+        const cardsList = App.packages.fileCards.get(pkg.id) || [];
+        const cardIndex = cardsList.indexOf(card);
+        if (cardIndex !== -1) cardsList.splice(cardIndex, 1);
+
+        card.remove();
+
+        cardsList.forEach((c, index) => {
+            c.dataset.number = String(index + 1);
+            const badge = c.querySelector(".serial-badge");
+            if (badge) badge.textContent = index + 1;
+        });
+
+        const container = document.getElementById(`package-${packageDomId(pkg.id)}-container`);
+        container?.querySelector(".search-input")?.dispatchEvent(new Event("input"));
+
+        // Keep the packages-list card (a different view, may not even
+        // be built yet) in sync too, so its file-count badge and
+        // collapsed file-list preview are correct if/when the person
+        // navigates back to it without a full page reload.
+        const listCard = (App.packages.cards.get(pkg.languageFolder) || [])
+            .find(c => c._pkg === pkg);
+        if (listCard) {
+            const fileBadge = listCard.querySelector(".file-badge");
+            if (fileBadge) {
+                fileBadge.textContent = `[ ${pkg.fileCount} file${pkg.fileCount === 1 ? "" : "s"} ]`;
+            }
+            const listItems = listCard.querySelector(".package-file-list-items");
+            if (listItems) {
+                listItems.innerHTML = pkg.files.map(f => `
+                    <li>
+                        <span class="package-file-list-title">${escapeHtml(f.title)}</span>
+                        <span class="package-file-list-name">[ ${escapeHtml(f.file)} ]</span>
+                    </li>
+                `).join("");
+            }
+        }
+    } catch (err) {
+        alert("Couldn't delete file: " + err.message);
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = "DELETE";
+        }
+    }
 }
 
 function buildPackageFileView(container, pkg) {

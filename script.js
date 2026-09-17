@@ -1261,6 +1261,61 @@ async function loadLanguageIndex() {
     }
 
     App.languageIndex = await response.json();
+
+    cacheLanguageHeaders();
+}
+
+// The folder view's title and subtitle come from the language index,
+// which is fetched. On a return navigation that fetch is the reason the
+// home header still got one painted frame: init() hid the home grid
+// synchronously, but had nothing to write in the header until the
+// response landed. Stashing just the header strings lets the next
+// return resolve them with no await at all — see resolveReturnHeader().
+const LANG_HEADER_CACHE_KEY = "labrecord:lang-headers";
+
+function cacheLanguageHeaders() {
+    try {
+        localStorage.setItem(
+            LANG_HEADER_CACHE_KEY,
+            JSON.stringify(
+                App.languageIndex.map(l => [l.folder, l.displayName, l.description || ""])
+            )
+        );
+    } catch {
+        // Storage full or blocked (private mode) — the header just
+        // resolves from the folder name instead, as below.
+    }
+}
+
+// Header strings for a folder, synchronously. Prefers the cached
+// display name/description; with no cache (first ever visit, cleared
+// storage) it falls back to the folder name itself, which is already
+// the right title for every current language — "Java" -> "JAVA
+// PROGRAMS" — and leaves the subtitle empty rather than showing the
+// home screen's, so the worst case is a missing line, never a wrong one.
+function resolveReturnHeader(folder, inPackages) {
+    let displayName = folder;
+    let description = "";
+
+    try {
+        const cached = JSON.parse(localStorage.getItem(LANG_HEADER_CACHE_KEY) || "[]");
+        const hit = cached.find(entry => entry[0] === folder);
+        if (hit) {
+            displayName = hit[1];
+            description = hit[2] || "";
+        }
+    } catch {
+        // Unparseable cache — fall through to the folder-name default.
+    }
+
+    return {
+        title: inPackages
+            ? `${displayName.toUpperCase()} PACKAGES`
+            : `${displayName.toUpperCase()} PROGRAMS`,
+        subtitle: inPackages
+            ? `Multi-file ${displayName} packages — browse, search, and check them together.`
+            : description
+    };
 }
 
 async function loadSiteInfo() {
@@ -3715,18 +3770,32 @@ async function init() {
     const returnPackage = params.get("package");  // package's own folder name
 
     if (returnFolder) {
-        // The boot intro types out "LABRECORD" letter by letter and
-        // fades in the home subtitle. On a return navigation that's the
-        // wrong screen's branding, and it was playing to completion
-        // before openFolder() swapped the header — which is exactly the
-        // "home screen flash" seen when backing out of the editor. Skip
-        // it and show the header statically; the folder's own title is
-        // written in below, before the first paint.
-        document.getElementById("page-title").classList.add("title-visible");
-        document.getElementById("page-subtitle").style.opacity = "1";
+        // Two separate things used to leak the home screen here. The
+        // boot intro types out "LABRECORD" letter by letter, which is
+        // the wrong screen's branding on a return navigation. And even
+        // with that skipped, the header still held index.html's static
+        // "LABRECORD / Interactive Programming Lab Record" markup until
+        // the language-index fetch resolved — one painted frame of it,
+        // which is the flash that survived the first fix. So the folder's
+        // own header is resolved and written right here, synchronously,
+        // with nothing awaited between page parse and this line.
+        const header = resolveReturnHeader(
+            returnFolder,
+            returnMode === "package" || returnMode === "package-file"
+        );
+
+        const titleEl = document.getElementById("page-title");
+        const subtitleEl = document.getElementById("page-subtitle");
+
+        titleEl.textContent = header.title;
+        titleEl.classList.add("title-visible");
+        subtitleEl.textContent = header.subtitle;
+        subtitleEl.style.opacity = "1";
+
         document.getElementById("home-view").style.display = "none";
         document.getElementById("theme-btn").style.display = "none";
         document.getElementById("editor-btn").style.display = "none";
+        document.getElementById("back-btn").style.display = "inline-block";
     }
 
     if (!returnFolder && !prefersReducedMotion) {
@@ -3756,14 +3825,11 @@ async function init() {
         returnFolder && App.languageIndex.some(l => l.folder === returnFolder);
 
     if (isValidReturn) {
-        // The destination's own header, written the moment the language
-        // index is available and well before openFolder() runs. Hiding
-        // the home grid alone (what this used to do) wasn't enough: the
-        // title, subtitle and footer are shared between views, so the
-        // home versions still painted and sat there through every
-        // remaining `await` — a header reading "LABRECORD / Interactive
-        // Programming Lab Record" with an empty body, which is what the
-        // flash actually was.
+        // Re-write of the header set synchronously above, now that the
+        // authoritative display name and description are here. Normally
+        // identical to what the cache already produced, so nothing
+        // visibly changes; this only matters when the cache was absent
+        // or a language's name/description changed since it was written.
         const language = App.languageIndex.find(l => l.folder === returnFolder);
         const displayName = language.displayName;
         const inPackages = returnMode === "package" || returnMode === "package-file";

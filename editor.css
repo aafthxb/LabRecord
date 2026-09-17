@@ -96,6 +96,20 @@
   line-height: 1.4;
 }
 
+/* editor.html's loading placeholder, shown from page load until
+   revealWizard() runs. Matches .modal-text's color/size rather than
+   introducing a new style, since it's the same "quiet status line"
+   role; centered and given some vertical room so the page doesn't
+   visibly jump when it's swapped for the wizard. */
+.wizard-loading {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.wizard-loading .modal-text {
+  margin: 0;
+}
+
 .spinner {
   width: 34px;
   height: 34px;

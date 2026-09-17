@@ -140,9 +140,22 @@ function revealSection(elToShow) {
 let wizardRevealed = false;
 
 function revealWizard() {
+  hideWizardLoading();
   if (wizardRevealed) return;
   wizardRevealed = true;
   revealSection($("wizard"));
+}
+
+// The placeholder in editor.html is visible by default (page loads
+// straight into it) and only ever needs hiding, from two points: once
+// the access gate has something for the person to act on (typing a
+// code isn't "loading"), and once the wizard itself is ready to show.
+// The gate case matters even though revealWizard() also hides it,
+// since the gate can sit open for an arbitrary amount of time before
+// enterWizard() ever runs.
+function hideWizardLoading() {
+  const el = $("wizard-loading");
+  if (el) el.style.display = "none";
 }
 
 function uid() {
@@ -200,6 +213,7 @@ async function initGate() {
 }
 
 function showGate() {
+  hideWizardLoading();
   showOverlay($("gate-overlay"));
   $("gate-input").focus();
 }

@@ -95,13 +95,6 @@
     },
     {
       "number": 2,
-      "file": "example.java",
-      "path": "programs/Java/example.java",
-      "code": "// hello\n// welcome\n\nhelloooo kooi",
-      "search": "hello welcome helloooo kooi"
-    },
-    {
-      "number": 3,
       "file": "Main.java",
       "path": "programs/Java/Main.java",
       "code": "// package use\n\nimport insystems.Gumball; // Import specific class\n\npublic class Main {\n    public static void main(String[] args) {\n        Gumball gb = new Gumball(5);\n        System.out.println(\"Gumballs: \" + gb.getCount());\n    }\n}   ",

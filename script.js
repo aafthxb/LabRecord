@@ -1202,6 +1202,46 @@ function packageQualifiedFileName(filename, source) {
     return match[1].split(".").join("/") + "/" + filename;
 }
 
+// ...except OneCompiler's embed does NOT honour those directories: it
+// writes every file it's given into one flat working directory using
+// only the basename. Proof is in the compiler output itself — sending
+// "insystems/Gumball.java" still produces `bad source file:
+// ./Gumball.java`, i.e. javac found it at the root, not under
+// insystems/. So a `package` declaration can never be satisfied there.
+//
+// Since the one Java package that always worked on this site
+// (GreeterDemo) is exactly the one with no `package` statement, this
+// collapses every multi-file run to that same already-working shape:
+// for the throwaway copy sent to the compiler only, drop each file's
+// own `package X;` line, drop any `import X...;` that points at a
+// package declared by another file in the same batch (JDK imports like
+// java.util.* are left alone), and de-qualify leftover `X.Foo`
+// references. Saved files on GitHub and everything on screen are
+// untouched.
+function flattenJavaPackages(files, lang) {
+    if (lang !== "java") return files.map(f => ({ ...f, name: f.name.split("/").pop() }));
+
+    const declared = new Set();
+    for (const f of files) {
+        const m = /^[ \t]*package\s+([\w.]+)\s*;/m.exec(f.content || "");
+        if (m) declared.add(m[1]);
+    }
+
+    return files.map(f => {
+        let content = (f.content || "")
+            .replace(/^[ \t]*package\s+[\w.]+\s*;[ \t]*\r?\n?/m, "");
+
+        for (const pkg of declared) {
+            const esc = pkg.replace(/\./g, "\\.");
+            content = content
+                .replace(new RegExp(`^[ \\t]*import\\s+(?:static\\s+)?${esc}\\s*\\.[\\w.]*(?:\\*|\\w)\\s*;[ \\t]*\\r?\\n?`, "gm"), "")
+                .replace(new RegExp(`\\b${esc}\\s*\\.`, "g"), "");
+        }
+
+        return { name: f.name.split("/").pop(), content };
+    });
+}
+
 // A package file with an unsaved inline edit (staged in
 // App.packages.filePendingEdits, see createPackageFileCard) should
 // still be the version RUN FILE / CHECK PACKAGE send when some *other*
@@ -2116,19 +2156,19 @@ function createPackageFileCard(fileEntry, pkg) {
         };
         const others = pkg.files.filter(f => f.file !== fileEntry.file);
 
-        if (others.length === 0) return [thisFile];
+        if (others.length === 0) return flattenJavaPackages([thisFile], lang);
 
         const otherCodes = await Promise.all(
             others.map(f => loadPackageFileEffectiveCode(pkg, f, lang))
         );
 
-        return [
+        return flattenJavaPackages([
             ...others.map((f, i) => ({
                 name: packageQualifiedFileName(f.file, otherCodes[i]),
                 content: lang === "c" ? cleanTurboC(otherCodes[i]) : otherCodes[i]
             })),
             thisFile
-        ];
+        ], lang);
     }
 
     runBtn.onclick = (e) => {
@@ -2409,10 +2449,10 @@ function buildPackageCheckToolbar(container, pkg) {
                 const codes = await Promise.all(
                     pkg.files.map(f => loadPackageFileEffectiveCode(pkg, f, pkg.compiler))
                 );
-                files = pkg.files.map((f, i) => ({
+                files = flattenJavaPackages(pkg.files.map((f, i) => ({
                     name: packageQualifiedFileName(f.file, codes[i]),
                     content: pkg.compiler === "c" ? cleanTurboC(codes[i]) : codes[i]
-                }));
+                })), pkg.compiler);
             } catch (err) {
                 checkBtn.classList.remove("is-loading");
                 alert("Couldn't load this package's files: " + err.message);
@@ -3450,7 +3490,7 @@ async function buildRunFiles(runSource) {
     };
 
     const referenced = detectReferencedPackages(runSource, cardFolder);
-    if (referenced.length === 0) return [thisFile];
+    if (referenced.length === 0) return flattenJavaPackages([thisFile], lang);
 
     const extraFiles = [];
     for (const pkg of referenced) {
@@ -3465,7 +3505,7 @@ async function buildRunFiles(runSource) {
         });
     }
 
-    return [...extraFiles, thisFile];
+    return flattenJavaPackages([...extraFiles, thisFile], lang);
 }
 
 runBtn.onclick = (e) => {

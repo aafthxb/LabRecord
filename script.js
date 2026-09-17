@@ -1185,29 +1185,13 @@ function detectReferencedPackages(programSource, folder) {
     return packages.filter(pkg => roots.has(pkg.folder));
 }
 
-// javac (and OneCompiler's virtual filesystem, which uses each file's
-// `name` as its on-disk path) requires a source file that declares
-// `package a.b.c;` to physically sit at `a/b/c/Filename.java` relative
-// to the source root — that's how it resolves an `import a.b.c.Foo;`
-// on the *other* end. Sending everything with a flat name (just
-// "Filename.java") is what produces errors like "package a.b.c does
-// not exist" or "bad source file: ./Foo.java, file does not contain
-// class Foo". This rewrites a file's name to match its own package
-// declaration (files with no `package` statement — the default
-// package — are returned unchanged, since a flat name is already
-// correct for those).
-function packageQualifiedFileName(filename, source) {
-    const match = /^\s*package\s+([\w.]+)\s*;/m.exec(source || "");
-    if (!match) return filename;
-    return match[1].split(".").join("/") + "/" + filename;
-}
-
-// ...except OneCompiler's embed does NOT honour those directories: it
-// writes every file it's given into one flat working directory using
-// only the basename. Proof is in the compiler output itself — sending
-// "insystems/Gumball.java" still produces `bad source file:
-// ./Gumball.java`, i.e. javac found it at the root, not under
-// insystems/. So a `package` declaration can never be satisfied there.
+// OneCompiler's embed writes every file it is handed into one flat
+// working directory, using only the basename and discarding any
+// directories in the file's `name`. That rules out ever satisfying
+// javac's "a file declaring `package a.b.c;` must sit at
+// a/b/c/File.java" rule here — the compiler's own output gave it away:
+// sending "insystems/Gumball.java" still produced `bad source file:
+// ./Gumball.java`, i.e. javac found it at the root.
 //
 // Since the one Java package that always worked on this site
 // (GreeterDemo) is exactly the one with no `package` statement, this
@@ -2151,7 +2135,7 @@ function createPackageFileCard(fileEntry, pkg) {
     // server content.
     async function buildRunFiles(runSource) {
         const thisFile = {
-            name: packageQualifiedFileName(fileEntry.file, runSource),
+            name: fileEntry.file,
             content: runSource
         };
         const others = pkg.files.filter(f => f.file !== fileEntry.file);
@@ -2164,7 +2148,7 @@ function createPackageFileCard(fileEntry, pkg) {
 
         return flattenJavaPackages([
             ...others.map((f, i) => ({
-                name: packageQualifiedFileName(f.file, otherCodes[i]),
+                name: f.file,
                 content: lang === "c" ? cleanTurboC(otherCodes[i]) : otherCodes[i]
             })),
             thisFile
@@ -2450,7 +2434,7 @@ function buildPackageCheckToolbar(container, pkg) {
                     pkg.files.map(f => loadPackageFileEffectiveCode(pkg, f, pkg.compiler))
                 );
                 files = flattenJavaPackages(pkg.files.map((f, i) => ({
-                    name: packageQualifiedFileName(f.file, codes[i]),
+                    name: f.file,
                     content: pkg.compiler === "c" ? cleanTurboC(codes[i]) : codes[i]
                 })), pkg.compiler);
             } catch (err) {
@@ -3485,7 +3469,7 @@ let iframe = null;
 // their files gets pulled in here too.
 async function buildRunFiles(runSource) {
     const thisFile = {
-        name: packageQualifiedFileName(program.file, runSource),
+        name: program.file,
         content: runSource
     };
 
@@ -3499,7 +3483,7 @@ async function buildRunFiles(runSource) {
         );
         pkg.files.forEach((f, i) => {
             extraFiles.push({
-                name: packageQualifiedFileName(f.file, codes[i]),
+                name: f.file,
                 content: lang === "c" ? cleanTurboC(codes[i]) : codes[i]
             });
         });
@@ -3721,7 +3705,31 @@ async function init() {
 
     applyTheme(savedTheme, false);
 
-    if (!prefersReducedMotion) {
+    // Coming back from the editor wizard, the URL carries the folder
+    // (and optionally the package) to land in. Read it first thing:
+    // everything below needs to know we're *not* starting on the home
+    // screen before it paints anything.
+    const params = new URLSearchParams(window.location.search);
+    const returnFolder = params.get("folder");
+    const returnMode = params.get("mode");       // "package" | "package-file"
+    const returnPackage = params.get("package");  // package's own folder name
+
+    if (returnFolder) {
+        // The boot intro types out "LABRECORD" letter by letter and
+        // fades in the home subtitle. On a return navigation that's the
+        // wrong screen's branding, and it was playing to completion
+        // before openFolder() swapped the header — which is exactly the
+        // "home screen flash" seen when backing out of the editor. Skip
+        // it and show the header statically; the folder's own title is
+        // written in below, before the first paint.
+        document.getElementById("page-title").classList.add("title-visible");
+        document.getElementById("page-subtitle").style.opacity = "1";
+        document.getElementById("home-view").style.display = "none";
+        document.getElementById("theme-btn").style.display = "none";
+        document.getElementById("editor-btn").style.display = "none";
+    }
+
+    if (!returnFolder && !prefersReducedMotion) {
         // Wait for the Courier Prime webfont to finish loading before
         // splitting the title into letters and animating it. On a cold/
         // hard refresh the fallback font renders first; if the animation
@@ -3735,7 +3743,7 @@ async function init() {
         } else {
             playBootIntro();
         }
-    } else {
+    } else if (!returnFolder) {
         document.getElementById("page-title").classList.add("title-visible");
         document.getElementById("page-subtitle").style.opacity = "1";
     }
@@ -3744,20 +3752,35 @@ async function init() {
 
     await loadLanguageIndex();
 
-    // If we're landing back here with ?folder=<folder> (e.g. returning
-    // from the editor wizard after adding a program), hide the home
-    // view *before* buildLanguageUI() below ever makes it visible,
-    // instead of only hiding it once openFolder() runs at the very end
-    // of this function. Three more `await`s (search index, packages
-    // index, site info) sit between those two points — each one yields
-    // to the browser, which was enough time for the fully-animated home
-    // grid to paint and then get yanked away the moment openFolder()
-    // finally ran. Hiding it here means it's never painted in the first
-    // place; its card-enter entrance animation simply plays later,
-    // whenever the person actually navigates back to the home screen.
-    const earlyReturnFolder = new URLSearchParams(window.location.search).get("folder");
-    if (earlyReturnFolder && App.languageIndex.some(l => l.folder === earlyReturnFolder)) {
-        document.getElementById("home-view").style.display = "none";
+    const isValidReturn =
+        returnFolder && App.languageIndex.some(l => l.folder === returnFolder);
+
+    if (isValidReturn) {
+        // The destination's own header, written the moment the language
+        // index is available and well before openFolder() runs. Hiding
+        // the home grid alone (what this used to do) wasn't enough: the
+        // title, subtitle and footer are shared between views, so the
+        // home versions still painted and sat there through every
+        // remaining `await` — a header reading "LABRECORD / Interactive
+        // Programming Lab Record" with an empty body, which is what the
+        // flash actually was.
+        const language = App.languageIndex.find(l => l.folder === returnFolder);
+        const displayName = language.displayName;
+        const inPackages = returnMode === "package" || returnMode === "package-file";
+
+        document.getElementById("page-title").textContent = inPackages
+            ? `${displayName.toUpperCase()} PACKAGES`
+            : `${displayName.toUpperCase()} PROGRAMS`;
+        document.getElementById("page-subtitle").textContent = inPackages
+            ? `Multi-file ${displayName} packages — browse, search, and check them together.`
+            : (language.description || "");
+        document.getElementById("back-btn").style.display = "inline-block";
+    } else if (returnFolder) {
+        // Unknown folder in the URL — fall back to the home screen
+        // rather than stranding the person on a blank one.
+        document.getElementById("home-view").style.display = "";
+        document.getElementById("theme-btn").style.display = "";
+        document.getElementById("editor-btn").style.display = "";
     }
 
     buildLanguageUI();
@@ -3765,27 +3788,14 @@ async function init() {
     await loadSearchIndex();
     await loadPackagesIndex();
 
-    const siteInfo = await loadSiteInfo();
-
-    renderFooter(siteInfo);
-
-    // Note: folders are no longer built eagerly here. Each folder's
-    // program cards are now built lazily on first open (see openFolder),
-    // which keeps initial load fast and avoids the delay large folders
-    // like C/Java caused when everything was rendered upfront.
-
-    initEditorGate();
-    await restoreEditSession();
-
-    // Returning from the editor wizard (e.g. after adding a program)
-    // lands back here with ?folder=<folder> so the person is dropped
-    // straight back into the folder they were working in.
-    const params = new URLSearchParams(window.location.search);
-    const returnFolder = params.get("folder");
-    const returnMode = params.get("mode");       // "package" | "package-file"
-    const returnPackage = params.get("package");  // package's own folder name
-
-    if (returnFolder && App.languageIndex.some(l => l.folder === returnFolder)) {
+    // Restore the view *here*, not after the three calls below. Those
+    // include restoreEditSession(), which makes a network round-trip to
+    // verify the saved access code — on mobile that alone kept the
+    // wrong screen up for a noticeable beat. Nothing openFolder() needs
+    // is loaded after this point; edit-mode state catches up on its own,
+    // since setEditMode() re-runs refreshEditUI() and re-syncs the cards
+    // of whatever folder is open by then.
+    if (isValidReturn) {
         openFolder(returnFolder);
 
         if (returnMode === "package" || returnMode === "package-file") {
@@ -3801,6 +3811,18 @@ async function init() {
 
         history.replaceState(null, "", window.location.pathname);
     }
+
+    const siteInfo = await loadSiteInfo();
+
+    renderFooter(siteInfo);
+
+    // Note: folders are no longer built eagerly here. Each folder's
+    // program cards are now built lazily on first open (see openFolder),
+    // which keeps initial load fast and avoids the delay large folders
+    // like C/Java caused when everything was rendered upfront.
+
+    initEditorGate();
+    await restoreEditSession();
 
 }
 const themeBtn = document.getElementById("theme-btn");

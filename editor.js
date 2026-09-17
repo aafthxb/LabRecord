@@ -128,6 +128,23 @@ function revealSection(elToShow) {
   );
 }
 
+// The wizard section starts hidden and is revealed exactly once, only
+// after the mode-specific DOM swaps *and* the awaited site-data loads
+// have finished and the correct starting step has been set. Revealing
+// it up front (as this used to) meant the person watched the panel
+// animate in empty, then the stepper appear, then the real step
+// animate in a second time on top of it — three staged entrances for
+// one navigation, which is what read as jitter. While this is false,
+// goToStep() sets the panel without its own entrance animation, since
+// the whole section is about to animate in around it.
+let wizardRevealed = false;
+
+function revealWizard() {
+  if (wizardRevealed) return;
+  wizardRevealed = true;
+  revealSection($("wizard"));
+}
+
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -285,7 +302,6 @@ async function enterWizard() {
   }
 
   State.wizardKind = "program";
-  revealSection($("wizard"));
   preloadTesseract();
 
   try {
@@ -308,6 +324,8 @@ async function enterWizard() {
     State.skippedStep1 = false;
     goToStep(1);
   }
+
+  revealWizard();
 }
 
 function presetLanguage(lang) {
@@ -368,6 +386,9 @@ function goToCreatedPackage() {
 }
 
 function showWizardError(message) {
+  // An error can fire before the wizard has been revealed (e.g. the
+  // site-data fetch failing), and the banner lives inside it.
+  revealWizard();
   const box = $("wizard-error");
   box.textContent = message;
   box.style.display = "block";
@@ -425,14 +446,17 @@ function goToStep(n) {
   document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
   const panel = $(`step-${n}`);
   panel.classList.add("active");
-  panel.classList.remove("view-enter");
-  void panel.offsetWidth; // force reflow so the animation restarts
-  panel.classList.add("view-enter");
-  panel.addEventListener(
-    "animationend",
-    () => panel.classList.remove("view-enter"),
-    { once: true }
-  );
+
+  if (wizardRevealed) {
+    panel.classList.remove("view-enter");
+    void panel.offsetWidth; // force reflow so the animation restarts
+    panel.classList.add("view-enter");
+    panel.addEventListener(
+      "animationend",
+      () => panel.classList.remove("view-enter"),
+      { once: true }
+    );
+  }
 
   document.querySelectorAll(".step-dot").forEach((dot) => {
     const step = Number(dot.dataset.step);
@@ -1778,7 +1802,6 @@ function findLangEntryForFolder(folder) {
 async function enterPackageWizard(folderParam) {
   State.wizardKind = "package";
 
-  revealSection($("wizard"));
   preloadTesseract();
 
   $("editor-title").textContent = "ADD PACKAGE";
@@ -1835,6 +1858,7 @@ async function enterPackageWizard(folderParam) {
   updateBatchFileInputHints();
   renderPendingPackageFiles();
   goToStep(1);
+  revealWizard();
 }
 
 // ---------------------------------------------------------------
@@ -1935,7 +1959,6 @@ function resetPackageFileWizard() {
 async function enterPackageFileWizard(folderParam, packageParam) {
   State.wizardKind = "package-file";
 
-  revealSection($("wizard"));
   preloadTesseract();
 
   $("step1-program").style.display = "none";
@@ -1993,6 +2016,7 @@ async function enterPackageFileWizard(folderParam, packageParam) {
   updateBatchFileInputHints();
   renderPendingPackageFiles();
   goToStep(2);
+  revealWizard();
 }
 
 // ---------------------------------------------------------------

@@ -1,9 +1,0 @@
-[
-  {
-    "number": 1,
-    "file": "greeter.java",
-    "path": "programs/Java/packages/example/greeter.java",
-    "code": "//example\n//hello\n\n//looo",
-    "search": "example hello looo"
-  }
-]

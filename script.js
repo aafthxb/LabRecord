@@ -589,10 +589,18 @@ function setEditMode(on, code) {
 
     // Flip any already-expanded, already-loaded cards in the current
     // folder between their read-only view and their editable textarea
-    // to match the mode that was just switched to.
+    // to match the mode that was just switched to. If a package's file
+    // view is open instead, its file cards need the same treatment —
+    // they're a completely separate DOM tree from App.cards[folder].
     (App.cards[App.currentFolder] || []).forEach(card => {
         card._editHandle?.syncMode();
     });
+
+    if (App.packages.openPackage) {
+        (App.packages.fileCards.get(App.packages.openPackage) || []).forEach(card => {
+            card._editHandle?.syncMode();
+        });
+    }
 }
 
 // Fades a .modal-overlay in/out (see the is-visible transition in
@@ -1136,7 +1144,8 @@ const App = {
         // "N marked for deletion" + SAVE CHANGES/DISCARD bar instead
         // of an instant browser confirm().
         pendingDeletions: new Map(),    // languageFolder -> Set<packageId>
-        filePendingDeletions: new Map() // packageId -> Set<filename>
+        filePendingDeletions: new Map(), // packageId -> Set<filename>
+        filePendingEdits: new Map()      // packageId -> Map<filename, code>
     }
 };
 
@@ -1174,6 +1183,36 @@ function detectReferencedPackages(programSource, folder) {
     if (roots.size === 0) return [];
 
     return packages.filter(pkg => roots.has(pkg.folder));
+}
+
+// javac (and OneCompiler's virtual filesystem, which uses each file's
+// `name` as its on-disk path) requires a source file that declares
+// `package a.b.c;` to physically sit at `a/b/c/Filename.java` relative
+// to the source root — that's how it resolves an `import a.b.c.Foo;`
+// on the *other* end. Sending everything with a flat name (just
+// "Filename.java") is what produces errors like "package a.b.c does
+// not exist" or "bad source file: ./Foo.java, file does not contain
+// class Foo". This rewrites a file's name to match its own package
+// declaration (files with no `package` statement — the default
+// package — are returned unchanged, since a flat name is already
+// correct for those).
+function packageQualifiedFileName(filename, source) {
+    const match = /^\s*package\s+([\w.]+)\s*;/m.exec(source || "");
+    if (!match) return filename;
+    return match[1].split(".").join("/") + "/" + filename;
+}
+
+// A package file with an unsaved inline edit (staged in
+// App.packages.filePendingEdits, see createPackageFileCard) should
+// still be the version RUN FILE / CHECK PACKAGE send when some *other*
+// file in the same package pulls it in — otherwise those actions would
+// silently run whatever was last saved to GitHub instead of what's
+// currently on screen. Falls back to fetching the saved file when
+// there's no staged draft.
+async function loadPackageFileEffectiveCode(pkg, fileEntry, lang) {
+    const draft = App.packages.filePendingEdits.get(pkg.id)?.get(fileEntry.file);
+    if (draft !== undefined) return draft;
+    return loadProgramCode(fileEntry, lang);
 }
 // ==========================
 // Load Metadata
@@ -1809,6 +1848,7 @@ function createPackageFileCard(fileEntry, pkg) {
                     <span class="program-title-text">${safeTitle}</span>
                 </h3>
                 <span class="file-badge">[ ${safeFile} ]</span>
+                <span class="edited-badge" title="Edited but not saved yet" style="display:none;">UNSAVED</span>
                 <p class="card-subtitle">${safeDescription}</p>
                 <div class="code-match-badge">Found in source code</div>
             </div>
@@ -1831,6 +1871,18 @@ function createPackageFileCard(fileEntry, pkg) {
     codeElement.className = `language-${lang}`;
     pre.appendChild(codeElement);
     codeWrapper.appendChild(pre);
+
+    // Shown instead of `pre` whenever editor mode is unlocked — same
+    // pattern as the top-level programs card's inline editor. Built
+    // lazily the first time it's actually needed.
+    const editIndicator = document.createElement("div");
+    editIndicator.className = "code-edit-indicator";
+    editIndicator.textContent = "✎ Editable — changes are staged until SAVE CHANGES.";
+    editIndicator.style.display = "none";
+    codeWrapper.appendChild(editIndicator);
+
+    let textarea = null;
+
     card.appendChild(codeWrapper);
 
     const editorWrapper = document.createElement("div");
@@ -1841,6 +1893,7 @@ function createPackageFileCard(fileEntry, pkg) {
     const copyBtn = card.querySelector(".action-btn:not(.card-delete-btn):not(.run-btn)");
     const runBtn = card.querySelector(".run-btn");
     const deleteBtn = card.querySelector(".card-delete-btn");
+    const editedBadge = card.querySelector(".edited-badge");
     const codeMatchBadge = card.querySelector(".code-match-badge");
     codeMatchBadge.style.display = "none";
 
@@ -1859,9 +1912,116 @@ function createPackageFileCard(fileEntry, pkg) {
     };
 
     let loaded = false;
-    let source = null;
+    let source = null; // last-known saved source, set once loaded
     let skeleton = null;
     let iframe = null;
+
+    // ---- Inline edit support (mirrors the programs card's) ----
+
+    function currentDraft() {
+        const pending = App.packages.filePendingEdits.get(pkg.id);
+        return pending ? pending.get(fileEntry.file) : undefined;
+    }
+
+    function markEditedState() {
+        const hasEdit = currentDraft() !== undefined;
+        card.classList.toggle("pending-edit", hasEdit);
+        editedBadge.style.display = hasEdit ? "inline-block" : "none";
+    }
+
+    function stageEdit(newCode) {
+        let pending = App.packages.filePendingEdits.get(pkg.id);
+        if (!pending) {
+            pending = new Map();
+            App.packages.filePendingEdits.set(pkg.id, pending);
+        }
+
+        if (newCode === source) {
+            pending.delete(fileEntry.file);
+        } else {
+            pending.set(fileEntry.file, newCode);
+        }
+
+        markEditedState();
+        updatePackageFileSaveBar(pkg);
+    }
+
+    // Grows the textarea to fit its content — same reasoning as the
+    // programs card: the surrounding .code-wrapper is the only scroll
+    // region.
+    function autoGrowTextarea(ta) {
+        ta.style.height = "auto";
+        ta.style.height = ta.scrollHeight + "px";
+    }
+
+    function ensureTextarea() {
+        if (textarea) return textarea;
+
+        textarea = document.createElement("textarea");
+        textarea.className = "code-textarea card-code-textarea";
+        textarea.spellcheck = false;
+        textarea.addEventListener("input", () => {
+            stageEdit(textarea.value);
+            autoGrowTextarea(textarea);
+        });
+        codeWrapper.appendChild(textarea);
+
+        return textarea;
+    }
+
+    function showEditableView(code) {
+        pre.style.display = "none";
+        editIndicator.style.display = "block";
+
+        const ta = ensureTextarea();
+        ta.style.display = "block";
+        if (ta.value !== code) ta.value = code;
+        autoGrowTextarea(ta);
+    }
+
+    function showReadOnlyView(code) {
+        if (textarea) textarea.style.display = "none";
+        editIndicator.style.display = "none";
+        pre.style.display = "block";
+
+        if (codeElement.textContent !== code) {
+            codeElement.textContent = code;
+            Prism.highlightElement(codeElement);
+        }
+    }
+
+    // Shows whichever view matches the current editor-mode lock state,
+    // with whatever content is currently "effective" — the staged
+    // draft if one exists, otherwise the last-saved source.
+    function renderCodeView() {
+        if (!loaded) return;
+
+        const draft = currentDraft();
+        const code = draft !== undefined ? draft : source;
+
+        if (App.edit.unlocked) {
+            showEditableView(code);
+        } else {
+            showReadOnlyView(code);
+        }
+    }
+
+    async function getEffectiveCode() {
+        const draft = currentDraft();
+        if (draft !== undefined) return draft;
+        return ensureLoaded();
+    }
+
+    // Called from savePackageFileChanges() right after a successful
+    // commit. `newCode` is this file's just-committed content, or
+    // undefined if this file wasn't part of the save.
+    function onSaved(newCode) {
+        if (newCode !== undefined) {
+            source = newCode;
+        }
+        markEditedState();
+        renderCodeView();
+    }
 
     async function ensureLoaded() {
         if (loaded) return source;
@@ -1882,13 +2042,28 @@ function createPackageFileCard(fileEntry, pkg) {
 
         skeleton.remove();
         skeleton = null;
-        pre.style.display = "block";
 
-        codeElement.textContent = source;
-        Prism.highlightElement(codeElement);
+        renderCodeView();
+        markEditedState();
 
         return source;
     }
+
+    function collapse() {
+        if (card.classList.contains("collapsed")) return;
+        card.classList.add("collapsed");
+        expandIcon.textContent = "▼";
+        if (editorWrapper.classList.contains("active")) {
+            editorWrapper.classList.remove("active");
+            runBtn.textContent = "RUN FILE ▶";
+        }
+    }
+
+    card._editHandle = {
+        syncMode: renderCodeView,
+        onSaved,
+        collapse
+    };
 
     header.onclick = (e) => {
         if (e.target.closest(".action-btn")) return;
@@ -1912,7 +2087,7 @@ function createPackageFileCard(fileEntry, pkg) {
         e.stopPropagation();
         runWithTactileDelay(e, async () => {
             try {
-                const code = await ensureLoaded();
+                const code = await getEffectiveCode();
                 await copyToClipboard(code, codeElement);
                 copyBtn.textContent = "COPIED!";
                 setTimeout(() => { copyBtn.textContent = "COPY"; }, 1500);
@@ -1930,20 +2105,26 @@ function createPackageFileCard(fileEntry, pkg) {
     // same "package X does not exist" / "cannot find symbol" errors
     // CHECK PACKAGE avoids by always sending every file together).
     // Lazily pull in the rest of the package here, keeping this file's
-    // just-edited/just-loaded source rather than re-fetching it.
+    // just-edited/just-loaded source rather than re-fetching it. Any
+    // *other* file in the package with its own unsaved edit sends that
+    // staged draft too, rather than silently running its last-saved
+    // server content.
     async function buildRunFiles(runSource) {
-        const thisFile = { name: fileEntry.file, content: runSource };
+        const thisFile = {
+            name: packageQualifiedFileName(fileEntry.file, runSource),
+            content: runSource
+        };
         const others = pkg.files.filter(f => f.file !== fileEntry.file);
 
         if (others.length === 0) return [thisFile];
 
         const otherCodes = await Promise.all(
-            others.map(f => loadProgramCode(f, lang))
+            others.map(f => loadPackageFileEffectiveCode(pkg, f, lang))
         );
 
         return [
             ...others.map((f, i) => ({
-                name: f.file,
+                name: packageQualifiedFileName(f.file, otherCodes[i]),
                 content: lang === "c" ? cleanTurboC(otherCodes[i]) : otherCodes[i]
             })),
             thisFile
@@ -1959,7 +2140,7 @@ function createPackageFileCard(fileEntry, pkg) {
                 expandIcon.textContent = "▲";
             }
 
-            const code = await ensureLoaded();
+            const code = await getEffectiveCode();
 
             if (editorWrapper.classList.contains("active")) {
                 editorWrapper.classList.remove("active");
@@ -2021,15 +2202,7 @@ function createPackageFileCard(fileEntry, pkg) {
         }, runBtn);
     };
 
-    card._collapse = () => {
-        if (card.classList.contains("collapsed")) return;
-        card.classList.add("collapsed");
-        expandIcon.textContent = "▼";
-        if (editorWrapper.classList.contains("active")) {
-            editorWrapper.classList.remove("active");
-            runBtn.textContent = "RUN FILE ▶";
-        }
-    };
+    card._collapse = () => card._editHandle.collapse();
 
     return card;
 }
@@ -2234,10 +2407,10 @@ function buildPackageCheckToolbar(container, pkg) {
             let files;
             try {
                 const codes = await Promise.all(
-                    pkg.files.map(f => loadProgramCode(f, pkg.compiler))
+                    pkg.files.map(f => loadPackageFileEffectiveCode(pkg, f, pkg.compiler))
                 );
                 files = pkg.files.map((f, i) => ({
-                    name: f.file,
+                    name: packageQualifiedFileName(f.file, codes[i]),
                     content: pkg.compiler === "c" ? cleanTurboC(codes[i]) : codes[i]
                 }));
             } catch (err) {
@@ -2288,7 +2461,8 @@ function buildPackageCheckToolbar(container, pkg) {
 // above (instead of an instant browser confirm()). The server still
 // refuses to remove a package's last remaining file (a package needs
 // at least one); that error surfaces on SAVE CHANGES as a plain alert
-// rather than silently failing.
+// rather than silently failing. Editing a file's code (below) uses the
+// same bar and the same SAVE CHANGES/DISCARD buttons.
 function updatePackageFileSaveBar(pkg) {
     const bar = document.getElementById("edit-save-bar");
 
@@ -2297,14 +2471,25 @@ function updatePackageFileSaveBar(pkg) {
         return;
     }
 
-    const pending = App.packages.filePendingDeletions.get(pkg.id);
-    if (!pending || pending.size === 0) {
+    const deletions = App.packages.filePendingDeletions.get(pkg.id);
+    const edits = App.packages.filePendingEdits.get(pkg.id);
+    const hasDeletions = deletions && deletions.size > 0;
+    const hasEdits = edits && edits.size > 0;
+
+    if (!hasDeletions && !hasEdits) {
         bar.style.display = "none";
         return;
     }
 
-    document.getElementById("edit-save-status").textContent =
-        `${pending.size} file${pending.size === 1 ? "" : "s"} marked for deletion`;
+    const parts = [];
+    if (hasDeletions) {
+        parts.push(`${deletions.size} file${deletions.size === 1 ? "" : "s"} marked for deletion`);
+    }
+    if (hasEdits) {
+        parts.push(`${edits.size} file${edits.size === 1 ? "" : "s"} edited`);
+    }
+
+    document.getElementById("edit-save-status").textContent = parts.join(" · ");
     bar.style.display = "flex";
 }
 
@@ -2332,33 +2517,58 @@ function togglePackageFileDeletion(pkg, fileEntry, card) {
     updatePackageFileSaveBar(pkg);
 }
 
-// Un-marks every file pending deletion in this package, restoring
-// their cards — mirrors discardPackagesChanges() above.
+// Un-marks every file pending deletion in this package and reverts
+// every staged edit, restoring their cards — mirrors
+// discardPackagesChanges() above.
 function discardPackageFileChanges(pkg) {
     if (!pkg) return;
-    const pending = App.packages.filePendingDeletions.get(pkg.id);
-    if (!pending || pending.size === 0) return;
+
+    const deletions = App.packages.filePendingDeletions.get(pkg.id);
+    const edits = App.packages.filePendingEdits.get(pkg.id);
+    const hasDeletions = deletions && deletions.size > 0;
+    const hasEdits = edits && edits.size > 0;
+    if (!hasDeletions && !hasEdits) return;
+
+    // Snapshot which files were pending, then clear the maps *before*
+    // touching any card — onSaved()/markEditedState() below read these
+    // maps via currentDraft(), so they need to already reflect "no
+    // draft" for the UNSAVED badge and edited-view to actually clear.
+    const editedFiles = hasEdits ? new Set(edits.keys()) : new Set();
+    const deletedFiles = hasDeletions ? new Set(deletions) : new Set();
+    deletions?.clear();
+    edits?.clear();
 
     const cardsList = App.packages.fileCards.get(pkg.id) || [];
     cardsList.forEach(card => {
-        if (!pending.has(card._fileEntry?.file)) return;
-        card.classList.remove("pending-delete");
-        const btn = card.querySelector(".card-delete-btn");
-        if (btn) btn.textContent = "DELETE";
+        const filename = card._fileEntry?.file;
+
+        if (deletedFiles.has(filename)) {
+            card.classList.remove("pending-delete");
+            const btn = card.querySelector(".card-delete-btn");
+            if (btn) btn.textContent = "DELETE";
+        }
+
+        if (editedFiles.has(filename)) {
+            card._editHandle?.onSaved(undefined);
+        }
     });
 
-    pending.clear();
     updatePackageFileSaveBar(pkg);
 }
 
-// Commits every file marked for deletion in this package, one
-// /api/delete-package-file call each. Files that fail (e.g. the
-// server's last-file guard) stay marked so the bar still reflects
-// what's unsaved.
+// Commits every file marked for deletion, and every file with a
+// staged edit, in this package — one /api/delete-package-file or
+// /api/update-package-file call each (there's no batch endpoint for
+// packages). If a filename is both edited and marked for deletion,
+// the deletion wins and the edit is skipped, same rule batch-save.js
+// uses for programs. Anything that fails to commit stays pending so
+// the bar still reflects what's unsaved.
 async function savePackageFileChanges(pkg) {
     if (!pkg) return;
-    const pending = App.packages.filePendingDeletions.get(pkg.id);
-    if (!pending || pending.size === 0) return;
+
+    const deletions = App.packages.filePendingDeletions.get(pkg.id) || new Set();
+    const edits = App.packages.filePendingEdits.get(pkg.id) || new Map();
+    if (deletions.size === 0 && edits.size === 0) return;
 
     const saveBtn = document.getElementById("edit-save-btn");
     saveBtn.disabled = true;
@@ -2367,13 +2577,13 @@ async function savePackageFileChanges(pkg) {
     const cardsList = App.packages.fileCards.get(pkg.id) || [];
     const errors = [];
 
-    for (const filename of Array.from(pending)) {
+    for (const filename of Array.from(deletions)) {
         const fileEntry = pkg.files.find(f => f.file === filename);
         const card = cardsList.find(c => c._fileEntry === fileEntry);
         const deleteBtn = card?.querySelector(".card-delete-btn");
         if (deleteBtn) deleteBtn.textContent = "DELETING…";
 
-        if (!fileEntry) { pending.delete(filename); continue; }
+        if (!fileEntry) { deletions.delete(filename); continue; }
 
         try {
             const res = await fetch("/api/delete-package-file", {
@@ -2401,10 +2611,41 @@ async function savePackageFileChanges(pkg) {
             if (cardIndex !== -1) cardsList.splice(cardIndex, 1);
             card?.remove();
 
-            pending.delete(filename);
+            deletions.delete(filename);
+            // A file that's gone can't also have an edit committed below.
+            edits.delete(filename);
         } catch (err) {
             errors.push(`${fileEntry.file}: ${err.message}`);
             if (deleteBtn) deleteBtn.textContent = "UNDO";
+        }
+    }
+
+    for (const [filename, code] of Array.from(edits)) {
+        const fileEntry = pkg.files.find(f => f.file === filename);
+        const card = cardsList.find(c => c._fileEntry === fileEntry);
+
+        if (!fileEntry) { edits.delete(filename); continue; }
+
+        try {
+            const res = await fetch("/api/update-package-file", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    accessCode: App.edit.code,
+                    folder: pkg.languageFolder,
+                    package: pkg.folder,
+                    filename,
+                    code
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Update failed.");
+
+            edits.delete(filename);
+            card?._editHandle?.onSaved(code);
+        } catch (err) {
+            errors.push(`${filename}: ${err.message}`);
         }
     }
 
@@ -2444,7 +2685,7 @@ async function savePackageFileChanges(pkg) {
     saveBtn.textContent = "SAVE CHANGES";
 
     if (errors.length > 0) {
-        alert("Couldn't delete some files:\n" + errors.join("\n"));
+        alert("Couldn't save some changes:\n" + errors.join("\n"));
     }
 }
 
@@ -3203,7 +3444,10 @@ let iframe = null;
 // folder name matches an import's leading segment, and every one of
 // their files gets pulled in here too.
 async function buildRunFiles(runSource) {
-    const thisFile = { name: program.file, content: runSource };
+    const thisFile = {
+        name: packageQualifiedFileName(program.file, runSource),
+        content: runSource
+    };
 
     const referenced = detectReferencedPackages(runSource, cardFolder);
     if (referenced.length === 0) return [thisFile];
@@ -3211,11 +3455,11 @@ async function buildRunFiles(runSource) {
     const extraFiles = [];
     for (const pkg of referenced) {
         const codes = await Promise.all(
-            pkg.files.map(f => loadProgramCode(f, lang))
+            pkg.files.map(f => loadPackageFileEffectiveCode(pkg, f, lang))
         );
         pkg.files.forEach((f, i) => {
             extraFiles.push({
-                name: f.file,
+                name: packageQualifiedFileName(f.file, codes[i]),
                 content: lang === "c" ? cleanTurboC(codes[i]) : codes[i]
             });
         });

@@ -1211,7 +1211,7 @@ function flattenJavaPackages(files, lang) {
         if (m) declared.add(m[1]);
     }
 
-    return files.map(f => {
+    const processed = files.map(f => {
         let content = (f.content || "")
             .replace(/^[ \t]*package\s+[\w.]+\s*;[ \t]*\r?\n?/m, "");
 
@@ -1224,6 +1224,26 @@ function flattenJavaPackages(files, lang) {
 
         return { name: f.name.split("/").pop(), content };
     });
+
+    // OneCompiler's multi-file Java runner only auto-detects an entry
+    // point when a class literally named "Main" exists; with several
+    // files and no Main it falls back to some other class (observed:
+    // alphabetically first), which may have no main() at all. Rename
+    // whichever file actually has main() to Main.java/class Main for
+    // this throwaway compiler copy only, when there's more than one file.
+    if (processed.length > 1 && !processed.some(f => /\bclass\s+Main\b/.test(f.content))) {
+        const mainFile = processed.find(f => /public\s+static\s+void\s+main\s*\(/.test(f.content));
+        if (mainFile) {
+            const classMatch = /\b(?:public\s+)?class\s+(\w+)/.exec(mainFile.content);
+            if (classMatch) {
+                const esc = classMatch[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                mainFile.content = mainFile.content.replace(new RegExp(`\\b${esc}\\b`, "g"), "Main");
+                mainFile.name = "Main.java";
+            }
+        }
+    }
+
+    return processed;
 }
 
 // A package file with an unsaved inline edit (staged in

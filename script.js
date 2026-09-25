@@ -418,8 +418,8 @@ function openPackagesFromPicker(languageFolder, event) {
 // never changes, only the display name/description in folder.json.
 // Creates a new custom program-folder. A simple two-prompt flow (like
 // rename/delete below) rather than a full editor.html wizard step —
-// the server derives and owns the slug (see api/create-folder.js), so
-// there's nothing here to validate beyond "got a name".
+// the server derives and owns the slug (see the createFolder() branch
+// in api/commit.js), so there's nothing here to validate beyond "got a name".
 async function createFolderPrompt(languageFolder) {
     const name = window.prompt("New folder name:");
     if (name === null) return;
@@ -434,11 +434,12 @@ async function createFolderPrompt(languageFolder) {
     }
 
     try {
-        const res = await fetch("/api/create-folder", {
+        const res = await fetch("/api/commit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 accessCode: App.edit.code,
+                kind: "folder",
                 folder: languageFolder,
                 name: trimmed,
                 description: description.trim()
@@ -483,11 +484,12 @@ async function renameFolderPrompt(languageFolder, slug, currentName, currentDesc
     }
 
     try {
-        const res = await fetch("/api/update-folder", {
+        const res = await fetch("/api/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 accessCode: App.edit.code,
+                kind: "folder",
                 folder: languageFolder,
                 slug,
                 name: trimmed,
@@ -538,11 +540,12 @@ async function deleteFolderPrompt(languageFolder, slug, name, count) {
     }
 
     try {
-        const res = await fetch("/api/delete-folder", {
+        const res = await fetch("/api/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 accessCode: App.edit.code,
+                kind: "folder",
                 folder: languageFolder,
                 slug
             })

@@ -318,7 +318,7 @@ function buildFolderPicker(container, languageFolder) {
         );
 
         card.onclick = (event) => {
-            if (event.target.closest(".picker-card-actions")) return;
+            if (event.target.closest(".folder-card-actions")) return;
             openProgramFolder(languageFolder, pf.slug, event);
         };
 
@@ -330,16 +330,22 @@ function buildFolderPicker(container, languageFolder) {
         `;
 
         if (App.edit.unlocked) {
+            // Icon-only, top-right overlay — folder-picker cards only.
+            // Program/package cards keep their existing text-button
+            // treatment elsewhere; this doesn't touch that. Extra top
+            // padding so a long, centered folder name can't run under
+            // the overlaid icons.
+            card.classList.add("has-corner-actions");
+
             const actions = document.createElement("div");
-            actions.className = "picker-card-actions";
-            actions.style.marginTop = "12px";
-            actions.style.display = "flex";
-            actions.style.gap = "8px";
+            actions.className = "folder-card-actions";
 
             const renameBtn = document.createElement("button");
             renameBtn.type = "button";
-            renameBtn.className = "action-btn";
-            renameBtn.textContent = "RENAME";
+            renameBtn.className = "folder-icon-btn";
+            renameBtn.title = "Rename this folder";
+            renameBtn.setAttribute("aria-label", "Rename this folder");
+            renameBtn.textContent = "✎";
             renameBtn.onclick = (e) => {
                 e.stopPropagation();
                 goToFolderEditor(languageFolder, pf.slug);
@@ -353,10 +359,12 @@ function buildFolderPicker(container, languageFolder) {
             // which explains why when it isn't.
             const deleteBtn = document.createElement("button");
             deleteBtn.type = "button";
-            deleteBtn.className = "action-btn";
+            deleteBtn.className = "folder-icon-btn folder-icon-btn--delete";
             const notDeletable = pf.slug === "default" || pf.count > 0;
             if (notDeletable) deleteBtn.classList.add("is-greyed");
-            deleteBtn.textContent = "DELETE";
+            deleteBtn.title = "Delete this folder";
+            deleteBtn.setAttribute("aria-label", "Delete this folder");
+            deleteBtn.textContent = "🗑";
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
                 openFolderDeleteModal(languageFolder, pf.slug, pf.name, pf.count);
@@ -388,26 +396,6 @@ function buildFolderPicker(container, languageFolder) {
         <p class="folder-card-desc">Multi-file packages — ${pkgList.length} package${pkgList.length === 1 ? "" : "s"}</p>
     `;
     grid.appendChild(pkgCard);
-
-    if (App.edit.unlocked) {
-        const newCard = document.createElement("div");
-        newCard.className = "folder-card card-enter";
-        newCard.style.setProperty("--stagger-index", folders.length + 1);
-        newCard.style.cursor = "pointer";
-        newCard.addEventListener(
-            "animationend",
-            () => newCard.classList.remove("card-enter"),
-            { once: true }
-        );
-        newCard.onclick = (event) => {
-            runWithTactileDelay(event, () => goToFolderEditor(languageFolder));
-        };
-        newCard.innerHTML = `
-            <h2 class="folder-card-title">+ NEW FOLDER</h2>
-            <p class="folder-card-desc">Create a custom program folder.</p>
-        `;
-        grid.appendChild(newCard);
-    }
 }
 
 function openPackagesFromPicker(languageFolder, event) {
@@ -801,7 +789,13 @@ function hasUnsavedEdits() {
 //   - Inside a specific package          -> add a file to that package
 function refreshEditUI() {
     const addBtn = document.getElementById("add-program-btn");
+    const addFolderBtn = document.getElementById("add-folder-btn");
     const openPkgId = App.packages.openPackage;
+
+    // Folder picker gets its own "+" (adds a folder) instead of
+    // add-program-btn's — mutually exclusive with it, never both shown.
+    addFolderBtn.style.display =
+        (App.edit.unlocked && App.currentView === "picker") ? "inline-block" : "none";
 
     if (!App.edit.unlocked || App.currentView === "home" || App.currentView === "picker") {
         addBtn.style.display = "none";
@@ -4259,6 +4253,15 @@ themeBtn.addEventListener("click", toggleTheme);
 document.getElementById("add-program-btn")
     .addEventListener("click", (event) => {
         event.currentTarget.classList.add("is-departing");
+    });
+
+// Header "+" on the folder-picker view — adds a folder to whichever
+// language is currently open. Same real-navigation freeze as
+// add-program-btn above (goToFolderEditor sets window.location.href).
+document.getElementById("add-folder-btn")
+    .addEventListener("click", (event) => {
+        if (!App.currentLanguage) return;
+        runWithTactileDelay(event, () => goToFolderEditor(App.currentLanguage));
     });
 
 // Warn before leaving the tab if a reorder, deletion, or in-progress

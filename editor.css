@@ -682,6 +682,95 @@ body.site-edit-mode .card-delete-btn {
   }
 }
 
+/* Folder-picker cards only (RENAME/DELETE) — icon-only, overlaid in the
+   card's top-right corner instead of full-width text buttons in the
+   flow. Doesn't touch .action-btn/.card-delete-btn used by program and
+   package cards elsewhere. Each button carries its own opaque
+   background/border, so it stays legible even when .folder-card:hover
+   inverts the card underneath it to a dark fill. Always rendered (no
+   hover-reveal) since editor mode itself already gates visibility, and
+   a hover-only reveal would just be invisible on mobile touch. */
+.folder-card.has-corner-actions {
+  padding-top: 46px;
+}
+
+.folder-card-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.folder-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    transform .08s ease,
+    box-shadow .08s ease,
+    background-color .12s ease,
+    color .12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .folder-icon-btn:hover {
+    background: var(--border);
+    color: var(--surface);
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.folder-icon-btn:active,
+.folder-icon-btn.is-pressed {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 0 0 0 0 var(--border) !important;
+}
+
+/* Same red treatment as .card-delete-btn (program/package delete), so
+   "delete" reads the same danger color everywhere in the app. */
+.folder-icon-btn--delete {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+@media (hover: hover) {
+  .folder-icon-btn--delete:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+/* Default folder, or one that still has programs in it — shown but not
+   currently actionable. Same faded treatment as .action-btn.is-greyed;
+   deliberately doesn't touch color/border so the red still reads through
+   at half-opacity rather than disappearing. */
+.folder-icon-btn.is-greyed {
+  opacity: 0.5;
+}
+
+@media (hover: hover) {
+  .folder-icon-btn.is-greyed:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    background: var(--surface);
+  }
+}
+
 .program-card.pending-delete {
   opacity: 0.5;
 }

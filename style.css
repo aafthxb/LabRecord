@@ -365,36 +365,6 @@ box-shadow: var(--shadow-lg);
 
 }
 
-/* Packages/Programs toggle — same square icon-button shell as the
-   theme toggle, so it reads as part of the same family of controls
-   rather than a new kind of button. Idle look matches .theme-btn
-   exactly; the only addition is an "on" state (currently showing the
-   packages view for this language) that borrows the same accent
-   treatment #editor-btn.is-unlocked uses, just in --primary instead of
-   --success so it doesn't get confused with editor mode. */
-#folder-mode-toggle.is-active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
-    box-shadow: var(--shadow-sm), var(--glow-primary);
-}
-
-@media (hover: hover) {
-    #folder-mode-toggle.is-active:hover {
-        background: var(--primary-hover);
-        border-color: var(--primary-hover);
-        color: #fff;
-        box-shadow: var(--shadow-md), var(--glow-primary);
-        transform: translate(-1px, -1px);
-    }
-}
-
-#folder-mode-toggle.is-active:active,
-#folder-mode-toggle.is-active.is-pressed {
-    transform: translate(3px, 3px);
-    box-shadow: 0 0 0 0 var(--border);
-}
-
 /* Back Button */
 .back-btn {
   display: none;

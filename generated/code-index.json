@@ -1,104 +1,349 @@
 {
-  "C": [
+  "C/default": [
     {
       "number": 1,
-      "file": "6.c",
-      "path": "programs/C/6.c",
-      "code": "//Sum of two numbers\r\n//C program to add two numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers to add:\\n\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    c = a + b;\r\n    printf(\"sum of two numbers:%d\", c);\r\n\r\n    return 0;\r\n}",
-      "search": "sum of two numbers c program to add two numbers include stdio h int main int a b c printf enter two numbers to add n scanf d d a b c a b printf sum of two numbers d c return 0"
-    },
-    {
-      "number": 2,
-      "file": "7.c",
-      "path": "programs/C/7.c",
-      "code": "//Even or Odd\r\n//C program to check whether the number is even or odd\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a;\r\n\r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n\r\n    if (a % 2 == 0)\r\n    {\r\n        printf(\"number is even\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"number is odd\");\r\n    }\r\n\r\n    return 0;\r\n}",
-      "search": "even or odd c program to check whether the number is even or odd include stdio h int main int a printf enter a number scanf d a if a 2 0 printf number is even else printf number is odd return 0"
-    },
-    {
-      "number": 3,
       "file": "1.c",
-      "path": "programs/C/1.c",
+      "path": "programs/C/default/1.c",
       "code": "//Positive or Negative\r\n//C program to check whether the number is positive, negative or zero\r\n\r\n#include <stdio.h>\r\n\r\nint main() \r\n{\r\n    int a;\r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    if(a > 0) \r\n    {\r\n        printf(\"given number is positive\");\r\n    } \r\n    else if(a < 0) \r\n    {\r\n        printf(\"number is negative\");\r\n    } \r\n    else \r\n    {\r\n        printf(\"number is zero\");\r\n    }\r\n    \r\n    return 0;\r\n}",
       "search": "positive or negative c program to check whether the number is positive negative or zero include stdio h int main int a printf enter a number scanf d a if a 0 printf given number is positive else if a 0 printf number is negative else printf number is zero return 0"
     },
     {
-      "number": 4,
-      "file": "2.c",
-      "path": "programs/C/2.c",
-      "code": "//Largest of 3 numbers\r\n//C program to find the largest of three numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n    \r\n    printf(\"enter 3 numbers:\");\r\n    scanf(\"%d %d %d\", &a, &b, &c);\r\n    \r\n    if(a > b && a > c)\r\n    {\r\n        printf(\"first number is greater\");\r\n    }\r\n    else if(b > c && b > a)\r\n    {\r\n        printf(\"second number is greater\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"third is greater\");\r\n    }\r\n    \r\n    return 0;\r\n}\r\n",
-      "search": "largest of 3 numbers c program to find the largest of three numbers include stdio h int main int a b c printf enter 3 numbers scanf d d d a b c if a b a c printf first number is greater else if b c b a printf second number is greater else printf third is greater return 0"
-    },
-    {
-      "number": 5,
-      "file": "3.c",
-      "path": "programs/C/3.c",
-      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    for(i = 1; i <= 10; i++)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n    }\r\n    \r\n    return 0;\r\n}",
-      "search": "multiplication table c program to print multiplication table of a given number using for loop include stdio h int main int i a printf enter a number scanf d a for i 1 i 10 i printf d d d n i a i a return 0"
-    },
-    {
-      "number": 6,
-      "file": "4.c",
-      "path": "programs/C/4.c",
-      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using while loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    i = 1;\r\n    while(i <= 10)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n        i++;\r\n    }\r\n    \r\n    return 0;\r\n}",
-      "search": "multiplication table c program to print multiplication table of a given number using while loop include stdio h int main int i a printf enter a number scanf d a i 1 while i 10 printf d d d n i a i a i return 0"
-    },
-    {
-      "number": 7,
-      "file": "5.c",
-      "path": "programs/C/5.c",
-      "code": "//Simple Calculator\r\n//C program to implement a simple calculator using switch\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers:\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    printf(\"1=addition,2=substraction,3=production\\n\");\r\n    printf(\"enter your choice:1,2,3:\");\r\n    scanf(\"%d\", &c);\r\n\r\n    switch(c)\r\n    {\r\n        case 1:\r\n            c = a + b;\r\n            printf(\"sum of two number is:%d\", c);\r\n            break;\r\n\r\n        case 2:\r\n            c = a - b;\r\n            printf(\"substration of numbers is:%d\", c);\r\n            break;\r\n\r\n        case 3:\r\n            c = a * b;\r\n            printf(\"multiplication of numbers:%d\", c);\r\n            break;\r\n    }\r\n\r\n    return 0;\r\n}\r\n",
-      "search": "simple calculator c program to implement a simple calculator using switch include stdio h int main int a b c printf enter two numbers scanf d d a b printf 1 addition 2 substraction 3 production n printf enter your choice 1 2 3 scanf d c switch c case 1 c a b printf sum of two number is d c break case 2 c a b printf substration of numbers is d c break case 3 c a b printf multiplication of numbers d c break return 0"
-    },
-    {
-      "number": 8,
-      "file": "8.c",
-      "path": "programs/C/8.c",
-      "code": "//Pyramid Pattern\r\n//C program to print pyramid pattern using nested for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, j, rows = 4;\r\n\r\n    for (i = rows; i >= 1; i--)\r\n    {\r\n        for (j = 0; j < rows - i; j++)\r\n        {\r\n            printf(\" \");\r\n        }\r\n        for (j = 1; j <= i; j++)\r\n        {\r\n            printf(\"* \");\r\n        }\r\n        printf(\"\\n\");\r\n    }\r\n\r\n    return 0;\r\n}",
-      "search": "pyramid pattern c program to print pyramid pattern using nested for loop include stdio h int main int i j rows 4 for i rows i 1 i for j 0 j rows i j printf for j 1 j i j printf printf n return 0"
-    },
-    {
-      "number": 9,
-      "file": "9.c",
-      "path": "programs/C/9.c",
-      "code": "//Sum using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
-      "search": "sum using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
-    },
-    {
-      "number": 10,
+      "number": 2,
       "file": "10.c",
-      "path": "programs/C/10.c",
+      "path": "programs/C/default/10.c",
       "code": "//Sum using function\r\n//Function without argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum();\r\n\r\nint main()\r\n{\r\n    sum();\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum()\r\n{\r\n    int a, b, c;\r\n    a = 10;\r\n    b = 20;\r\n    c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
       "search": "sum using function function without argument and without return value include stdio h void sum int main sum return 0 void sum int a b c a 10 b 20 c a b printf sum is d c"
     },
     {
-      "number": 11,
+      "number": 3,
       "file": "11.c",
-      "path": "programs/C/11.c",
+      "path": "programs/C/default/11.c",
       "code": "//Sum using function\r\n//Function without argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum();\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum();\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum()\r\n{\r\n    int a, b, c;\r\n    a = 17;\r\n    b = 27;\r\n    c = a + b;\r\n    \r\n    return c;\r\n}\r\n",
       "search": "sum using function function without argument and with return value include stdio h int sum int main int r r sum printf sum is d r return 0 int sum int a b c a 17 b 27 c a b return c"
     },
     {
-      "number": 12,
+      "number": 4,
       "file": "12.c",
-      "path": "programs/C/12.c",
+      "path": "programs/C/default/12.c",
       "code": "//Sum using function\r\n//Function with argument and with return value\r\n\r\n#include <stdio.h>\r\n\r\nint sum(int, int);\r\n\r\nint main()\r\n{\r\n    int r;\r\n    r = sum(4, 7);\r\n    printf(\"sum is %d\", r);\r\n\r\n    return 0;\r\n}\r\n\r\nint sum(int a, int b)\r\n{\r\n    int c;\r\n    c = a + b;\r\n\r\n    return c;\r\n}\r\n",
       "search": "sum using function function with argument and with return value include stdio h int sum int int int main int r r sum 4 7 printf sum is d r return 0 int sum int a int b int c c a b return c"
+    },
+    {
+      "number": 5,
+      "file": "2.c",
+      "path": "programs/C/default/2.c",
+      "code": "//Largest of 3 numbers\r\n//C program to find the largest of three numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n    \r\n    printf(\"enter 3 numbers:\");\r\n    scanf(\"%d %d %d\", &a, &b, &c);\r\n    \r\n    if(a > b && a > c)\r\n    {\r\n        printf(\"first number is greater\");\r\n    }\r\n    else if(b > c && b > a)\r\n    {\r\n        printf(\"second number is greater\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"third is greater\");\r\n    }\r\n    \r\n    return 0;\r\n}\r\n",
+      "search": "largest of 3 numbers c program to find the largest of three numbers include stdio h int main int a b c printf enter 3 numbers scanf d d d a b c if a b a c printf first number is greater else if b c b a printf second number is greater else printf third is greater return 0"
+    },
+    {
+      "number": 6,
+      "file": "3.c",
+      "path": "programs/C/default/3.c",
+      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    for(i = 1; i <= 10; i++)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "multiplication table c program to print multiplication table of a given number using for loop include stdio h int main int i a printf enter a number scanf d a for i 1 i 10 i printf d d d n i a i a return 0"
+    },
+    {
+      "number": 7,
+      "file": "4.c",
+      "path": "programs/C/default/4.c",
+      "code": "//Multiplication Table\r\n//C program to print multiplication table of a given number using while loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, a;\r\n    \r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n    \r\n    i = 1;\r\n    while(i <= 10)\r\n    {\r\n        printf(\"%d*%d=%d\\n\", i, a, i * a);\r\n        i++;\r\n    }\r\n    \r\n    return 0;\r\n}",
+      "search": "multiplication table c program to print multiplication table of a given number using while loop include stdio h int main int i a printf enter a number scanf d a i 1 while i 10 printf d d d n i a i a i return 0"
+    },
+    {
+      "number": 8,
+      "file": "5.c",
+      "path": "programs/C/default/5.c",
+      "code": "//Simple Calculator\r\n//C program to implement a simple calculator using switch\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers:\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    printf(\"1=addition,2=substraction,3=production\\n\");\r\n    printf(\"enter your choice:1,2,3:\");\r\n    scanf(\"%d\", &c);\r\n\r\n    switch(c)\r\n    {\r\n        case 1:\r\n            c = a + b;\r\n            printf(\"sum of two number is:%d\", c);\r\n            break;\r\n\r\n        case 2:\r\n            c = a - b;\r\n            printf(\"substration of numbers is:%d\", c);\r\n            break;\r\n\r\n        case 3:\r\n            c = a * b;\r\n            printf(\"multiplication of numbers:%d\", c);\r\n            break;\r\n    }\r\n\r\n    return 0;\r\n}\r\n",
+      "search": "simple calculator c program to implement a simple calculator using switch include stdio h int main int a b c printf enter two numbers scanf d d a b printf 1 addition 2 substraction 3 production n printf enter your choice 1 2 3 scanf d c switch c case 1 c a b printf sum of two number is d c break case 2 c a b printf substration of numbers is d c break case 3 c a b printf multiplication of numbers d c break return 0"
+    },
+    {
+      "number": 9,
+      "file": "6.c",
+      "path": "programs/C/default/6.c",
+      "code": "//Sum of two numbers\r\n//C program to add two numbers\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a, b, c;\r\n\r\n    printf(\"enter two numbers to add:\\n\");\r\n    scanf(\"%d %d\", &a, &b);\r\n\r\n    c = a + b;\r\n    printf(\"sum of two numbers:%d\", c);\r\n\r\n    return 0;\r\n}",
+      "search": "sum of two numbers c program to add two numbers include stdio h int main int a b c printf enter two numbers to add n scanf d d a b c a b printf sum of two numbers d c return 0"
+    },
+    {
+      "number": 10,
+      "file": "7.c",
+      "path": "programs/C/default/7.c",
+      "code": "//Even or Odd\r\n//C program to check whether the number is even or odd\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int a;\r\n\r\n    printf(\"enter a number:\");\r\n    scanf(\"%d\", &a);\r\n\r\n    if (a % 2 == 0)\r\n    {\r\n        printf(\"number is even\");\r\n    }\r\n    else\r\n    {\r\n        printf(\"number is odd\");\r\n    }\r\n\r\n    return 0;\r\n}",
+      "search": "even or odd c program to check whether the number is even or odd include stdio h int main int a printf enter a number scanf d a if a 2 0 printf number is even else printf number is odd return 0"
+    },
+    {
+      "number": 11,
+      "file": "8.c",
+      "path": "programs/C/default/8.c",
+      "code": "//Pyramid Pattern\r\n//C program to print pyramid pattern using nested for loop\r\n\r\n#include <stdio.h>\r\n\r\nint main()\r\n{\r\n    int i, j, rows = 4;\r\n\r\n    for (i = rows; i >= 1; i--)\r\n    {\r\n        for (j = 0; j < rows - i; j++)\r\n        {\r\n            printf(\" \");\r\n        }\r\n        for (j = 1; j <= i; j++)\r\n        {\r\n            printf(\"* \");\r\n        }\r\n        printf(\"\\n\");\r\n    }\r\n\r\n    return 0;\r\n}",
+      "search": "pyramid pattern c program to print pyramid pattern using nested for loop include stdio h int main int i j rows 4 for i rows i 1 i for j 0 j rows i j printf for j 1 j i j printf printf n return 0"
+    },
+    {
+      "number": 12,
+      "file": "9.c",
+      "path": "programs/C/default/9.c",
+      "code": "//Sum using function\r\n//Function with argument and without return value\r\n\r\n#include <stdio.h>\r\n\r\nvoid sum(int a, int b);\r\n\r\nint main()\r\n{\r\n    int x, y;\r\n    x = 5;\r\n    y = 6;\r\n    \r\n    sum(x, y);\r\n\r\n    return 0;\r\n}\r\n\r\nvoid sum(int a, int b)\r\n{\r\n    int c = a + b;\r\n    printf(\"sum is %d\", c);\r\n}\r\n",
+      "search": "sum using function function with argument and without return value include stdio h void sum int a int b int main int x y x 5 y 6 sum x y return 0 void sum int a int b int c a b printf sum is d c"
     }
   ],
-  "Java": [
+  "Java/default": [
     {
       "number": 1,
-      "file": "SumOfTwoNumbers.java",
-      "path": "programs/Java/SumOfTwoNumbers.java",
-      "code": "//Sum of two numbers\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class SumOfTwoNumbers {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter first number: \");\r\n        int num1 = sc.nextInt();\r\n\r\n        System.out.print(\"Enter second number: \");\r\n        int num2 = sc.nextInt();\r\n\r\n        int sum = num1 + num2;\r\n\r\n        System.out.println(\"Sum = \" + sum);\r\n\r\n        sc.close();\r\n    }\r\n}\r\n",
-      "search": "sum of two numbers import java util scanner public class sumoftwonumbers public static void main string args scanner sc new scanner system in system out print enter first number int num1 sc nextint system out print enter second number int num2 sc nextint int sum num1 num2 system out println sum sum sc close"
+      "file": "Addnumberdemo.java",
+      "path": "programs/Java/default/Addnumberdemo.java",
+      "code": "//Method overloading\r\n//Addition of two numbers and three numbers using method overloading\r\n\r\nclass Addnumber\r\n{\r\npublic int a,b,c;\r\nint add(int x,int y)\r\n{\r\na=x;\r\nb=y;\r\nreturn a + b + c;\r\n}\r\nint add(int x,int y,int z)\r\n{\r\na=x;\r\nb=y;\r\nc=z;\r\nreturn a + b + c;\r\n}\r\n}\r\npublic class Addnumberdemo\r\n{\r\npublic static void main(String args [])\r\n{\r\nAddnumber a1=new Addnumber();\r\nSystem.out.println(\"sum of 2 number= \" + a1.add(10,20));\r\nSystem.out.println(\"sum of 3 numbers= \" + a1.add(10,20,30));\r\n}\r\n}\r\n",
+      "search": "method overloading addition of two numbers and three numbers using method overloading class addnumber public int a b c int add int x int y a x b y return a b c int add int x int y int z a x b y c z return a b c public class addnumberdemo public static void main string args addnumber a1 new addnumber system out println sum of 2 number a1 add 10 20 system out println sum of 3 numbers a1 add 10 20 30"
     },
     {
       "number": 2,
-      "file": "Main.java",
-      "path": "programs/Java/Main.java",
-      "code": "// package use\n\nimport insystems.Gumball; // Import specific class\n\npublic class Main {\n    public static void main(String[] args) {\n        Gumball gb = new Gumball(5);\n        System.out.println(\"Gumballs: \" + gb.getCount());\n    }\n}   ",
-      "search": "package use import insystems gumball import specific class public class main public static void main string args gumball gb new gumball 5 system out println gumballs gb getcount"
+      "file": "AnimalDemo.java",
+      "path": "programs/Java/default/AnimalDemo.java",
+      "code": "// Abstract Class\n\nabstract class Animal {\n\n    abstract void sound();\n\n    void eat() {\n        System.out.println(\"Animal eats\");\n    }\n}\n\nclass Dog extends Animal {\n\n    @Override\n    void sound() {\n        System.out.println(\"Dog barks\");\n    }\n}\n\npublic class AnimalDemo {\n    public static void main(String[] args) {\n\n        Dog d = new Dog();\n\n        d.sound();\n        d.eat();\n    }\n}",
+      "search": "abstract class abstract class animal abstract void sound void eat system out println animal eats class dog extends animal override void sound system out println dog barks public class animaldemo public static void main string args dog d new dog d sound d eat"
+    },
+    {
+      "number": 3,
+      "file": "BufferedReaderExample.java",
+      "path": "programs/Java/default/BufferedReaderExample.java",
+      "code": "// Buffered Reader\n\nimport java.io.*;\r\n\r\nclass BufferedReaderExample {\r\n    public static void main(String[] args) throws IOException {\r\n        BufferedReader br = new BufferedReader(\r\n            new InputStreamReader(System.in)\r\n        );\r\n\r\n        System.out.print(\"Enter your name: \");\r\n        String name = br.readLine();\r\n\r\n        System.out.print(\"Enter your age: \");\r\n        int age = Integer.parseInt(br.readLine());\r\n\r\n        System.out.println(\"Name: \" + name);\r\n        System.out.println(\"Age: \" + age);\r\n    }\r\n}",
+      "search": "buffered reader import java io class bufferedreaderexample public static void main string args throws ioexception bufferedreader br new bufferedreader new inputstreamreader system in system out print enter your name string name br readline system out print enter your age int age integer parseint br readline system out println name name system out println age age"
+    },
+    {
+      "number": 4,
+      "file": "Circledemo.java",
+      "path": "programs/Java/default/Circledemo.java",
+      "code": "//Area of circle\r\n//Area of circle using class in java\r\n\r\nclass Circle\r\n{\r\npublic int radius;\r\nvoid getvalues(int p)\r\n{\r\nradius=p;\r\n}\r\ndouble area()\r\n{\r\ndouble ans=3.14*radius*radius;\r\nreturn (ans);\r\n}\r\n}\r\nclass Circledemo\r\n{\r\npublic static void main(String args[])\r\n{\r\nCircle c1=new Circle();\r\nc1.getvalues(3);\r\nSystem.out.println(\"area is \"+c1.area());\r\n}}\r\n",
+      "search": "area of circle area of circle using class in java class circle public int radius void getvalues int p radius p double area double ans 3 14 radius radius return ans class circledemo public static void main string args circle c1 new circle c1 getvalues 3 system out println area is c1 area"
+    },
+    {
+      "number": 5,
+      "file": "ConstructorDemo.java",
+      "path": "programs/Java/default/ConstructorDemo.java",
+      "code": "// Constructor Overloading\n\nclass Student\r\n{\r\n    public String name;\r\n    public int roll;\r\n    public int mark;\r\n\r\n    Student(String a, int b)\r\n    {\r\n        name = a;\r\n        roll = b;\r\n\r\n        System.out.println(\"name= \" + name);\r\n        System.out.println(\"roll= \" + roll);\r\n    }\r\n\r\n    Student(String a, int b, int c)\r\n    {\r\n        name = a;\r\n        roll = b;\r\n        mark = c;\r\n\r\n        System.out.println(\"name= \" + name);\r\n        System.out.println(\"roll= \" + roll);\r\n        System.out.println(\"mark= \" + mark);\r\n    }\r\n}\r\n\r\nclass ConstructorDemo\r\n{\r\n    public static void main(String args[])\r\n    {\r\n        Student m1 = new Student(\"athik\", 2);\r\n        Student m2 = new Student(\"athik\", 2, 79);\r\n    }\r\n}",
+      "search": "constructor overloading class student public string name public int roll public int mark student string a int b name a roll b system out println name name system out println roll roll student string a int b int c name a roll b mark c system out println name name system out println roll roll system out println mark mark class constructordemo public static void main string args student m1 new student athik 2 student m2 new student athik 2 79"
+    },
+    {
+      "number": 6,
+      "file": "EMPDemo.java",
+      "path": "programs/Java/default/EMPDemo.java",
+      "code": "//Multilevel inheritance\r\n\r\nclass Employee\r\n{\r\n    public int EID;\r\n    public String Ename;\r\n\r\n    void get_values(int A, String B)\r\n    {\r\n        EID = A;\r\n        Ename = B;\r\n    }\r\n\r\n    void display()\r\n    {\r\n        System.out.println(\"EID= \" + EID);\r\n        System.out.println(\"Ename= \" + Ename);\r\n    }\r\n}\r\n\r\nclass EMP_pers extends Employee\r\n{\r\n    public int aadhar;\r\n    public String address;\r\n\r\n    void get(int D, String C)\r\n    {\r\n        aadhar = D;\r\n        address = C;\r\n    }\r\n\r\n    void display2()\r\n    {\r\n        System.out.println(\"aadhar no= \" + aadhar);\r\n        System.out.println(\"adress= \" + address);\r\n    }\r\n}\r\n\r\nclass EMP_DEPT extends EMP_pers\r\n{\r\n    public String Edept;\r\n    public int Esalary;\r\n\r\n    void get1(String I, int G)\r\n    {\r\n        Edept = I;\r\n        Esalary = G;\r\n    }\r\n\r\n    void display3()\r\n    {\r\n        System.out.println(\"Edept= \" + Edept);\r\n        System.out.println(\"Esalary= \" + Esalary);\r\n    }\r\n}\r\n\r\nclass EMPDemo\r\n{\r\n    public static void main(String args[])\r\n    {\r\n        EMP_DEPT Emp1 = new EMP_DEPT();\r\n\r\n        Emp1.get_values(1, \"sura\");\r\n        Emp1.get(11223344, \"cptvk\");\r\n        Emp1.get1(\"sales\", 100000000);\r\n\r\n        System.out.println(\"Employee Details\\n\");\r\n        Emp1.display();\r\n        Emp1.display2();\r\n        Emp1.display3();\r\n    }\r\n}\r\n",
+      "search": "multilevel inheritance class employee public int eid public string ename void get_values int a string b eid a ename b void display system out println eid eid system out println ename ename class emp_pers extends employee public int aadhar public string address void get int d string c aadhar d address c void display2 system out println aadhar no aadhar system out println adress address class emp_dept extends emp_pers public string edept public int esalary void get1 string i int g edept i esalary g void display3 system out println edept edept system out println esalary esalary class empdemo public static void main string args emp_dept emp1 new emp_dept emp1 get_values 1 sura emp1 get 11223344 cptvk emp1 get1 sales 100000000 system out println employee details n emp1 display emp1 display2 emp1 display3"
+    },
+    {
+      "number": 7,
+      "file": "Employeedemo.java",
+      "path": "programs/Java/default/Employeedemo.java",
+      "code": "//Employee details\r\n//Employee details using class in java\r\n\r\nimport java.util.Scanner;\r\nclass Employee {\r\n    String name;\r\n    int id;\r\n    float salary;\r\n\r\n    void getData() {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter Employee Name: \");\r\n        name = sc.nextLine();\r\n\r\n        System.out.print(\"Enter Employee id: \");\r\n        id = sc.nextInt();\r\n\r\n        System.out.print(\"Enter salary: \");\r\n        salary = sc.nextFloat();\r\n    }\r\n\r\n    void display() {\r\n        System.out.println(\"\\nEmployee Details\");\r\n        System.out.println(\"Employee Name : \" + name);\r\n        System.out.println(\"Employee id : \" + id);\r\n        System.out.println(\"salary : \" + salary);\r\n    }\r\n}\r\n\r\npublic class Employeedemo {\r\n    public static void main(String args[]) {\r\n        Employee s = new Employee();\r\n\r\n        s.getData();\r\n        s.display();\r\n    }\r\n}\r\n",
+      "search": "employee details employee details using class in java import java util scanner class employee string name int id float salary void getdata scanner sc new scanner system in system out print enter employee name name sc nextline system out print enter employee id id sc nextint system out print enter salary salary sc nextfloat void display system out println nemployee details system out println employee name name system out println employee id id system out println salary salary public class employeedemo public static void main string args employee s new employee s getdata s display"
+    },
+    {
+      "number": 8,
+      "file": "EmployeeDemodetails.java",
+      "path": "programs/Java/default/EmployeeDemodetails.java",
+      "code": "//Employee Details\r\n//Details of multiple employees using for loop\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class EmployeeDemodetails {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter number of employees: \");\r\n        int n = sc.nextInt();\r\n\r\n        for (int i = 1; i <= n; i++) {\r\n            System.out.println(\"Employee \" + i);\r\n\r\n            System.out.print(\"Enter Name: \");\r\n            String name = sc.next();\r\n\r\n            System.out.print(\"Enter ID: \");\r\n            int id = sc.nextInt();\r\n\r\n            System.out.print(\"Enter Salary: \");\r\n            float salary = sc.nextFloat();\r\n\r\n            System.out.println(\"\\nEmployee Details\");\r\n            System.out.println(\"Name: \" + name);\r\n            System.out.println(\"ID: \" + id);\r\n            System.out.println(\"Salary: \" + salary);\r\n            System.out.println();\r\n        }\r\n\r\n        sc.close();\r\n    }\r\n}\r\n",
+      "search": "employee details details of multiple employees using for loop import java util scanner public class employeedemodetails public static void main string args scanner sc new scanner system in system out print enter number of employees int n sc nextint for int i 1 i n i system out println employee i system out print enter name string name sc next system out print enter id int id sc nextint system out print enter salary float salary sc nextfloat system out println nemployee details system out println name name system out println id id system out println salary salary system out println sc close"
+    },
+    {
+      "number": 9,
+      "file": "EMPpers.java",
+      "path": "programs/Java/default/EMPpers.java",
+      "code": "//Single inheritance\n\nclass Employee\n{\n    public int EID;\n    public String Ename;\n\n    void get_values(int A, String B)\n    {\n        EID = A;\n        Ename = B;\n    }\n\n    void display()\n    {\n        System.out.println(\"EID= \" + EID);\n        System.out.println(\"Ename= \" + Ename);\n    }\n}\n\nclass EMP_pers extends Employee\n{\n    public int aadhar;\n    public String address;\n\n    void get(int D, String C)\n    {\n        aadhar = D;\n        address = C;\n    }\n\n    void display2()\n    {\n        System.out.println(\"aadhar no= \" + aadhar);\n        System.out.println(\"adress= \" + address);\n    }\n}\n\nclass EMPpers\n{\n    public static void main(String args[])\n    {\n        EMP_pers Emp1 = new EMP_pers();\n\n        Emp1.get_values(1, \"sura\");\n        Emp1.get(11223344, \"cptvk\");\n\n        System.out.println(\"Employee Details\\n\");\n        Emp1.display();\n        Emp1.display2();\n    }\n}",
+      "search": "single inheritance class employee public int eid public string ename void get_values int a string b eid a ename b void display system out println eid eid system out println ename ename class emp_pers extends employee public int aadhar public string address void get int d string c aadhar d address c void display2 system out println aadhar no aadhar system out println adress address class emppers public static void main string args emp_pers emp1 new emp_pers emp1 get_values 1 sura emp1 get 11223344 cptvk system out println employee details n emp1 display emp1 display2"
+    },
+    {
+      "number": 10,
+      "file": "FileHandling.java",
+      "path": "programs/Java/default/FileHandling.java",
+      "code": "// File handling\n\nimport java.io.*;\n\nclass FileHandling {\n    public static void main(String[] args) throws IOException {\n        File file = new File(\"student.txt\");\n\n        file.createNewFile();\n\n        FileWriter fw = new FileWriter(file);\n\n        fw.write(\"Name: Aafthab\\n\");\n        fw.write(\"Course: BCA\\n\");\n        fw.write(\"College: WMO Arts and Science College\");\n\n        fw.close();\n\n        FileReader fr = new FileReader(file);\n        BufferedReader br = new BufferedReader(fr);\n\n        String line;\n\n        while ((line = br.readLine()) != null) {\n            System.out.println(line);\n        }\n\n        br.close();\n    }\n}",
+      "search": "file handling import java io class filehandling public static void main string args throws ioexception file file new file student txt file createnewfile filewriter fw new filewriter file fw write name aafthab n fw write course bca n fw write college wmo arts and science college fw close filereader fr new filereader file bufferedreader br new bufferedreader fr string line while line br readline null system out println line br close"
+    },
+    {
+      "number": 11,
+      "file": "FinallyExample.java",
+      "path": "programs/Java/default/FinallyExample.java",
+      "code": "// Finally\n\nclass FinallyExample {\r\n    public static void main(String[] args) {\r\n        try {\r\n            int a = 10;\r\n            int b = 2;\r\n\r\n            System.out.println(\"result = \" + (a / b));\r\n        } catch (ArithmeticException e) {\r\n            System.out.println(\"Exception occurred\");\r\n        } finally {\r\n            System.out.println(\"Finally block is executed\");\r\n        }\r\n    }\r\n}",
+      "search": "finally class finallyexample public static void main string args try int a 10 int b 2 system out println result a b catch arithmeticexception e system out println exception occurred finally system out println finally block is executed"
+    },
+    {
+      "number": 12,
+      "file": "Greatest.java",
+      "path": "programs/Java/default/Greatest.java",
+      "code": "//Largest of 3 numbers\n//Java program to find the largest of three numbers\n\n\nimport java.util.Scanner;\npublic class Greatest {\n    public static void main(String[] args) {\n\n        int a, b, c;\n        Scanner sc = new Scanner(System.in);\n\n        System.out.print(\"Enter first number: \");\n        a = sc.nextInt();\n\n        System.out.print(\"Enter second number: \");\n        b = sc.nextInt();\n\n        System.out.print(\"Enter third number: \");\n        c = sc.nextInt();\n\n        if (a > b && a > c) {\n            System.out.println(\"First is greater\");\n        } \n        else if (b > c) {\n\n            System.out.println(\"Second is greater\");\n\n        } else {\n          System.out.println(\"Third is greater\");\n        }\n\n        sc.close();\n    }\n}\n",
+      "search": "largest of 3 numbers java program to find the largest of three numbers import java util scanner public class greatest public static void main string args int a b c scanner sc new scanner system in system out print enter first number a sc nextint system out print enter second number b sc nextint system out print enter third number c sc nextint if a b a c system out println first is greater else if b c system out println second is greater else system out println third is greater sc close"
+    },
+    {
+      "number": 13,
+      "file": "InterfaceDemo.java",
+      "path": "programs/Java/default/InterfaceDemo.java",
+      "code": "// Interface\n\ninterface Animal {\n    void sound();\n    void eat();\n}\n\nclass Dog implements Animal {\n\n    public void sound() {\n        System.out.println(\"Dog barks\");\n    }\n\n    public void eat() {\n        System.out.println(\"Dog eats\");\n    }\n}\n\npublic class InterfaceDemo {\n    public static void main(String[] args) {\n        Dog d = new Dog();\n\n        d.sound();\n        d.eat();\n    }\n}",
+      "search": "interface interface animal void sound void eat class dog implements animal public void sound system out println dog barks public void eat system out println dog eats public class interfacedemo public static void main string args dog d new dog d sound d eat"
+    },
+    {
+      "number": 14,
+      "file": "MultipleInheritanceDemo.java",
+      "path": "programs/Java/default/MultipleInheritanceDemo.java",
+      "code": "// Multiple Inheritance through Interface\n\ninterface Animal {\n    public void animalSound();\n}\n\ninterface Pet {\n    public void play();\n}\n\nclass Pig implements Animal, Pet {\n    public void animalSound() {\n        System.out.println(\"The pig says: wee wee\");\n    }\n\n    public void play() {\n        System.out.println(\"The pig is playing\");\n    }\n}\n\npublic class MultipleInheritanceDemo {\n    public static void main(String[] args) {\n        Pig myPig = new Pig();\n\n        myPig.animalSound();\n        myPig.play();\n    }\n}",
+      "search": "multiple inheritance through interface interface animal public void animalsound interface pet public void play class pig implements animal pet public void animalsound system out println the pig says wee wee public void play system out println the pig is playing public class multipleinheritancedemo public static void main string args pig mypig new pig mypig animalsound mypig play"
+    },
+    {
+      "number": 15,
+      "file": "MultiplicationTable.java",
+      "path": "programs/Java/default/MultiplicationTable.java",
+      "code": "//Multiplication Table\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class MultiplicationTable {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter a number: \");\r\n        int num = sc.nextInt();\r\n\r\n        for (int i = 1; i <= 10; i++) {\r\n            System.out.println(num + \" x \" + i + \" = \" + (num * i));\r\n        }\r\n\r\n        sc.close();\r\n    }\r\n}",
+      "search": "multiplication table import java util scanner public class multiplicationtable public static void main string args scanner sc new scanner system in system out print enter a number int num sc nextint for int i 1 i 10 i system out println num x i num i sc close"
+    },
+    {
+      "number": 16,
+      "file": "OddEven.java",
+      "path": "programs/Java/default/OddEven.java",
+      "code": "//Odd or Even\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class OddEven {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter a number: \");\r\n        int num = sc.nextInt();\r\n\r\n        if (num % 2 == 0) {\r\n            System.out.println(num + \" is Even\");\r\n        } else {\r\n            System.out.println(num + \" is Odd\");\r\n        }\r\n\r\n        sc.close();\r\n    }\r\n}",
+      "search": "odd or even import java util scanner public class oddeven public static void main string args scanner sc new scanner system in system out print enter a number int num sc nextint if num 2 0 system out println num is even else system out println num is odd sc close"
+    },
+    {
+      "number": 17,
+      "file": "OverrideDemo.java",
+      "path": "programs/Java/default/OverrideDemo.java",
+      "code": "// Method overriding\n\nclass Animal {\n    void move() {\n        System.out.println(\"Animal is moving\");\n    }\n}\n\nclass Dog extends Animal {\n    @Override\n    void move() {\n        System.out.println(\"Dog is running\");\n    }\n}\n\npublic class OverrideDemo {\n    public static void main(String[] args) {\n        Dog d = new Dog();\n        d.move();\n    }\n}",
+      "search": "method overriding class animal void move system out println animal is moving class dog extends animal override void move system out println dog is running public class overridedemo public static void main string args dog d new dog d move"
+    },
+    {
+      "number": 18,
+      "file": "Package.java",
+      "path": "programs/Java/default/Package.java",
+      "code": "// Package\n\nimport Calculator.Addition;\n\npublic class Package {\n    public static void main(String[] args) {\n        Addition a1 = new Addition(10,20);\n        \n        System.out.println(\"The sum is: \" + a1.Add());\n    }\n}\n",
+      "search": "package import calculator addition public class package public static void main string args addition a1 new addition 10 20 system out println the sum is a1 add"
+    },
+    {
+      "number": 19,
+      "file": "PositiveNegative.java",
+      "path": "programs/Java/default/PositiveNegative.java",
+      "code": "//Positive or Negative\r\n\r\nimport java.util.Scanner;\r\n\r\npublic class PositiveNegative {\r\n    public static void main(String[] args) {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter a number: \");\r\n        int num = sc.nextInt();\r\n\r\n        if (num > 0) {\r\n            System.out.println(\"Positive number\");\r\n        } else if (num < 0) {\r\n            System.out.println(\"Negative number\");\r\n        } else {\r\n            System.out.println(\"Zero\");\r\n        }\r\n\r\n        sc.close();\r\n    }\r\n}",
+      "search": "positive or negative import java util scanner public class positivenegative public static void main string args scanner sc new scanner system in system out print enter a number int num sc nextint if num 0 system out println positive number else if num 0 system out println negative number else system out println zero sc close"
+    },
+    {
+      "number": 20,
+      "file": "Pyramid.java",
+      "path": "programs/Java/default/Pyramid.java",
+      "code": "//Pyramid Pattern\n//Java program to print pyramid pattern using nested for loop\n\n\npublic class Pyramid\n{\n  public static void main(String[] args)\n  {\n    int row = 4;\n    for(int i = row; i >= 1; i--)\n    {\n      for(int j = 0; j < row - i; j++)\n      {\n        System.out.print(\" \");\n      }\n      for(int j = 1; j <= i; j++)\n        {\n          System.out.print(\"* \");\n        }\n      System.out.println();\n    }\n  }\n}\n",
+      "search": "pyramid pattern java program to print pyramid pattern using nested for loop public class pyramid public static void main string args int row 4 for int i row i 1 i for int j 0 j row i j system out print for int j 1 j i j system out print system out println"
+    },
+    {
+      "number": 21,
+      "file": "Rectdemo.java",
+      "path": "programs/Java/default/Rectdemo.java",
+      "code": "//Area of rectangle\r\n//Area of rectangle using class in java\r\n\r\nclass Rect\r\n{\r\npublic int length;\r\npublic int breadth;\r\nvoid getvalues(int p ,int q)\r\n{\r\nlength=p;\r\nbreadth=q;\r\n}\r\nint area()\r\n{\r\nint ans=length*breadth;\r\nreturn (ans);\r\n}\r\n}\r\nclass Rectdemo\r\n{\r\npublic static void main(String args[])\r\n{\r\nRect r1=new Rect();\r\nr1.getvalues(10,2);\r\nSystem.out.println(\"area is \"+r1.area());\r\n}}\r\n",
+      "search": "area of rectangle area of rectangle using class in java class rect public int length public int breadth void getvalues int p int q length p breadth q int area int ans length breadth return ans class rectdemo public static void main string args rect r1 new rect r1 getvalues 10 2 system out println area is r1 area"
+    },
+    {
+      "number": 22,
+      "file": "RectDemoConstructor.java",
+      "path": "programs/Java/default/RectDemoConstructor.java",
+      "code": "//Constructor parameterized\r\n\r\nclass Rect {\r\n    public int length;\r\n    public int breadth;\r\n\r\n    Rect(int p, int q) {\r\n        length = p;\r\n        breadth = q;\r\n    }\r\n\r\n    int area() {\r\n        return length * breadth;\r\n    }\r\n}\r\n\r\npublic class RectDemoConstructor {\r\n    public static void main(String[] args) {\r\n        Rect r1 = new Rect(10, 23);\r\n        System.out.println(\"Area is \" + r1.area());\r\n    }\r\n}\r\n",
+      "search": "constructor parameterized class rect public int length public int breadth rect int p int q length p breadth q int area return length breadth public class rectdemoconstructor public static void main string args rect r1 new rect 10 23 system out println area is r1 area"
+    },
+    {
+      "number": 23,
+      "file": "RectDemoConstructordefault.java",
+      "path": "programs/Java/default/RectDemoConstructordefault.java",
+      "code": "//Constructor default\r\n\r\nclass Rect {\r\n    public int length;\r\n    public int breadth;\r\n\r\n    Rect() {\r\n        length = 10;\r\n        breadth = 23;\r\n    }\r\n\r\n    int area() {\r\n        return length * breadth;\r\n    }\r\n}\r\n\r\npublic class RectDemoConstructordefault {\r\n    public static void main(String[] args) {\r\n        Rect r1 = new Rect();\r\n        System.out.println(\"Area is \" + r1.area());\r\n    }\r\n}\r\n",
+      "search": "constructor default class rect public int length public int breadth rect length 10 breadth 23 int area return length breadth public class rectdemoconstructordefault public static void main string args rect r1 new rect system out println area is r1 area"
+    },
+    {
+      "number": 24,
+      "file": "Studentdemo.java",
+      "path": "programs/Java/default/Studentdemo.java",
+      "code": "//Student details\r\n//Student details using class in java\r\n\r\nimport java.util.Scanner;\r\nclass Student {\r\n    String name;\r\n    String regNo;\r\n    float mark;\r\n\r\n    void getData() {\r\n        Scanner sc = new Scanner(System.in);\r\n\r\n        System.out.print(\"Enter Student Name: \");\r\n        name = sc.nextLine();\r\n\r\n        System.out.print(\"Enter Registration Number: \");\r\n        regNo = sc.nextLine();\r\n\r\n        System.out.print(\"Enter Mark: \");\r\n        mark = sc.nextFloat();\r\n    }\r\n\r\n    void display() {\r\n        System.out.println(\"\\nStudent Details\");\r\n        System.out.println(\"Student Name : \" + name);\r\n        System.out.println(\"Registration No : \" + regNo);\r\n        System.out.println(\"Mark : \" + mark);\r\n    }\r\n}\r\n\r\npublic class Studentdemo {\r\n    public static void main(String args[]) {\r\n        Student s = new Student();\r\n\r\n        s.getData();\r\n        s.display();\r\n    }\r\n}\r\n",
+      "search": "student details student details using class in java import java util scanner class student string name string regno float mark void getdata scanner sc new scanner system in system out print enter student name name sc nextline system out print enter registration number regno sc nextline system out print enter mark mark sc nextfloat void display system out println nstudent details system out println student name name system out println registration no regno system out println mark mark public class studentdemo public static void main string args student s new student s getdata s display"
+    },
+    {
+      "number": 25,
+      "file": "SumFunction1.java",
+      "path": "programs/Java/default/SumFunction1.java",
+      "code": "//Sum using function\n//Function with arguments and no return value\n\nclass SumFunction1 {\n    void sum(int a, int b) {\n        int c = a + b;\n        System.out.println(\"Sum = \" + c);\n    }\n\n    public static void main(String[] args) {\n        int x = 5, y = 6;\n        SumFunction1 obj = new SumFunction1();\n        obj.sum(x, y);\n    }\n}\n",
+      "search": "sum using function function with arguments and no return value class sumfunction1 void sum int a int b int c a b system out println sum c public static void main string args int x 5 y 6 sumfunction1 obj new sumfunction1 obj sum x y"
+    },
+    {
+      "number": 26,
+      "file": "SumFunction2.java",
+      "path": "programs/Java/default/SumFunction2.java",
+      "code": "//Sum using function\n//Function with no arguments and no return value\n\nclass SumFunction2 {\n    void sum() {\n        int a = 5;\n        int b = 6;\n        int c = a + b;\n        System.out.println(\"Sum = \" + c);\n    }\n\n    public static void main(String[] args) {\n        SumFunction2 obj = new SumFunction2();\n        obj.sum();\n    }\n}\n",
+      "search": "sum using function function with no arguments and no return value class sumfunction2 void sum int a 5 int b 6 int c a b system out println sum c public static void main string args sumfunction2 obj new sumfunction2 obj sum"
+    },
+    {
+      "number": 27,
+      "file": "SumFunction3.java",
+      "path": "programs/Java/default/SumFunction3.java",
+      "code": "//Sum using function\n//Function with no arguments and return value\n\nclass SumFunction3 {\n    int sum() {\n        int a = 5;\n        int b = 6;\n        int c = a + b;\n        return c;\n    }\n\n    public static void main(String[] args) {\n        SumFunction3 obj = new SumFunction3();\n        int r = obj.sum();\n        System.out.println(\"Sum = \" + r);\n    }\n}\n",
+      "search": "sum using function function with no arguments and return value class sumfunction3 int sum int a 5 int b 6 int c a b return c public static void main string args sumfunction3 obj new sumfunction3 int r obj sum system out println sum r"
+    },
+    {
+      "number": 28,
+      "file": "SumFunction4.java",
+      "path": "programs/Java/default/SumFunction4.java",
+      "code": "//Sum using function\r\n//Function with arguments and return value\r\n\r\npublic class SumFunction4 {\r\n    static int sum(int a, int b) {\r\n        return a + b;\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        int result = sum(10, 20);\r\n        System.out.println(\"Sum = \" + result);\r\n    }\r\n}\r\n",
+      "search": "sum using function function with arguments and return value public class sumfunction4 static int sum int a int b return a b public static void main string args int result sum 10 20 system out println sum result"
+    },
+    {
+      "number": 29,
+      "file": "SumOf2Num.java",
+      "path": "programs/Java/default/SumOf2Num.java",
+      "code": "//Sum of two numbers\n//Sum of two float numbers in java\n\nimport java.util.Scanner;\npublic class SumOf2Num {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n      \n        System.out.print(\"Enter first number: \");\n        float num1 = sc.nextFloat();\n      \n        System.out.print(\"Enter second number: \");\n        float num2 = sc.nextFloat();\n      \n        float sum = num1 + num2;\n        System.out.println(\"Sum = \" + sum);\n        sc.close();\n    }\n}\n",
+      "search": "sum of two numbers sum of two float numbers in java import java util scanner public class sumof2num public static void main string args scanner sc new scanner system in system out print enter first number float num1 sc nextfloat system out print enter second number float num2 sc nextfloat float sum num1 num2 system out println sum sum sc close"
+    },
+    {
+      "number": 30,
+      "file": "SumOfTwoNumbers.java",
+      "path": "programs/Java/default/SumOfTwoNumbers.java",
+      "code": "//Sum of two numbers\n\nimport java.util.Scanner;\n\npublic class SumOfTwoNumbers {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n\n        System.out.print(\"Enter first number: \");\n        int num1 = sc.nextInt();\n\n        System.out.print(\"Enter second number: \");\n        int num2 = sc.nextInt();\n\n        int sum = num1 + num2;\n\n        System.out.println(\"Sum = \" + sum);\n\n        sc.close();\n    }\n}\n",
+      "search": "sum of two numbers import java util scanner public class sumoftwonumbers public static void main string args scanner sc new scanner system in system out print enter first number int num1 sc nextint system out print enter second number int num2 sc nextint int sum num1 num2 system out println sum sum sc close"
+    },
+    {
+      "number": 31,
+      "file": "SuperDemo.java",
+      "path": "programs/Java/default/SuperDemo.java",
+      "code": "// Super keyword\n\nclass Animal {\r\n    String name = \"Animal\";\r\n\r\n    Animal() {\r\n        System.out.println(\"Animal constructor\");\r\n    }\r\n\r\n    void sound() {\r\n        System.out.println(\"Animal makes a sound\");\r\n    }\r\n}\r\n\r\nclass Dog extends Animal {\r\n    String name = \"Dog\";\r\n\r\n    Dog() {\r\n        super();\r\n    }\r\n\r\n    void display() {\r\n        System.out.println(super.name);\r\n        super.sound();\r\n        System.out.println(name);\r\n    }\r\n}\r\n\r\npublic class SuperDemo {\r\n    public static void main(String[] args) {\r\n        Dog d = new Dog();\r\n        d.display();\r\n    }\r\n}",
+      "search": "super keyword class animal string name animal animal system out println animal constructor void sound system out println animal makes a sound class dog extends animal string name dog dog super void display system out println super name super sound system out println name public class superdemo public static void main string args dog d new dog d display"
+    },
+    {
+      "number": 32,
+      "file": "Switch.java",
+      "path": "programs/Java/default/Switch.java",
+      "code": "//Simple calculator\n//Java program to implement a simple calculator using switch\n\nimport java.util.Scanner;\npublic class CalculatorSwitch {\n  public static void main(String[] args) {\n    int a, b, choice, result;\n      Scanner sc = new Scanner(System.in);\n\n      System.out.print(\"Enter two numbers: \");\n      a = sc.nextInt();\n      b = sc.nextInt();\n\n      System.out.println(\"1 = Addition\");\n      System.out.println(\"2 = Product\");\n      System.out.println(\"3 = Subtraction\");\n      System.out.print(\"Enter your choice (1, 2, or 3): \");\n      choice = sc.nextInt();\n      \n    switch (choice) {\n            case 1:\n                result = a + b;\n                System.out.println(\"Sum of two numbers = \" + result);\n                break;\n\n            case 2:\n                result = a * b;\n                System.out.println(\"Product of two numbers = \" + result);\n                break;\n\n            case 3:\n                result = a - b;\n                System.out.println(\"Difference of two numbers = \" + result);\n                break;\n        \n            default:\n                System.out.println(\"Invalid choice\");\n        }\n\n        sc.close();\n    }\n}\n",
+      "search": "simple calculator java program to implement a simple calculator using switch import java util scanner public class calculatorswitch public static void main string args int a b choice result scanner sc new scanner system in system out print enter two numbers a sc nextint b sc nextint system out println 1 addition system out println 2 product system out println 3 subtraction system out print enter your choice 1 2 or 3 choice sc nextint switch choice case 1 result a b system out println sum of two numbers result break case 2 result a b system out println product of two numbers result break case 3 result a b system out println difference of two numbers result break default system out println invalid choice sc close"
+    },
+    {
+      "number": 33,
+      "file": "ThreadDemo.java",
+      "path": "programs/Java/default/ThreadDemo.java",
+      "code": "// Thread\n\nclass MyThread extends Thread {\r\n\r\n    @Override\r\n    public void run() {\r\n        for (int i = 1; i <= 5; i++) {\r\n            System.out.println(\"Thread: \" + i);\r\n        }\r\n    }\r\n}\r\n\r\npublic class ThreadDemo {\r\n    public static void main(String[] args) {\r\n        MyThread t1 = new MyThread();\r\n\r\n        t1.start(); // starts a new thread\r\n    }\r\n}",
+      "search": "thread class mythread extends thread override public void run for int i 1 i 5 i system out println thread i public class threaddemo public static void main string args mythread t1 new mythread t1 start starts a new thread"
+    },
+    {
+      "number": 34,
+      "file": "ThrowExample.java",
+      "path": "programs/Java/default/ThrowExample.java",
+      "code": "// Throw\n\nclass ThrowExample {\r\n    public static void main(String[] args) {\r\n        int age = 16;\r\n\r\n        if (age < 18) {\r\n            throw new ArithmeticException(\"Not eligible to vote\");\r\n        }\r\n\r\n        System.out.println(\"Eligible to vote\");\r\n    }\r\n}",
+      "search": "throw class throwexample public static void main string args int age 16 if age 18 throw new arithmeticexception not eligible to vote system out println eligible to vote"
+    },
+    {
+      "number": 35,
+      "file": "ThrowsExample.java",
+      "path": "programs/Java/default/ThrowsExample.java",
+      "code": "// Throws\n\nclass ThrowsExample {\r\n\r\n    static void checkAge(int age) throws Exception {\r\n        if (age < 18) {\r\n            throw new Exception(\"Not eligible to vote\");\r\n        }\r\n\r\n        System.out.println(\"Eligible to vote\");\r\n    }\r\n\r\n    public static void main(String[] args) {\r\n        try {\r\n            checkAge(16);\r\n        } catch (Exception e) {\r\n            System.out.println(e.getMessage());\r\n        }\r\n    }\r\n}",
+      "search": "throws class throwsexample static void checkage int age throws exception if age 18 throw new exception not eligible to vote system out println eligible to vote public static void main string args try checkage 16 catch exception e system out println e getmessage"
+    },
+    {
+      "number": 36,
+      "file": "TryCatchExample.java",
+      "path": "programs/Java/default/TryCatchExample.java",
+      "code": "//Try Catch\n\nclass TryCatchExample {\n    public static void main(String[] args) {\n        try {\n            int a = 10;\n            int b = 0;\n            int result = a / b;\n            System.out.println(result);\n        }\n        catch (ArithmeticException e) {\n            System.out.println(\"Cannot divide by zero\");\n        }\n        }\n}",
+      "search": "try catch class trycatchexample public static void main string args try int a 10 int b 0 int result a b system out println result catch arithmeticexception e system out println cannot divide by zero"
+    },
+    {
+      "number": 37,
+      "file": "VolumeDemo.java",
+      "path": "programs/Java/default/VolumeDemo.java",
+      "code": "//Method overloading\r\n//Volume of cube, cuboid, and cylinder using method overloading\r\n\r\nclass Volume_Calculation\r\n{\r\n    void volume(int s)\r\n    {\r\n        System.out.println(\"Volume of Cube = \" + (s * s * s));\r\n    }\r\n\r\n    void volume(int l, int b, int h) {\r\n        System.out.println(\"Volume of Cuboid = \" + (l * b * h));\r\n    }\r\n\r\n    void volume(float r, float h) {\r\n        System.out.println(\"Volume of Cylinder = \" + (3.14 * r * r * h));\r\n    }\r\n}\r\n\r\npublic class VolumeDemo {\r\n    public static void main(String[] args) {\r\n\r\n        Volume_Calculation v1 = new Volume_Calculation();\r\n\r\n        v1.volume(3);\r\n        v1.volume(3, 4, 5);\r\n        v1.volume(3.0f, 5.0f);\r\n    }\r\n}\r\n",
+      "search": "method overloading volume of cube cuboid and cylinder using method overloading class volume_calculation void volume int s system out println volume of cube s s s void volume int l int b int h system out println volume of cuboid l b h void volume float r float h system out println volume of cylinder 3 14 r r h public class volumedemo public static void main string args volume_calculation v1 new volume_calculation v1 volume 3 v1 volume 3 4 5 v1 volume 3 0f 5 0f"
     }
   ]
 }

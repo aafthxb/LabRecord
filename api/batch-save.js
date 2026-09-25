@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, order, deletions, edits } = req.body || {};
+  const { accessCode, folder, programFolder, order, deletions, edits } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -54,6 +54,12 @@ module.exports = async (req, res) => {
   const cleanFolder = sanitizeFolder(folder);
   if (!cleanFolder) {
     res.status(400).json({ error: "Invalid folder" });
+    return;
+  }
+
+  const cleanProgramFolder = sanitizeFolder(programFolder || "default");
+  if (!cleanProgramFolder) {
+    res.status(400).json({ error: "Invalid program folder" });
     return;
   }
 
@@ -188,7 +194,8 @@ module.exports = async (req, res) => {
       throw new Error(`Unable to read order.json: ${await orderRes.text()}`);
     }
 
-    currentOrderJson[cleanFolder] = cleanOrder;
+    const orderKey = `${cleanFolder}/${cleanProgramFolder}`;
+    currentOrderJson[orderKey] = cleanOrder;
 
     // 3. Build one tree with every change: each deletion becomes a
     //    tree entry with sha: null (removes the path). Each edit becomes
@@ -197,7 +204,7 @@ module.exports = async (req, res) => {
     //    plus the updated order.json content.
     const treeEntries = [];
     cleanDeletions.forEach((filename) => {
-      const programPath = `programs/${cleanFolder}/${filename}`;
+      const programPath = `programs/${cleanFolder}/${cleanProgramFolder}/${filename}`;
       if (existingPaths.has(programPath)) {
         treeEntries.push({
           path: programPath,
@@ -210,7 +217,7 @@ module.exports = async (req, res) => {
 
     finalEdits.forEach((e) => {
       treeEntries.push({
-        path: `programs/${cleanFolder}/${e.filename}`,
+        path: `programs/${cleanFolder}/${cleanProgramFolder}/${e.filename}`,
         mode: "100644",
         type: "blob",
         content: e.code,
@@ -251,7 +258,7 @@ module.exports = async (req, res) => {
       method: "POST",
       headers: { ...ghHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: `Editor: ${summary.join(", ")} in ${cleanFolder}/`,
+        message: `Editor: ${summary.join(", ")} in ${cleanFolder}/${cleanProgramFolder}/`,
         tree: treeData.sha,
         parents: [baseCommitSha],
       }),

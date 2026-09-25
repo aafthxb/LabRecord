@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, filename } = req.body || {};
+  const { accessCode, folder, programFolder, filename } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -31,6 +31,12 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const cleanProgramFolder = sanitizeFolder(programFolder || "default");
+  if (!cleanProgramFolder) {
+    res.status(400).json({ error: "Invalid program folder" });
+    return;
+  }
+
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || "main";
@@ -41,7 +47,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const filePath = `programs/${cleanFolder}/${cleanFilename}`;
+  const filePath = `programs/${cleanFolder}/${cleanProgramFolder}/${cleanFilename}`;
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath
     .split("/")
     .map(encodeURIComponent)

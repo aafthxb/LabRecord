@@ -1,104 +1,349 @@
 {
-  "C": [
+  "C/default": [
     {
       "number": 1,
-      "file": "6.c",
-      "path": "programs/C/6.c",
-      "title": "Sum of two numbers",
-      "description": "C program to add two numbers"
-    },
-    {
-      "number": 2,
-      "file": "7.c",
-      "path": "programs/C/7.c",
-      "title": "Even or Odd",
-      "description": "C program to check whether the number is even or odd"
-    },
-    {
-      "number": 3,
       "file": "1.c",
-      "path": "programs/C/1.c",
+      "path": "programs/C/default/1.c",
       "title": "Positive or Negative",
       "description": "C program to check whether the number is positive, negative or zero"
     },
     {
-      "number": 4,
-      "file": "2.c",
-      "path": "programs/C/2.c",
-      "title": "Largest of 3 numbers",
-      "description": "C program to find the largest of three numbers"
-    },
-    {
-      "number": 5,
-      "file": "3.c",
-      "path": "programs/C/3.c",
-      "title": "Multiplication Table",
-      "description": "C program to print multiplication table of a given number using for loop"
-    },
-    {
-      "number": 6,
-      "file": "4.c",
-      "path": "programs/C/4.c",
-      "title": "Multiplication Table",
-      "description": "C program to print multiplication table of a given number using while loop"
-    },
-    {
-      "number": 7,
-      "file": "5.c",
-      "path": "programs/C/5.c",
-      "title": "Simple Calculator",
-      "description": "C program to implement a simple calculator using switch"
-    },
-    {
-      "number": 8,
-      "file": "8.c",
-      "path": "programs/C/8.c",
-      "title": "Pyramid Pattern",
-      "description": "C program to print pyramid pattern using nested for loop"
-    },
-    {
-      "number": 9,
-      "file": "9.c",
-      "path": "programs/C/9.c",
-      "title": "Sum using function",
-      "description": "Function with argument and without return value"
-    },
-    {
-      "number": 10,
+      "number": 2,
       "file": "10.c",
-      "path": "programs/C/10.c",
+      "path": "programs/C/default/10.c",
       "title": "Sum using function",
       "description": "Function without argument and without return value"
     },
     {
-      "number": 11,
+      "number": 3,
       "file": "11.c",
-      "path": "programs/C/11.c",
+      "path": "programs/C/default/11.c",
       "title": "Sum using function",
       "description": "Function without argument and with return value"
     },
     {
-      "number": 12,
+      "number": 4,
       "file": "12.c",
-      "path": "programs/C/12.c",
+      "path": "programs/C/default/12.c",
       "title": "Sum using function",
       "description": "Function with argument and with return value"
+    },
+    {
+      "number": 5,
+      "file": "2.c",
+      "path": "programs/C/default/2.c",
+      "title": "Largest of 3 numbers",
+      "description": "C program to find the largest of three numbers"
+    },
+    {
+      "number": 6,
+      "file": "3.c",
+      "path": "programs/C/default/3.c",
+      "title": "Multiplication Table",
+      "description": "C program to print multiplication table of a given number using for loop"
+    },
+    {
+      "number": 7,
+      "file": "4.c",
+      "path": "programs/C/default/4.c",
+      "title": "Multiplication Table",
+      "description": "C program to print multiplication table of a given number using while loop"
+    },
+    {
+      "number": 8,
+      "file": "5.c",
+      "path": "programs/C/default/5.c",
+      "title": "Simple Calculator",
+      "description": "C program to implement a simple calculator using switch"
+    },
+    {
+      "number": 9,
+      "file": "6.c",
+      "path": "programs/C/default/6.c",
+      "title": "Sum of two numbers",
+      "description": "C program to add two numbers"
+    },
+    {
+      "number": 10,
+      "file": "7.c",
+      "path": "programs/C/default/7.c",
+      "title": "Even or Odd",
+      "description": "C program to check whether the number is even or odd"
+    },
+    {
+      "number": 11,
+      "file": "8.c",
+      "path": "programs/C/default/8.c",
+      "title": "Pyramid Pattern",
+      "description": "C program to print pyramid pattern using nested for loop"
+    },
+    {
+      "number": 12,
+      "file": "9.c",
+      "path": "programs/C/default/9.c",
+      "title": "Sum using function",
+      "description": "Function with argument and without return value"
     }
   ],
-  "Java": [
+  "Java/default": [
     {
       "number": 1,
+      "file": "Addnumberdemo.java",
+      "path": "programs/Java/default/Addnumberdemo.java",
+      "title": "Method overloading",
+      "description": "Addition of two numbers and three numbers using method overloading"
+    },
+    {
+      "number": 2,
+      "file": "AnimalDemo.java",
+      "path": "programs/Java/default/AnimalDemo.java",
+      "title": "Abstract Class",
+      "description": ""
+    },
+    {
+      "number": 3,
+      "file": "BufferedReaderExample.java",
+      "path": "programs/Java/default/BufferedReaderExample.java",
+      "title": "Buffered Reader",
+      "description": ""
+    },
+    {
+      "number": 4,
+      "file": "Circledemo.java",
+      "path": "programs/Java/default/Circledemo.java",
+      "title": "Area of circle",
+      "description": "Area of circle using class in java"
+    },
+    {
+      "number": 5,
+      "file": "ConstructorDemo.java",
+      "path": "programs/Java/default/ConstructorDemo.java",
+      "title": "Constructor Overloading",
+      "description": ""
+    },
+    {
+      "number": 6,
+      "file": "EMPDemo.java",
+      "path": "programs/Java/default/EMPDemo.java",
+      "title": "Multilevel inheritance",
+      "description": ""
+    },
+    {
+      "number": 7,
+      "file": "Employeedemo.java",
+      "path": "programs/Java/default/Employeedemo.java",
+      "title": "Employee details",
+      "description": "Employee details using class in java"
+    },
+    {
+      "number": 8,
+      "file": "EmployeeDemodetails.java",
+      "path": "programs/Java/default/EmployeeDemodetails.java",
+      "title": "Employee Details",
+      "description": "Details of multiple employees using for loop"
+    },
+    {
+      "number": 9,
+      "file": "EMPpers.java",
+      "path": "programs/Java/default/EMPpers.java",
+      "title": "Single inheritance",
+      "description": ""
+    },
+    {
+      "number": 10,
+      "file": "FileHandling.java",
+      "path": "programs/Java/default/FileHandling.java",
+      "title": "File handling",
+      "description": ""
+    },
+    {
+      "number": 11,
+      "file": "FinallyExample.java",
+      "path": "programs/Java/default/FinallyExample.java",
+      "title": "Finally",
+      "description": ""
+    },
+    {
+      "number": 12,
+      "file": "Greatest.java",
+      "path": "programs/Java/default/Greatest.java",
+      "title": "Largest of 3 numbers",
+      "description": "Java program to find the largest of three numbers"
+    },
+    {
+      "number": 13,
+      "file": "InterfaceDemo.java",
+      "path": "programs/Java/default/InterfaceDemo.java",
+      "title": "Interface",
+      "description": ""
+    },
+    {
+      "number": 14,
+      "file": "MultipleInheritanceDemo.java",
+      "path": "programs/Java/default/MultipleInheritanceDemo.java",
+      "title": "Multiple Inheritance through Interface",
+      "description": ""
+    },
+    {
+      "number": 15,
+      "file": "MultiplicationTable.java",
+      "path": "programs/Java/default/MultiplicationTable.java",
+      "title": "Multiplication Table",
+      "description": ""
+    },
+    {
+      "number": 16,
+      "file": "OddEven.java",
+      "path": "programs/Java/default/OddEven.java",
+      "title": "Odd or Even",
+      "description": ""
+    },
+    {
+      "number": 17,
+      "file": "OverrideDemo.java",
+      "path": "programs/Java/default/OverrideDemo.java",
+      "title": "Method overriding",
+      "description": ""
+    },
+    {
+      "number": 18,
+      "file": "Package.java",
+      "path": "programs/Java/default/Package.java",
+      "title": "Package",
+      "description": ""
+    },
+    {
+      "number": 19,
+      "file": "PositiveNegative.java",
+      "path": "programs/Java/default/PositiveNegative.java",
+      "title": "Positive or Negative",
+      "description": ""
+    },
+    {
+      "number": 20,
+      "file": "Pyramid.java",
+      "path": "programs/Java/default/Pyramid.java",
+      "title": "Pyramid Pattern",
+      "description": "Java program to print pyramid pattern using nested for loop"
+    },
+    {
+      "number": 21,
+      "file": "Rectdemo.java",
+      "path": "programs/Java/default/Rectdemo.java",
+      "title": "Area of rectangle",
+      "description": "Area of rectangle using class in java"
+    },
+    {
+      "number": 22,
+      "file": "RectDemoConstructor.java",
+      "path": "programs/Java/default/RectDemoConstructor.java",
+      "title": "Constructor parameterized",
+      "description": ""
+    },
+    {
+      "number": 23,
+      "file": "RectDemoConstructordefault.java",
+      "path": "programs/Java/default/RectDemoConstructordefault.java",
+      "title": "Constructor default",
+      "description": ""
+    },
+    {
+      "number": 24,
+      "file": "Studentdemo.java",
+      "path": "programs/Java/default/Studentdemo.java",
+      "title": "Student details",
+      "description": "Student details using class in java"
+    },
+    {
+      "number": 25,
+      "file": "SumFunction1.java",
+      "path": "programs/Java/default/SumFunction1.java",
+      "title": "Sum using function",
+      "description": "Function with arguments and no return value"
+    },
+    {
+      "number": 26,
+      "file": "SumFunction2.java",
+      "path": "programs/Java/default/SumFunction2.java",
+      "title": "Sum using function",
+      "description": "Function with no arguments and no return value"
+    },
+    {
+      "number": 27,
+      "file": "SumFunction3.java",
+      "path": "programs/Java/default/SumFunction3.java",
+      "title": "Sum using function",
+      "description": "Function with no arguments and return value"
+    },
+    {
+      "number": 28,
+      "file": "SumFunction4.java",
+      "path": "programs/Java/default/SumFunction4.java",
+      "title": "Sum using function",
+      "description": "Function with arguments and return value"
+    },
+    {
+      "number": 29,
+      "file": "SumOf2Num.java",
+      "path": "programs/Java/default/SumOf2Num.java",
+      "title": "Sum of two numbers",
+      "description": "Sum of two float numbers in java"
+    },
+    {
+      "number": 30,
       "file": "SumOfTwoNumbers.java",
-      "path": "programs/Java/SumOfTwoNumbers.java",
+      "path": "programs/Java/default/SumOfTwoNumbers.java",
       "title": "Sum of two numbers",
       "description": ""
     },
     {
-      "number": 2,
-      "file": "Main.java",
-      "path": "programs/Java/Main.java",
-      "title": "package use",
+      "number": 31,
+      "file": "SuperDemo.java",
+      "path": "programs/Java/default/SuperDemo.java",
+      "title": "Super keyword",
       "description": ""
+    },
+    {
+      "number": 32,
+      "file": "Switch.java",
+      "path": "programs/Java/default/Switch.java",
+      "title": "Simple calculator",
+      "description": "Java program to implement a simple calculator using switch"
+    },
+    {
+      "number": 33,
+      "file": "ThreadDemo.java",
+      "path": "programs/Java/default/ThreadDemo.java",
+      "title": "Thread",
+      "description": ""
+    },
+    {
+      "number": 34,
+      "file": "ThrowExample.java",
+      "path": "programs/Java/default/ThrowExample.java",
+      "title": "Throw",
+      "description": ""
+    },
+    {
+      "number": 35,
+      "file": "ThrowsExample.java",
+      "path": "programs/Java/default/ThrowsExample.java",
+      "title": "Throws",
+      "description": ""
+    },
+    {
+      "number": 36,
+      "file": "TryCatchExample.java",
+      "path": "programs/Java/default/TryCatchExample.java",
+      "title": "Try Catch",
+      "description": ""
+    },
+    {
+      "number": 37,
+      "file": "VolumeDemo.java",
+      "path": "programs/Java/default/VolumeDemo.java",
+      "title": "Method overloading",
+      "description": "Volume of cube, cuboid, and cylinder using method overloading"
     }
   ]
 }

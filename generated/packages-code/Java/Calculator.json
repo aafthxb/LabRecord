@@ -1,0 +1,9 @@
+[
+  {
+    "number": 1,
+    "file": "Addition.java",
+    "path": "programs/Java/packages/Calculator/Addition.java",
+    "code": "// Addition\n// Package to add 2 or 3 numbers\n\npackage Calculator;\n\npublic class Addition {\n    private int result;\n\n    // Constructor for 2 numbers\n    public Addition(int a, int b) {\n        this.result = a + b;\n    }\n\n    // Constructor for 3 numbers\n    public Addition(int a, int b, int c) {\n        this.result = a + b + c;\n    }\n\n    // Method to get the calculated result\n    public int Add() {\n        return this.result;\n    }\n}\n",
+    "search": "addition package to add 2 or 3 numbers package calculator public class addition private int result constructor for 2 numbers public addition int a int b this result a b constructor for 3 numbers public addition int a int b int c this result a b c method to get the calculated result public int add return this result"
+  }
+]

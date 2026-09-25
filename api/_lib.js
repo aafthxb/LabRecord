@@ -28,6 +28,39 @@ function sanitizeFolder(folder) {
   return folder;
 }
 
+// Reserved program-folder slugs — a custom folder can never collide
+// with these, since "default" and "packages" already mean something
+// specific on disk (programs/<Lang>/default/, programs/<Lang>/packages/).
+const RESERVED_FOLDER_SLUGS = new Set(["default", "packages"]);
+
+// Turns a user-supplied display name into a URL/path-safe slug:
+// lowercase, spaces/punctuation collapsed to single hyphens, leading/
+// trailing hyphens trimmed. Mirrors the rule described in the custom
+// folders spec ("lowercase, spaces/punctuation -> hyphens, collapse/
+// trim").
+function slugifyFolderName(name) {
+  if (typeof name !== "string") return "";
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// A program-folder slug is just a directory name — same rules as
+// sanitizeFolder (no slashes, no traversal) plus the reserved-word
+// check, used by create/update/delete-folder.
+function isValidFolderSlug(slug) {
+  return (
+    typeof slug === "string" &&
+    slug.length > 0 &&
+    slug.length <= 100 &&
+    !/[\/\\]/.test(slug) &&
+    !slug.includes("..") &&
+    !RESERVED_FOLDER_SLUGS.has(slug)
+  );
+}
+
 function loadLanguages() {
   // languages.json lives in scripts/ (it's a build-time config file, not
   // a published asset) — these two candidates are just two ways a Vercel
@@ -65,4 +98,7 @@ module.exports = {
   sanitizeFolder,
   loadLanguages,
   findLanguageForFolder,
+  slugifyFolderName,
+  isValidFolderSlug,
+  RESERVED_FOLDER_SLUGS,
 };

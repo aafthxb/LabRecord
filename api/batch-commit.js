@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, files } = req.body || {};
+  const { accessCode, folder, programFolder, files } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -39,6 +39,12 @@ module.exports = async (req, res) => {
   const cleanFolder = sanitizeFolder(folder);
   if (!cleanFolder) {
     res.status(400).json({ error: "Invalid folder" });
+    return;
+  }
+
+  const cleanProgramFolder = sanitizeFolder(programFolder || "default");
+  if (!cleanProgramFolder) {
+    res.status(400).json({ error: "Invalid program folder" });
     return;
   }
 
@@ -126,7 +132,7 @@ module.exports = async (req, res) => {
     //    contents — catches races / drift that trusting order.json
     //    alone could miss.
     const dirRes = await fetch(
-      `${apiBase}/contents/programs/${encodeURIComponent(cleanFolder)}?ref=${encodeURIComponent(branch)}`,
+      `${apiBase}/contents/programs/${encodeURIComponent(cleanFolder)}/${encodeURIComponent(cleanProgramFolder)}?ref=${encodeURIComponent(branch)}`,
       { headers: ghHeaders }
     );
 
@@ -146,7 +152,7 @@ module.exports = async (req, res) => {
 
     if (conflicts.length) {
       res.status(409).json({
-        error: `These filenames already exist in ${cleanFolder}/: ${conflicts.join(", ")}. Rename them and try again.`,
+        error: `These filenames already exist in ${cleanFolder}/${cleanProgramFolder}/: ${conflicts.join(", ")}. Rename them and try again.`,
       });
       return;
     }
@@ -191,22 +197,23 @@ module.exports = async (req, res) => {
       throw new Error(`Unable to read order.json: ${await orderRes.text()}`);
     }
 
-    const existingOrder = Array.isArray(currentOrderJson[cleanFolder])
-      ? currentOrderJson[cleanFolder]
+    const orderKey = `${cleanFolder}/${cleanProgramFolder}`;
+    const existingOrder = Array.isArray(currentOrderJson[orderKey])
+      ? currentOrderJson[orderKey]
       : [];
 
     const newOrder = existingOrder.concat(
       cleanFiles.map((f) => f.filename).filter((name) => !existingOrder.includes(name))
     );
 
-    currentOrderJson[cleanFolder] = newOrder;
+    currentOrderJson[orderKey] = newOrder;
 
     // 4. Build one tree with every new file's blob plus the updated
     //    order.json — the Git Data API accepts UTF-8 `content`
     //    directly on a tree entry and creates the blob for us, no
     //    separate blob-creation calls needed.
     const treeEntries = cleanFiles.map((f) => ({
-      path: `programs/${cleanFolder}/${f.filename}`,
+      path: `programs/${cleanFolder}/${cleanProgramFolder}/${f.filename}`,
       mode: "100644",
       type: "blob",
       content: f.code,
@@ -237,7 +244,7 @@ module.exports = async (req, res) => {
       method: "POST",
       headers: { ...ghHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: `Editor: add ${cleanFiles.length} file${cleanFiles.length === 1 ? "" : "s"} to ${cleanFolder}/`,
+        message: `Editor: add ${cleanFiles.length} file${cleanFiles.length === 1 ? "" : "s"} to ${cleanFolder}/${cleanProgramFolder}/`,
         tree: treeData.sha,
         parents: [baseCommitSha],
       }),

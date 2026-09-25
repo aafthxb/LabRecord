@@ -12,6 +12,7 @@ const State = {
   languageIndex: [],    // generated/language-index.json content
   searchIndex: {},      // generated/search-index.json content (for duplicate checks against existing filenames)
   selectedFolder: null, // e.g. "C" — also doubles as the package's language folder in package mode
+  programFolder: null,  // program mode only: the program-folder slug within selectedFolder, e.g. "default" or "final-set"
   selectedLangEntry: null, // matching entry from State.languages
   filename: "",
   images: [],           // [{ file, url, id }]
@@ -304,6 +305,7 @@ async function enterWizard() {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode"); // "package" | "package-file" | null (= add program)
   const folderParam = params.get("folder");
+  const programFolderParam = params.get("programFolder"); // e.g. "default" or "final-set"
 
   if (mode === "package") {
     await enterPackageWizard(folderParam);
@@ -333,6 +335,7 @@ async function enterWizard() {
 
   if (presetLang) {
     State.skippedStep1 = true;
+    State.programFolder = programFolderParam || "default";
     presetLanguage(presetLang);
   } else {
     State.skippedStep1 = false;
@@ -381,7 +384,8 @@ function goHome() {
     window.location.href = `index.html?${params.toString()}`;
     return;
   }
-  window.location.href = `index.html?folder=${encodeURIComponent(folder)}`;
+  const params = new URLSearchParams({ folder, programFolder: State.programFolder || "default" });
+  window.location.href = `index.html?${params.toString()}`;
 }
 
 // Same idea as goHome(), but used only right after a package was
@@ -510,6 +514,12 @@ function selectLanguage(lang, e) {
 
   State.selectedFolder = lang.folder;
   State.selectedLangEntry = langEntry;
+  // Reached via step 1 directly (no folder/programFolder preset from
+  // the site) — there's no in-wizard program-folder picker, so this
+  // always lands in Default. The site's own "+" always presets both
+  // params instead (see enterWizard()), so this path is really only
+  // hit navigating to editor.html by hand.
+  State.programFolder = State.programFolder || "default";
   updateEditorLanguageUI(lang);
   updateBatchFileInputHints();
 
@@ -542,6 +552,13 @@ function initStep2() {
   updateImageInputStatus();
 }
 
+// Program mode's composite key into State.searchIndex — matches how
+// generated/search-index.json is keyed after generation (see
+// scripts/generate-index.js): "<languageFolder>/<programFolderSlug>".
+function programFolderKey() {
+  return `${State.selectedFolder}/${State.programFolder || "default"}`;
+}
+
 // The set of filenames a new filename must not collide with — an
 // existing program in the folder (program mode), a file already added
 // to this not-yet-committed package (package mode), or either of those
@@ -553,7 +570,7 @@ function existingFilesInFolder() {
     const existing = State.wizardKind === "package-file" ? State.pkgFileExistingNames : [];
     return [...pending, ...existing];
   }
-  const list = State.searchIndex[State.selectedFolder] || [];
+  const list = State.searchIndex[programFolderKey()] || [];
   return list.map((p) => p.file.toLowerCase());
 }
 
@@ -588,7 +605,10 @@ function validateFilename() {
   const dup = existingFilesInFolder().includes(raw.toLowerCase());
 
   if (dup) {
-    statusEl.textContent = `"${raw}" already exists in ${State.selectedFolder}/. Choose a different name.`;
+    const where = (State.wizardKind === "package" || State.wizardKind === "package-file")
+      ? `${State.selectedFolder}/`
+      : `${State.selectedFolder}/${State.programFolder || "default"}/`;
+    statusEl.textContent = `"${raw}" already exists in ${where}. Choose a different name.`;
     statusEl.classList.add("banner-error");
     statusEl.style.display = "block";
     updateNextEnabled();
@@ -1391,6 +1411,7 @@ async function saveProgram() {
       body: JSON.stringify({
         accessCode: getAccessCode(),
         folder: State.selectedFolder,
+        programFolder: State.programFolder || "default",
         filename: State.filename,
         code: $("code-textarea").value,
       }),
@@ -1404,10 +1425,10 @@ async function saveProgram() {
 
     // Keep the local file list in sync so the next duplicate-filename
     // check sees this file without needing a refetch.
-    if (!State.searchIndex[State.selectedFolder]) {
-      State.searchIndex[State.selectedFolder] = [];
+    if (!State.searchIndex[programFolderKey()]) {
+      State.searchIndex[programFolderKey()] = [];
     }
-    State.searchIndex[State.selectedFolder].push({ file: State.filename });
+    State.searchIndex[programFolderKey()].push({ file: State.filename });
 
     saveBtn.textContent = "✓ SAVED!";
 
@@ -1455,6 +1476,7 @@ async function saveBatchProgram() {
       body: JSON.stringify({
         accessCode: getAccessCode(),
         folder: State.selectedFolder,
+        programFolder: State.programFolder || "default",
         files: State.batchFiles.map((f) => ({
           filename: f.filename.trim(),
           code: f.code,
@@ -1468,11 +1490,11 @@ async function saveBatchProgram() {
       throw new Error(data.error || "Unknown error");
     }
 
-    if (!State.searchIndex[State.selectedFolder]) {
-      State.searchIndex[State.selectedFolder] = [];
+    if (!State.searchIndex[programFolderKey()]) {
+      State.searchIndex[programFolderKey()] = [];
     }
     (data.committed || []).forEach((filename) => {
-      State.searchIndex[State.selectedFolder].push({ file: filename });
+      State.searchIndex[programFolderKey()].push({ file: filename });
     });
 
     saveBtn.textContent = "✓ SAVED!";

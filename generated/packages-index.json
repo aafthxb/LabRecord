@@ -1,21 +1,21 @@
 [
   {
-    "folder": "insystems",
+    "folder": "Calculator",
     "languageFolder": "Java",
-    "name": "insystems",
+    "name": "Calculator",
     "description": "",
     "language": "java",
     "compiler": "java",
     "prism": "java",
     "fileCount": 1,
-    "searchText": "insystems gumball gumball java",
+    "searchText": "calculator addition addition java package to add 2 or 3 numbers",
     "files": [
       {
         "number": 1,
-        "file": "Gumball.java",
-        "path": "programs/Java/packages/insystems/Gumball.java",
-        "title": "Gumball",
-        "description": ""
+        "file": "Addition.java",
+        "path": "programs/Java/packages/Calculator/Addition.java",
+        "title": "Addition",
+        "description": "Package to add 2 or 3 numbers"
       }
     ]
   }

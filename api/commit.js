@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, filename, code, commitMessage } = req.body || {};
+  const { accessCode, folder, programFolder, filename, code, commitMessage } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -33,6 +33,15 @@ module.exports = async (req, res) => {
   const cleanFolder = sanitizeFolder(folder);
   if (!cleanFolder) {
     res.status(400).json({ error: "Invalid folder" });
+    return;
+  }
+
+  // Which program-folder (Default or a custom folder) this file
+  // belongs to, e.g. "default" or "final-set" — defaults to "default"
+  // so older callers that don't send it yet still work.
+  const cleanProgramFolder = sanitizeFolder(programFolder || "default");
+  if (!cleanProgramFolder) {
+    res.status(400).json({ error: "Invalid program folder" });
     return;
   }
 
@@ -74,7 +83,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const filePath = `programs/${cleanFolder}/${cleanFilename}`;
+  const filePath = `programs/${cleanFolder}/${cleanProgramFolder}/${cleanFilename}`;
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath
     .split("/")
     .map(encodeURIComponent)

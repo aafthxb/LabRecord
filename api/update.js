@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { accessCode, folder, filename, code } = req.body || {};
+  const { accessCode, folder, programFolder, filename, code } = req.body || {};
 
   if (!process.env.EDITOR_ACCESS_CODE || accessCode !== process.env.EDITOR_ACCESS_CODE) {
     res.status(401).json({ error: "Invalid access code" });
@@ -39,6 +39,12 @@ module.exports = async (req, res) => {
   const cleanFolder = sanitizeFolder(folder);
   if (!cleanFolder) {
     res.status(400).json({ error: "Invalid folder" });
+    return;
+  }
+
+  const cleanProgramFolder = sanitizeFolder(programFolder || "default");
+  if (!cleanProgramFolder) {
+    res.status(400).json({ error: "Invalid program folder" });
     return;
   }
 
@@ -60,7 +66,7 @@ module.exports = async (req, res) => {
   // No languages.json / extension re-validation here — this endpoint
   // never renames a file, so whatever extension it already has was
   // already validated when it was created.
-  const filePath = `programs/${cleanFolder}/${cleanFilename}`;
+  const filePath = `programs/${cleanFolder}/${cleanProgramFolder}/${cleanFilename}`;
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath
     .split("/")
     .map(encodeURIComponent)
@@ -100,7 +106,7 @@ module.exports = async (req, res) => {
       method: "PUT",
       headers: { ...ghHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: `Editor: update ${cleanFilename} in ${cleanFolder}/`,
+        message: `Editor: update ${cleanFilename} in ${cleanFolder}/${cleanProgramFolder}/`,
         content: contentBase64,
         sha: existingData.sha,
         branch,

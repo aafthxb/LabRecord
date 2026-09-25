@@ -139,18 +139,22 @@ function collapseAllCards(folder) {
     });
 }
 
-function openFolder(folder, event) {
+function openPicker(languageFolder, event) {
     runWithTactileDelay(event, () => {
 
-        // Leaving whichever folder (if any) was open before this one —
-        // collapse its cards now so they're reset if the user comes back.
-        if (App.currentFolder && App.currentFolder !== folder) {
+        // Leaving whichever program-folder/packages view (if any) was
+        // open before this — collapse its cards now so they're reset
+        // if the user comes back.
+        if (App.currentFolder) {
             collapseAllCards(App.currentFolder);
-            if (App.folderMode === "packages") collapseAllPackageCards(App.currentFolder);
+        }
+        if (App.currentView === "packages" && App.currentLanguage) {
+            collapseAllPackageCards(App.currentLanguage);
         }
 
-        App.currentFolder = folder;
-        App.folderMode = "programs";
+        App.currentLanguage = languageFolder;
+        App.currentFolder = null;
+        App.currentView = "picker";
         App.packages.openPackage = null;
 
         document.getElementById("home-view").style.display = "none";
@@ -158,33 +162,86 @@ function openFolder(folder, event) {
         document.getElementById("theme-btn").style.display = "none";
         document.getElementById("editor-btn").style.display = "none";
 
-        // Hide all language containers
         document.querySelectorAll(".view-container").forEach(container => {
             container.classList.remove("active");
         });
 
-        const activeContainer = document.getElementById(`${folder}-container`);
+        const pickerContainer = ensureFolderPickerContainer(languageFolder);
 
-        if (!activeContainer) return;
+        pickerContainer.classList.add("active");
+        pickerContainer.classList.add("view-enter");
 
-        // Build this folder's program cards on first open only.
-        // Building every language upfront (during init) was what caused
-        // the noticeable delay, especially for larger folders like C/Java.
-        if (!App.builtFolders.has(folder)) {
-            const language = App.languageIndex.find(l => l.folder === folder);
-            loadFolder(folder, `${folder}-container`, language?.compiler);
-            App.builtFolders.add(folder);
+        pickerContainer.addEventListener(
+            "animationend",
+            () => pickerContainer.classList.remove("view-enter"),
+            { once: true }
+        );
+
+        const language = App.languageIndex.find(l => l.folder === languageFolder);
+
+        if (language) {
+            document.getElementById("page-title").textContent =
+                `${language.displayName.toUpperCase()} FOLDERS`;
+
+            document.getElementById("page-subtitle").textContent =
+                language.description || "Choose a folder to open.";
+        }
+
+        refreshEditUI();
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+}
+
+// Opens a specific program-folder's program list — Default or a custom
+// folder — inside `languageFolder`. `key` ("<languageFolder>/<slug>")
+// is what App.metadata / App.cards / App.edit.pending / the container's
+// id are all keyed by, matching how generated/order.json,
+// search-index.json and code-index.json are keyed after generation.
+function openProgramFolder(languageFolder, slug, event) {
+    runWithTactileDelay(event, () => {
+
+        const key = `${languageFolder}/${slug}`;
+
+        if (App.currentFolder && App.currentFolder !== key) {
+            collapseAllCards(App.currentFolder);
+        }
+
+        App.currentLanguage = languageFolder;
+        App.currentFolder = key;
+        App.currentView = "programs";
+        App.packages.openPackage = null;
+
+        document.getElementById("home-view").style.display = "none";
+        document.getElementById("back-btn").style.display = "inline-block";
+        document.getElementById("theme-btn").style.display = "none";
+        document.getElementById("editor-btn").style.display = "none";
+
+        document.querySelectorAll(".view-container").forEach(container => {
+            container.classList.remove("active");
+        });
+
+        let activeContainer = document.getElementById(`${key}-container`);
+
+        if (!activeContainer) {
+            activeContainer = document.createElement("div");
+            activeContainer.id = `${key}-container`;
+            activeContainer.className = "view-container";
+            document.getElementById("language-views").appendChild(activeContainer);
+        }
+
+        // Build this folder's program cards on first open only — same
+        // lazy-build reasoning as before custom folders existed, just
+        // per program-folder now instead of per language.
+        if (!App.builtFolders.has(key)) {
+            const language = App.languageIndex.find(l => l.folder === languageFolder);
+            loadFolder(key, `${key}-container`, language?.compiler);
+            App.builtFolders.add(key);
         } else {
-            // Cards for this folder already exist in the DOM from a
-            // previous visit. If a card was left expanded in its
-            // editable (textarea) view and editor mode was then
-            // switched off while a *different* folder (or the home
-            // screen) was current, that card never got told to switch
-            // back — setEditMode() only re-syncs whichever folder is
-            // open at the moment the mode toggles. Re-syncing every
-            // card here, on every open, covers that case regardless of
-            // what happened while this folder was in the background.
-            (App.cards[folder] || []).forEach(card => {
+            (App.cards[key] || []).forEach(card => {
                 card._editHandle?.syncMode();
             });
         }
@@ -198,17 +255,19 @@ function openFolder(folder, event) {
             { once: true }
         );
 
-        const language = App.languageIndex.find(l => l.folder === folder);
+        const language = App.languageIndex.find(l => l.folder === languageFolder);
+        const folderMeta = (App.foldersIndex[languageFolder] || []).find(f => f.slug === slug);
+        const displayName = language?.displayName || languageFolder;
+        const folderLabel = folderMeta?.name || slug;
 
-        if (language) {
-            document.getElementById("page-title").textContent =
-                `${language.displayName.toUpperCase()} PROGRAMS`;
+        document.getElementById("page-title").textContent =
+            slug === "default"
+                ? `${displayName.toUpperCase()} PROGRAMS`
+                : `${displayName.toUpperCase()} · ${folderLabel.toUpperCase()}`;
 
-            document.getElementById("page-subtitle").textContent =
-                language.description || "";
-        }
+        document.getElementById("page-subtitle").textContent =
+            folderMeta?.description || language?.description || "";
 
-        updateFolderModeToggle();
         refreshEditUI();
 
         window.scrollTo({
@@ -218,77 +277,304 @@ function openFolder(folder, event) {
     });
 }
 
-// Syncs the packages/programs toggle button's visibility, icon, title
-// and "on" state to App.currentFolder / App.folderMode. Hidden entirely
-// on the home screen and while a specific package is open (BACK already
-// covers getting back to the packages list from there).
-function updateFolderModeToggle() {
-    const toggle = document.getElementById("folder-mode-toggle");
+// Creates (once, lazily) and returns the folder-picker container for a
+// given language — rebuilt on every open (cheap: a handful of cards,
+// no drag/expand state to preserve) so a folder just created, renamed
+// or deleted always shows up immediately.
+function ensureFolderPickerContainer(languageFolder) {
+    let container = document.getElementById(`picker-${languageFolder}-container`);
 
-    if (!App.currentFolder || App.packages.openPackage) {
-        toggle.style.display = "none";
-        return;
+    if (!container) {
+        container = document.createElement("div");
+        container.id = `picker-${languageFolder}-container`;
+        container.className = "view-container";
+        document.getElementById("language-views").appendChild(container);
     }
 
-    toggle.style.display = "flex";
+    buildFolderPicker(container, languageFolder);
 
-    const inPackages = App.folderMode === "packages";
-    toggle.classList.toggle("is-active", inPackages);
-    toggle.querySelector(".theme-icon").textContent = inPackages ? "📄" : "📦";
-    toggle.title = inPackages ? "View programs" : "View packages";
-    toggle.setAttribute("aria-label", inPackages ? "Switch to programs" : "Switch to packages");
+    return container;
 }
 
-// Flips the currently open language folder between its Programs view
-// and its Packages view — same folder, same [ BACK ] destination
-// (home), just a different sub-view swapped in underneath the header.
-function toggleFolderMode(event) {
-    const folder = App.currentFolder;
-    if (!folder || App.packages.openPackage) return;
+function buildFolderPicker(container, languageFolder) {
+    container.innerHTML = "";
 
-    runWithTactileDelay(event, () => {
-        if (App.folderMode === "packages") {
-            collapseAllPackageCards(folder);
-            showProgramsView(folder);
-        } else {
-            collapseAllCards(folder);
-            showPackagesListView(folder);
+    const grid = document.createElement("div");
+    grid.className = "home-grid";
+    container.appendChild(grid);
+
+    const folders = App.foldersIndex[languageFolder] || [];
+
+    folders.forEach((pf, index) => {
+
+        const card = document.createElement("div");
+        card.className = "folder-card card-enter";
+        card.style.setProperty("--stagger-index", index);
+
+        card.addEventListener(
+            "animationend",
+            () => card.classList.remove("card-enter"),
+            { once: true }
+        );
+
+        card.onclick = (event) => {
+            if (event.target.closest(".picker-card-actions")) return;
+            openProgramFolder(languageFolder, pf.slug, event);
+        };
+
+        const countLabel = `${pf.count} program${pf.count === 1 ? "" : "s"}`;
+
+        card.innerHTML = `
+            <h2 class="folder-card-title">${escapeHtml(pf.name.toUpperCase())}</h2>
+            <p class="folder-card-desc">${pf.description ? escapeHtml(pf.description) + " — " : ""}${countLabel}</p>
+        `;
+
+        if (App.edit.unlocked) {
+            const actions = document.createElement("div");
+            actions.className = "picker-card-actions";
+            actions.style.marginTop = "12px";
+            actions.style.display = "flex";
+            actions.style.gap = "8px";
+
+            const renameBtn = document.createElement("button");
+            renameBtn.type = "button";
+            renameBtn.className = "action-btn";
+            renameBtn.textContent = "RENAME";
+            renameBtn.onclick = (e) => {
+                e.stopPropagation();
+                renameFolderPrompt(languageFolder, pf.slug, pf.name, pf.description);
+            };
+            actions.appendChild(renameBtn);
+
+            if (pf.slug !== "default") {
+                const deleteBtn = document.createElement("button");
+                deleteBtn.type = "button";
+                deleteBtn.className = "action-btn";
+                deleteBtn.textContent = "DELETE";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteFolderPrompt(languageFolder, pf.slug, pf.name, pf.count);
+                };
+                actions.appendChild(deleteBtn);
+            }
+
+            card.appendChild(actions);
         }
 
+        grid.appendChild(card);
+    });
+
+    // Packages card, pinned last — reads its count straight from
+    // App.packages.byLanguage, filtered to this language, same as the
+    // old per-language packages toggle used to.
+    const pkgList = App.packages.byLanguage.get(languageFolder) || [];
+
+    const pkgCard = document.createElement("div");
+    pkgCard.className = "folder-card card-enter";
+    pkgCard.style.setProperty("--stagger-index", folders.length);
+    pkgCard.addEventListener(
+        "animationend",
+        () => pkgCard.classList.remove("card-enter"),
+        { once: true }
+    );
+    pkgCard.onclick = (event) => openPackagesFromPicker(languageFolder, event);
+    pkgCard.innerHTML = `
+        <h2 class="folder-card-title">PACKAGES</h2>
+        <p class="folder-card-desc">Multi-file packages — ${pkgList.length} package${pkgList.length === 1 ? "" : "s"}</p>
+    `;
+    grid.appendChild(pkgCard);
+
+    if (App.edit.unlocked) {
+        const newCard = document.createElement("div");
+        newCard.className = "folder-card card-enter";
+        newCard.style.setProperty("--stagger-index", folders.length + 1);
+        newCard.style.cursor = "pointer";
+        newCard.addEventListener(
+            "animationend",
+            () => newCard.classList.remove("card-enter"),
+            { once: true }
+        );
+        newCard.onclick = (event) => {
+            runWithTactileDelay(event, () => createFolderPrompt(languageFolder));
+        };
+        newCard.innerHTML = `
+            <h2 class="folder-card-title">+ NEW FOLDER</h2>
+            <p class="folder-card-desc">Create a custom program folder.</p>
+        `;
+        grid.appendChild(newCard);
+    }
+}
+
+function openPackagesFromPicker(languageFolder, event) {
+    runWithTactileDelay(event, () => {
+        App.currentLanguage = languageFolder;
+        App.currentFolder = null;
+        showPackagesListView(languageFolder);
         window.scrollTo({ top: 0, behavior: "smooth" });
     });
 }
 
-function showProgramsView(folder) {
-    App.folderMode = "programs";
+// Renames a program-folder (Default included) in place — its slug
+// never changes, only the display name/description in folder.json.
+// Creates a new custom program-folder. A simple two-prompt flow (like
+// rename/delete below) rather than a full editor.html wizard step —
+// the server derives and owns the slug (see api/create-folder.js), so
+// there's nothing here to validate beyond "got a name".
+async function createFolderPrompt(languageFolder) {
+    const name = window.prompt("New folder name:");
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
 
-    document.querySelectorAll(".view-container").forEach(c => c.classList.remove("active"));
+    const description = window.prompt("Description (optional):", "") || "";
 
-    const container = document.getElementById(`${folder}-container`);
-    if (container) {
-        container.classList.add("active");
-        container.classList.add("view-enter");
-        container.addEventListener(
-            "animationend",
-            () => container.classList.remove("view-enter"),
-            { once: true }
-        );
+    if (!App.edit.code) {
+        alert("Editor session expired — unlock the editor again and retry.");
+        return;
     }
 
-    const language = App.languageIndex.find(l => l.folder === folder);
-    if (language) {
-        document.getElementById("page-title").textContent =
-            `${language.displayName.toUpperCase()} PROGRAMS`;
-        document.getElementById("page-subtitle").textContent =
-            language.description || "";
+    try {
+        const res = await fetch("/api/create-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder: languageFolder,
+                name: trimmed,
+                description: description.trim()
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        if (!App.foldersIndex[languageFolder]) App.foldersIndex[languageFolder] = [];
+        App.foldersIndex[languageFolder].push({
+            slug: data.slug,
+            name: data.name,
+            description: data.description,
+            count: 0
+        });
+        App.foldersIndex[languageFolder].sort((a, b) => {
+            if (a.slug === "default") return -1;
+            if (b.slug === "default") return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        if (App.currentView === "picker" && App.currentLanguage === languageFolder) {
+            buildFolderPicker(
+                document.getElementById(`picker-${languageFolder}-container`),
+                languageFolder
+            );
+        }
+    } catch (err) {
+        alert("Couldn't create folder: " + err.message);
+    }
+}
+
+async function renameFolderPrompt(languageFolder, slug, currentName, currentDescription) {
+    const name = window.prompt("Rename folder to:", currentName);
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === currentName) return;
+
+    if (!App.edit.code) {
+        alert("Editor session expired — unlock the editor again and retry.");
+        return;
     }
 
-    updateFolderModeToggle();
-    refreshEditUI();
+    try {
+        const res = await fetch("/api/update-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder: languageFolder,
+                slug,
+                name: trimmed,
+                description: currentDescription || ""
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        const list = App.foldersIndex[languageFolder] || [];
+        const entry = list.find(f => f.slug === slug);
+        if (entry) entry.name = trimmed;
+
+        if (App.currentView === "picker" && App.currentLanguage === languageFolder) {
+            buildFolderPicker(
+                document.getElementById(`picker-${languageFolder}-container`),
+                languageFolder
+            );
+        }
+        if (App.currentFolder === `${languageFolder}/${slug}`) {
+            document.getElementById("page-title").textContent =
+                slug === "default"
+                    ? document.getElementById("page-title").textContent
+                    : document.getElementById("page-title").textContent.replace(
+                          /· .+$/,
+                          `· ${trimmed.toUpperCase()}`
+                      );
+        }
+    } catch (err) {
+        alert("Couldn't rename folder: " + err.message);
+    }
+}
+
+// Deletes an empty custom program-folder. Refuses (via the server) if
+// anything is still in it — the confirm below is just the first,
+// friendlier line of defense.
+async function deleteFolderPrompt(languageFolder, slug, name, count) {
+    if (count > 0) {
+        alert(`"${name}" still has ${count} program${count === 1 ? "" : "s"} in it. Delete those first, then delete the folder.`);
+        return;
+    }
+
+    if (!window.confirm(`Delete the folder "${name}"? This can't be undone.`)) return;
+
+    if (!App.edit.code) {
+        alert("Editor session expired — unlock the editor again and retry.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/delete-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessCode: App.edit.code,
+                folder: languageFolder,
+                slug
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        App.foldersIndex[languageFolder] =
+            (App.foldersIndex[languageFolder] || []).filter(f => f.slug !== slug);
+
+        const key = `${languageFolder}/${slug}`;
+        App.builtFolders.delete(key);
+        delete App.cards[key];
+        delete App.metadata[key];
+        delete App.edit.pending[key];
+        document.getElementById(`${key}-container`)?.remove();
+
+        if (App.currentView === "picker" && App.currentLanguage === languageFolder) {
+            buildFolderPicker(
+                document.getElementById(`picker-${languageFolder}-container`),
+                languageFolder
+            );
+        }
+    } catch (err) {
+        alert("Couldn't delete folder: " + err.message);
+    }
 }
 
 function showPackagesListView(folder) {
-    App.folderMode = "packages";
+    App.currentView = "packages";
+    App.currentLanguage = folder;
+    App.currentFolder = null;
 
     document.querySelectorAll(".view-container").forEach(c => c.classList.remove("active"));
 
@@ -310,7 +596,6 @@ function showPackagesListView(folder) {
     document.getElementById("page-subtitle").textContent =
         `Multi-file ${displayName} packages — browse, search, and check them together.`;
 
-    updateFolderModeToggle();
     refreshEditUI();
 }
 
@@ -336,19 +621,16 @@ function ensurePackagesListContainer(folder) {
 
 function showHome(event) {
   runWithTactileDelay(event, () => {
-    if (App.currentFolder) {
-        if (App.folderMode === "packages") {
-            collapseAllPackageCards(App.currentFolder);
-        } else {
-            collapseAllCards(App.currentFolder);
-        }
+    if (App.currentView === "packages" && App.currentLanguage) {
+        collapseAllPackageCards(App.currentLanguage);
+    } else if (App.currentFolder) {
+        collapseAllCards(App.currentFolder);
     }
 
     if (App.packages.openPackage) {
         collapseAllPackageFileCards(App.packages.openPackage);
     }
     App.packages.openPackage = null;
-    App.folderMode = "programs";
 
     const home = document.getElementById("home-view");
 
@@ -379,18 +661,19 @@ function showHome(event) {
         "Interactive Programming Lab Record<br>Browse, search, and run programs by language.";
 
     App.currentFolder = null;
-    updateFolderModeToggle();
+    App.currentLanguage = null;
+    App.currentView = "home";
     refreshEditUI();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 }
 
-// Routes the top-bar [ BACK ] button. Two levels deep only ever happens
-// inside Packages (packages-list -> a package's file view), so this is
-// the only place that needs to know about that extra level — everywhere
-// else (a language folder, or the packages list itself) still just
-// means "go home", exactly like before Packages existed.
+// Routes the top-bar [ BACK ] button. Three levels deep now: a
+// language's picker page sits between home and its programs/packages
+// views, and Packages can go one level deeper still (packages-list ->
+// a package's file view). Each level only ever needs to know how to
+// get back to the level directly above it.
 function handleBack(event) {
 
     if (App.packages.openPackage) {
@@ -398,7 +681,7 @@ function handleBack(event) {
 
             const id = App.packages.openPackage;
             const pkg = App.packages.byId.get(id);
-            const folder = pkg?.languageFolder || App.currentFolder;
+            const folder = pkg?.languageFolder || App.currentLanguage;
 
             collapseAllPackageFileCards(id);
             document.getElementById(`package-${packageDomId(id)}-container`)
@@ -414,6 +697,22 @@ function handleBack(event) {
             showPackagesListView(folder);
 
             window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        return;
+    }
+
+    if (App.currentView === "packages") {
+        runWithTactileDelay(event, () => {
+            collapseAllPackageCards(App.currentLanguage);
+            openPicker(App.currentLanguage);
+        });
+        return;
+    }
+
+    if (App.currentView === "programs") {
+        runWithTactileDelay(event, () => {
+            collapseAllCards(App.currentFolder);
+            openPicker(App.currentLanguage);
         });
         return;
     }
@@ -470,8 +769,12 @@ function extractTitleDescription(code, folder) {
     const lines = code.split(/\r?\n/);
     const commentLines = [];
 
-    const language = folder != null
-        ? App.languageIndex.find(l => l.folder === folder)
+    // `folder` may be a plain language folder ("Java") or the
+    // composite program-folder key ("Java/default") — either way its
+    // language segment is the first path component.
+    const languageFolder = folder != null ? folder.split("/")[0] : null;
+    const language = languageFolder != null
+        ? App.languageIndex.find(l => l.folder === languageFolder)
         : null;
 
     const lineMarkers = (language?.comments?.line) || ["//"];
@@ -542,10 +845,9 @@ function hasUnsavedEdits() {
 //   - Inside a specific package          -> add a file to that package
 function refreshEditUI() {
     const addBtn = document.getElementById("add-program-btn");
-    const folder = App.currentFolder;
     const openPkgId = App.packages.openPackage;
 
-    if (!folder || !App.edit.unlocked) {
+    if (!App.edit.unlocked || App.currentView === "home" || App.currentView === "picker") {
         addBtn.style.display = "none";
         addBtn.removeAttribute("href");
         updateSaveBar(null);
@@ -556,21 +858,26 @@ function refreshEditUI() {
 
     if (openPkgId) {
         const pkg = App.packages.byId.get(openPkgId);
-        addBtn.href = `editor.html?mode=package-file&folder=${encodeURIComponent(pkg?.languageFolder || folder)}&package=${encodeURIComponent(pkg?.folder || "")}`;
+        addBtn.href = `editor.html?mode=package-file&folder=${encodeURIComponent(pkg?.languageFolder || App.currentLanguage)}&package=${encodeURIComponent(pkg?.folder || "")}`;
         addBtn.title = "Add a file to this package";
         addBtn.setAttribute("aria-label", "Add a file to this package");
         updatePackageFileSaveBar(pkg);
-    } else if (App.folderMode === "packages") {
-        addBtn.href = `editor.html?mode=package&folder=${encodeURIComponent(folder)}`;
+    } else if (App.currentView === "packages") {
+        addBtn.href = `editor.html?mode=package&folder=${encodeURIComponent(App.currentLanguage)}`;
         addBtn.title = "Add a new package";
         addBtn.setAttribute("aria-label", "Add a new package");
-        updatePackagesSaveBar(folder);
-    } else {
-        addBtn.href = `editor.html?folder=${encodeURIComponent(folder)}`;
+        updatePackagesSaveBar(App.currentLanguage);
+    } else if (App.currentFolder) {
+        const [languageFolder, slug] = App.currentFolder.split("/");
+        addBtn.href = `editor.html?folder=${encodeURIComponent(languageFolder)}&programFolder=${encodeURIComponent(slug)}`;
         addBtn.title = "Add a new program";
         addBtn.setAttribute("aria-label", "Add a new program");
-        ensurePending(folder);
-        updateSaveBar(folder);
+        ensurePending(App.currentFolder);
+        updateSaveBar(App.currentFolder);
+    } else {
+        addBtn.style.display = "none";
+        addBtn.removeAttribute("href");
+        updateSaveBar(null);
     }
 }
 
@@ -600,6 +907,14 @@ function setEditMode(on, code) {
         (App.packages.fileCards.get(App.packages.openPackage) || []).forEach(card => {
             card._editHandle?.syncMode();
         });
+    }
+
+    // The folder picker's RENAME/DELETE buttons and "+ NEW FOLDER" card
+    // only show in edit mode — rebuild it now if it's the page on screen
+    // so toggling editor mode there takes effect immediately.
+    if (App.currentView === "picker" && App.currentLanguage) {
+        const pickerContainer = document.getElementById(`picker-${App.currentLanguage}-container`);
+        if (pickerContainer) buildFolderPicker(pickerContainer, App.currentLanguage);
     }
 }
 
@@ -889,14 +1204,14 @@ function initCardDrag(card, handle, folder) {
 // which view is on screen (a specific package's files, a language's
 // packages list, or its programs list) — dispatch to whichever one
 // actually has something pending, matching refreshEditUI()'s own
-// openPkgId / folderMode checks above.
+// openPkgId / currentView checks above.
 async function saveChanges() {
     const openPkgId = App.packages.openPackage;
     if (openPkgId) {
         return savePackageFileChanges(App.packages.byId.get(openPkgId));
     }
-    if (App.folderMode === "packages") {
-        return savePackagesChanges(App.currentFolder);
+    if (App.currentView === "packages") {
+        return savePackagesChanges(App.currentLanguage);
     }
     return saveProgramChanges();
 }
@@ -906,8 +1221,8 @@ function discardChanges() {
     if (openPkgId) {
         return discardPackageFileChanges(App.packages.byId.get(openPkgId));
     }
-    if (App.folderMode === "packages") {
-        return discardPackagesChanges(App.currentFolder);
+    if (App.currentView === "packages") {
+        return discardPackagesChanges(App.currentLanguage);
     }
     return discardProgramChanges();
 }
@@ -930,13 +1245,16 @@ async function saveProgramChanges() {
         .filter(([filename]) => !pending.deletions.has(filename))
         .map(([filename, code]) => ({ filename, code }));
 
+    const [languageFolder, programFolderSlug] = folder.split("/");
+
     try {
         const res = await fetch("/api/batch-save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 accessCode: App.edit.code,
-                folder,
+                folder: languageFolder,
+                programFolder: programFolderSlug,
                 order,
                 deletions,
                 edits
@@ -1018,7 +1336,8 @@ function discardProgramChanges() {
     App.edit.pending[folder] = null;
     App.builtFolders.delete(folder);
 
-    const language = App.languageIndex.find(l => l.folder === folder);
+    const languageFolder = folder.split("/")[0];
+    const language = App.languageIndex.find(l => l.folder === languageFolder);
     loadFolder(folder, `${folder}-container`, language?.compiler);
     App.builtFolders.add(folder);
 
@@ -1095,13 +1414,34 @@ const App = {
     currentFolder: null,
     languageIndex: [],
 
+    // The language currently open (picker, a program-folder, or
+    // packages) — null on the home screen.
+    currentLanguage: null,
+
+    // Which page is on screen: "home" | "picker" | "programs" |
+    // "packages". A specific package's file view is tracked
+    // separately via App.packages.openPackage below (BACK checks
+    // that first, regardless of currentView).
+    currentView: "home",
+
+    // languageFolder -> [{slug, name, description, count}, ...] from
+    // generated/folders-index.json — drives the folder-picker page.
+    foldersIndex: {},
+
+    // metadata / cards / edit.pending / builtFolders are all keyed by
+    // the composite program-folder key "<languageFolder>/<slug>"
+    // (e.g. "Java/default", "Java/final-set"), matching how
+    // generated/order.json, search-index.json and code-index.json are
+    // keyed. App.currentFolder holds that same key while a
+    // program-folder's list is open, and is null everywhere else
+    // (picker, packages, home).
     metadata: {},
     cards: {},
 
     edit: {
         unlocked: false,
         code: "",
-        pending: {} // folder -> { order: [filenames], deletions: Set<filename> }
+        pending: {} // "<lang>/<slug>" -> { order: [filenames], deletions: Set<filename> }
     },
 
     codeIndex: null,
@@ -1111,18 +1451,12 @@ const App = {
     loadedPrograms: new Map(),
     builtFolders: new Set(),
 
-    // Which sub-view of the currently open language folder is showing:
-    // "programs" (the default) or "packages". Only meaningful while
-    // currentFolder is set and no specific package is open.
-    folderMode: "programs",
-
     // Packages: read-only, browse/search/check layer for custom
     // multi-file programs (generated/packages-index.json +
     // generated/packages-code/<languageFolder>/<folder>.json). Each
-    // package now lives inside its own language's page (a toggle next
-    // to that language's [ BACK ] button switches between Programs and
-    // Packages) rather than a separate top-level page, and only the
-    // packages belonging to that language are ever shown there.
+    // language's folder-picker page has a pinned "Packages" card
+    // leading here, and only the packages belonging to that language
+    // are ever shown.
     // Deliberately separate from the reorder/edit/commit system above —
     // packages are added via a dedicated editor.html flow, not the
     // inline program editor.
@@ -1272,6 +1606,19 @@ async function loadSearchIndex() {
     App.metadata = await response.json();
 }
 
+// generated/folders-index.json: languageFolder -> [{slug, name,
+// description, count}, ...], "default" first then alphabetical —
+// drives the folder-picker page's cards.
+async function loadFoldersIndex() {
+
+    const response = await fetch("/generated/folders-index.json");
+    if (!response.ok) {
+        throw new Error("Unable to load folders index.");
+    }
+
+    App.foldersIndex = await response.json();
+}
+
 async function loadLanguageIndex() {
 
     const response = await fetch("/generated/language-index.json");
@@ -1349,16 +1696,18 @@ async function loadSiteInfo() {
 
 }
 
+// Home now only ever links into each language's folder picker — the
+// language-views containers that used to be built here upfront (one
+// per language) are instead created lazily, per program-folder or
+// per picker page, the first time each is actually opened (see
+// openPicker() / openProgramFolder() / ensureFolderPickerContainer()).
 function buildLanguageUI() {
     const homeView = document.getElementById("home-view");
-    const languageViews = document.getElementById("language-views");
 
     homeView.innerHTML = "";
-    languageViews.innerHTML = "";
 
     App.languageIndex.forEach((language, index) => {
 
-        // ---------- Home Card ----------
         const card = document.createElement("div");
         card.className = "folder-card card-enter";
         card.style.setProperty("--stagger-index", index);
@@ -1369,7 +1718,7 @@ function buildLanguageUI() {
             { once: true }
         );
 
-        card.onclick = (event) => openFolder(language.folder, event);
+        card.onclick = (event) => openPicker(language.folder, event);
 
         card.innerHTML = `
             <h2 class="folder-card-title">
@@ -1381,14 +1730,6 @@ function buildLanguageUI() {
         `;
 
         homeView.appendChild(card);
-
-        // ---------- Container ----------
-        const container = document.createElement("div");
-
-        container.id = `${language.folder}-container`;
-        container.className = "view-container";
-
-        languageViews.appendChild(container);
     });
 }
 
@@ -1410,11 +1751,12 @@ async function loadCodeIndex() {
 
 App.codeLookup = {};
 
-App.languageIndex.forEach(language => {
+// code-index.json is now keyed by "<Lang>/<folderSlug>" — iterate its
+// own keys directly rather than deriving them from languageIndex,
+// since more than one key can now belong to the same language.
+Object.keys(App.codeIndex).forEach(key => {
 
-    const folder = language.folder;
-
-    (App.codeIndex[folder] || []).forEach(program => {
+    (App.codeIndex[key] || []).forEach(program => {
 
         App.codeLookup[program.path] = program;
 
@@ -2824,8 +3166,9 @@ function openPackage(id, event) {
 
         collapseAllPackageCards(pkg.languageFolder);
 
-        App.currentFolder = pkg.languageFolder;
-        App.folderMode = "packages";
+        App.currentLanguage = pkg.languageFolder;
+        App.currentFolder = null;
+        App.currentView = "packages";
         App.packages.openPackage = id;
 
         document.getElementById("home-view").style.display = "none";
@@ -2863,7 +3206,6 @@ function openPackage(id, event) {
         document.getElementById("page-title").textContent = pkg.name.toUpperCase();
         document.getElementById("page-subtitle").textContent = pkg.description || "";
 
-        updateFolderModeToggle();
         refreshEditUI();
 
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2882,13 +3224,17 @@ function createSearchUI(container, folder) {
 input.className = "search-input";
 input.type = "text";
 
+// `folder` here is the composite program-folder key, "<Lang>/<slug>" —
+// its language segment is what languageIndex is keyed by.
+const languageFolder = folder.split("/")[0];
+
 const language = App.languageIndex.find(
-    l => l.folder === folder
+    l => l.folder === languageFolder
 );
 
 input.placeholder =
     language?.searchPlaceholder ||
-    `Search ${language?.displayName ?? folder} programs...`;
+    `Search ${language?.displayName ?? languageFolder} programs...`;
 
     const clearBtn = document.createElement("button");
     clearBtn.className = "search-clear";
@@ -3548,7 +3894,7 @@ async function buildRunFiles(runSource) {
         content: runSource
     };
 
-    const referenced = detectReferencedPackages(runSource, cardFolder);
+    const referenced = detectReferencedPackages(runSource, cardFolder.split("/")[0]);
     if (referenced.length === 0) return flattenJavaPackages([thisFile], lang);
 
     const extraFiles = [];
@@ -3786,7 +4132,8 @@ async function init() {
     // screen before it paints anything.
     const params = new URLSearchParams(window.location.search);
     const returnFolder = params.get("folder");
-    const returnMode = params.get("mode");       // "package" | "package-file"
+    const returnProgramFolder = params.get("programFolder"); // custom-folder slug, e.g. "default"
+    const returnMode = params.get("mode");       // "package" | "package-file" | "folder"
     const returnPackage = params.get("package");  // package's own folder name
 
     if (returnFolder) {
@@ -3872,19 +4219,20 @@ async function init() {
     buildLanguageUI();
 
     await loadSearchIndex();
+    await loadFoldersIndex();
     await loadPackagesIndex();
 
     // Restore the view *here*, not after the three calls below. Those
     // include restoreEditSession(), which makes a network round-trip to
     // verify the saved access code — on mobile that alone kept the
-    // wrong screen up for a noticeable beat. Nothing openFolder() needs
-    // is loaded after this point; edit-mode state catches up on its own,
-    // since setEditMode() re-runs refreshEditUI() and re-syncs the cards
-    // of whatever folder is open by then.
+    // wrong screen up for a noticeable beat. Nothing openPicker()/
+    // openProgramFolder() needs is loaded after this point; edit-mode
+    // state catches up on its own, since setEditMode() re-runs
+    // refreshEditUI() and re-syncs the cards of whatever page is open
+    // by then.
     if (isValidReturn) {
-        openFolder(returnFolder);
-
         if (returnMode === "package" || returnMode === "package-file") {
+            openPicker(returnFolder);
             showPackagesListView(returnFolder);
 
             if (returnPackage) {
@@ -3893,6 +4241,16 @@ async function init() {
                     openPackage(id);
                 }
             }
+        } else if (returnMode === "folder") {
+            // Just created/renamed/deleted a folder — land back on
+            // this language's picker page so the change is visible.
+            openPicker(returnFolder);
+        } else if (returnProgramFolder) {
+            // Added/edited/deleted a program inside a specific
+            // program-folder — land back on that exact folder's list.
+            openProgramFolder(returnFolder, returnProgramFolder);
+        } else {
+            openPicker(returnFolder);
         }
 
         history.replaceState(null, "", window.location.pathname);
@@ -3902,10 +4260,11 @@ async function init() {
 
     renderFooter(siteInfo);
 
-    // Note: folders are no longer built eagerly here. Each folder's
-    // program cards are now built lazily on first open (see openFolder),
-    // which keeps initial load fast and avoids the delay large folders
-    // like C/Java caused when everything was rendered upfront.
+    // Note: folders are no longer built eagerly here. Each program-
+    // folder's cards are now built lazily on first open (see
+    // openProgramFolder), which keeps initial load fast and avoids the
+    // delay large folders like C/Java caused when everything was
+    // rendered upfront.
 
     initEditorGate();
     await restoreEditSession();
@@ -3914,9 +4273,6 @@ async function init() {
 const themeBtn = document.getElementById("theme-btn");
 
 themeBtn.addEventListener("click", toggleTheme);
-
-document.getElementById("folder-mode-toggle")
-    .addEventListener("click", toggleFolderMode);
 
 // See the .back-btn.is-departing comment in style.css: this is a real
 // navigation link (href swapped in by refreshEditUI), so freeze its

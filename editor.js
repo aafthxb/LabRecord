@@ -44,7 +44,7 @@ const State = {
   //     2 — and the final button is ADD TO PACKAGE (posts to
   //     /api/commit-package-file) instead of CREATE PACKAGE (no
   //     meta.json to write, the package already exists).
-  wizardKind: "program",  // "program" | "package" | "package-file"
+  wizardKind: "program",  // "program" | "package" | "package-file" | "folder"
   pkgName: "",
   pkgFolderSlug: "",      // auto-derived from pkgName, never shown as its own field
   pkgFileFilename: "",    // the file currently being named on Step 3, package/package-file mode only
@@ -52,6 +52,19 @@ const State = {
   packagesForFolder: [],  // generated/packages-index.json, filtered to the open language — for the duplicate-name check ("package" mode)
   pkgFileTargetPackage: null,  // the existing package's own folder name ("package-file" mode)
   pkgFileExistingNames: [],    // that package's current filenames, lowercased — additional duplicate check ("package-file" mode)
+
+  // ---- Add Folder / Rename Folder (?mode=folder&folder=<Language>[&slug=<slug>]) ----
+  //
+  // Both share this one small wizard (Step 1: name/description form,
+  // Step 3: static review, Step 4: done — Step 2 "Add the code" doesn't
+  // apply and is skipped entirely). Rename is just create with a
+  // pre-filled form and a fixed, read-only slug — detected purely by
+  // whether ?slug= is present (see enterFolderWizard()).
+  folderMode: "create",   // "create" | "rename"
+  folderName: "",
+  folderDescription: "",
+  folderSlug: "",         // rename mode: the existing, permanent directory name; create mode: unset until the server derives one
+  foldersForLanguage: [], // generated/folders-index.json, filtered to the open language — for the duplicate-name check (create mode)
 };
 
 let tesseractLoadPromise = null;
@@ -317,6 +330,11 @@ async function enterWizard() {
     return;
   }
 
+  if (mode === "folder") {
+    await enterFolderWizard(folderParam, params.get("slug"));
+    return;
+  }
+
   State.wizardKind = "program";
   preloadTesseract();
 
@@ -382,6 +400,10 @@ function goHome() {
     const params = new URLSearchParams({ folder, mode: "package-file" });
     if (State.pkgFileTargetPackage) params.set("package", State.pkgFileTargetPackage);
     window.location.href = `index.html?${params.toString()}`;
+    return;
+  }
+  if (State.wizardKind === "folder") {
+    window.location.href = `index.html?${new URLSearchParams({ folder, mode: "folder" }).toString()}`;
     return;
   }
   const params = new URLSearchParams({ folder, programFolder: State.programFolder || "default" });
@@ -1363,9 +1385,17 @@ function updateReviewPreview() {
 function initStep3() {
   $("code-textarea").addEventListener("input", updateReviewPreview);
   $("pkg-file-filename-input").addEventListener("input", validatePkgFileFilename);
-  $("step3-back").addEventListener("click", () => goToStep(2));
+  $("step3-back").addEventListener("click", () => {
+    if (State.wizardKind === "folder") {
+      goToStep(1);
+    } else {
+      goToStep(2);
+    }
+  });
   $("step3-save").addEventListener("click", () => {
-    if (isPackageMode()) {
+    if (State.wizardKind === "folder") {
+      saveFolder();
+    } else if (isPackageMode()) {
       if (State.batchMode) {
         addBatchToPendingPackage();
       } else {
@@ -2056,6 +2086,296 @@ async function enterPackageFileWizard(folderParam, packageParam) {
 }
 
 // ---------------------------------------------------------------
+// Add Folder / Rename Folder (?mode=folder&folder=<Language>[&slug=<slug>])
+// ---------------------------------------------------------------
+//
+// One small wizard shared by both — Step 1 is a name/description form,
+// Step 2 ("Add the code") doesn't apply and is skipped entirely, Step 3
+// is a static review (no code to edit), Step 4 is the usual Done
+// screen. Rename is detected purely by the presence of ?slug= — see
+// enterFolderWizard() — which pre-fills the form, shows the slug/path
+// read-only underneath the name (it's permanent, never editable), and
+// posts to /api/update instead of /api/commit.
+
+// Mirrors slugifyFolderName() in api/_lib.js exactly, so the "Will be
+// created at:" preview on Step 3 matches what the server will actually
+// derive — this is purely cosmetic, the server is the source of truth
+// and re-derives/validates it independently.
+function slugifyFolderName(name) {
+  return (name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const RESERVED_FOLDER_SLUGS = new Set(["default", "packages"]);
+
+function isFolderRenameMode() {
+  return State.wizardKind === "folder" && State.folderMode === "rename";
+}
+
+function initFolderStep1() {
+  $("folder-name-input").addEventListener("input", validateFolderName);
+  $("folder-name-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") goToFolderReview();
+  });
+  $("folder-description-input").addEventListener("input", () => {
+    State.folderDescription = $("folder-description-input").value;
+  });
+  $("folder-step1-back").addEventListener("click", goHome);
+  $("folder-step1-next").addEventListener("click", goToFolderReview);
+}
+
+// Live-validates the folder name on Step 1 — same pattern as
+// validatePackageName(). Create mode checks the derived slug against
+// every other folder already in this language (name or slug
+// collision); rename mode only needs a non-empty name (it can't
+// collide on slug — the slug never changes) but still flags a
+// collision with another folder's *name*.
+function validateFolderName() {
+  const statusEl = $("folder-name-status");
+  const raw = $("folder-name-input").value.trim();
+
+  State.folderName = "";
+  statusEl.style.display = "none";
+  statusEl.className = "banner";
+
+  if (!raw) return;
+
+  const nameLower = raw.toLowerCase();
+  const others = State.foldersForLanguage.filter((f) => f.slug !== State.folderSlug);
+
+  if (isFolderRenameMode()) {
+    const dup = others.some((f) => f.name.toLowerCase() === nameLower);
+    if (dup) {
+      statusEl.textContent = `A folder named "${raw}" already exists in ${State.selectedFolder}/. Choose a different name.`;
+      statusEl.classList.add("banner-error");
+      statusEl.style.display = "block";
+      return;
+    }
+    State.folderName = raw;
+    return; // no slug preview to show in rename mode — the read-only line below the field already covers that
+  }
+
+  const slug = slugifyFolderName(raw);
+  if (!slug || RESERVED_FOLDER_SLUGS.has(slug)) {
+    statusEl.textContent = `"${raw}" isn't a usable folder name — choose something with at least one letter or number, and not "Default" or "Packages".`;
+    statusEl.classList.add("banner-error");
+    statusEl.style.display = "block";
+    return;
+  }
+
+  const dup = others.some((f) => f.name.toLowerCase() === nameLower || f.slug === slug);
+  if (dup) {
+    statusEl.textContent = `A folder named "${raw}" (or one that slugifies the same way) already exists in ${State.selectedFolder}/. Choose a different name.`;
+    statusEl.classList.add("banner-error");
+    statusEl.style.display = "block";
+    return;
+  }
+
+  State.folderName = raw;
+  statusEl.textContent = `Will be created at: programs/${State.selectedFolder}/${slug}/`;
+  statusEl.classList.add("banner-success");
+  statusEl.style.display = "block";
+}
+
+function requireFolderName() {
+  if (State.folderName) return true;
+
+  const statusEl = $("folder-name-status");
+  statusEl.textContent = "Enter a folder name first.";
+  statusEl.className = "banner banner-error";
+  statusEl.style.display = "block";
+
+  const input = $("folder-name-input");
+  input.focus();
+  input.scrollIntoView({ behavior: "smooth", block: "center" });
+  return false;
+}
+
+function goToFolderReview() {
+  if (!requireFolderName()) return;
+  renderFolderReview();
+  goToStep(3);
+}
+
+// Populates Step 3's static summary — the only "review" a folder gets,
+// since there's no code involved. Rename mode shows the folder's
+// existing (unchangeable) path instead of a "will be created at" one.
+function renderFolderReview() {
+  const displayLang = State.languageIndex.find((l) => l.folder === State.selectedFolder);
+  $("folder-review-lang").textContent = displayLang ? displayLang.displayName : State.selectedFolder;
+  $("folder-review-name").textContent = State.folderName;
+  $("folder-review-desc").textContent = State.folderDescription.trim() || "—";
+
+  if (isFolderRenameMode()) {
+    $("folder-review-path-label").textContent = "Path (unchanged):";
+    $("folder-review-path").textContent = `programs/${State.selectedFolder}/${State.folderSlug}/`;
+    $("step3-save").textContent = "SAVE";
+  } else {
+    $("folder-review-path-label").textContent = "Will be created at:";
+    $("folder-review-path").textContent = `programs/${State.selectedFolder}/${slugifyFolderName(State.folderName)}/`;
+    $("step3-save").textContent = "CREATE FOLDER";
+  }
+}
+
+// "CREATE FOLDER" / "SAVE" — the one commit that either creates
+// programs/<folder>/<slug>/folder.json (create) or rewrites the same
+// file's name/description in place (rename).
+async function saveFolder() {
+  const errorEl = $("save-error");
+  errorEl.style.display = "none";
+
+  const btn = $("step3-save");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "SAVING…";
+
+  try {
+    const rename = isFolderRenameMode();
+    const res = await fetch(rename ? "/api/update" : "/api/commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessCode: getAccessCode(),
+        kind: "folder",
+        folder: State.selectedFolder,
+        ...(rename ? { slug: State.folderSlug } : {}),
+        name: State.folderName,
+        description: State.folderDescription.trim(),
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed.");
+
+    btn.textContent = "✓ SAVED!";
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    if (rename) {
+      $("step4-heading").textContent = "Folder renamed ✓";
+      $("done-text").textContent = `"${State.folderName}" now shows at programs/${State.selectedFolder}/${State.folderSlug}/.`;
+      $("done-subtext").textContent =
+        "It should appear on the folder picker in about a minute.";
+      $("add-another").style.display = "none";
+    } else {
+      State.folderSlug = data.slug || slugifyFolderName(State.folderName);
+      $("step4-heading").textContent = "Folder created ✓";
+      $("done-text").textContent = `"${State.folderName}" was created at programs/${State.selectedFolder}/${State.folderSlug}/.`;
+      $("done-subtext").textContent =
+        "Your folder has been saved successfully. It should appear on the folder picker in about a minute.";
+      $("add-another").style.display = "inline-block";
+    }
+
+    goToStep(4);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// "CREATE ANOTHER FOLDER" — create mode only (rename hides this button
+// entirely, see saveFolder()). Resets the form and jumps back to Step 1,
+// same language.
+function resetFolderWizard() {
+  State.folderName = "";
+  State.folderDescription = "";
+
+  $("folder-name-input").value = "";
+  $("folder-name-status").style.display = "none";
+  $("folder-description-input").value = "";
+
+  goToStep(1);
+}
+
+async function enterFolderWizard(folderParam, slugParam) {
+  State.wizardKind = "folder";
+  State.folderMode = slugParam ? "rename" : "create";
+  State.folderSlug = slugParam || "";
+
+  const rename = State.folderMode === "rename";
+
+  $("step1-program").style.display = "none";
+  $("step1-package").style.display = "none";
+  $("step1-folder").style.display = "block";
+  $("step-dot-1").style.display = "block";
+  $("step-dot-1").innerHTML = `1<span>${rename ? "Rename" : "Details"}</span>`;
+  $("step2-filename-block").style.display = "none";
+  $("step2-package-summary").style.display = "none";
+  $("step2-package-finish").style.display = "none";
+  $("step3-filename-block").style.display = "none";
+  $("single-review").style.display = "none";
+  $("batch-review").style.display = "none";
+  $("folder-review").style.display = "block";
+  $("step3-heading").textContent = "Review";
+  $("folder-step-heading").textContent = rename ? "Rename this folder" : "New folder";
+  $("folder-slug-context").style.display = rename ? "block" : "none";
+  $("add-another").textContent = "CREATE ANOTHER FOLDER";
+  $("done-menu-btn").textContent = "« BACK TO FOLDER PICKER";
+
+  try {
+    await ensureSiteDataLoaded();
+  } catch (err) {
+    showWizardError("Failed to load site data: " + err.message);
+    return;
+  }
+
+  const langEntry = findLangEntryForFolder(folderParam);
+  const displayLang = State.languageIndex.find((l) => l.folder === folderParam);
+
+  if (!folderParam || !langEntry || !displayLang) {
+    showWizardError(
+      "No language folder specified. Go back and use RENAME or + NEW FOLDER on a language's folder picker."
+    );
+    return;
+  }
+
+  State.selectedFolder = folderParam;
+  State.selectedLangEntry = langEntry;
+  State.skippedStep1 = false;
+
+  $("editor-subtitle").textContent = rename
+    ? `Renaming a folder in ${displayLang.displayName.toUpperCase()}.`
+    : `Creating a folder in ${displayLang.displayName.toUpperCase()}.`;
+
+  let existingMeta = null;
+  try {
+    const allFolders = await fetchJson("/generated/folders-index.json");
+    State.foldersForLanguage = allFolders[folderParam] || [];
+    if (rename) {
+      existingMeta = State.foldersForLanguage.find((f) => f.slug === slugParam) || null;
+    }
+  } catch {
+    State.foldersForLanguage = [];
+  }
+
+  if (rename) {
+    if (!existingMeta) {
+      showWizardError(`No folder found at programs/${folderParam}/${slugParam}/.`);
+      return;
+    }
+    State.folderName = existingMeta.name || slugParam;
+    State.folderDescription = existingMeta.description || "";
+    $("folder-name-input").value = State.folderName;
+    $("folder-description-input").value = State.folderDescription;
+    $("folder-slug-context").textContent = `programs/${folderParam}/${slugParam}/ — permanent, can't be changed`;
+    validateFolderName();
+  } else {
+    State.folderName = "";
+    State.folderDescription = "";
+    $("folder-name-input").value = "";
+    $("folder-description-input").value = "";
+  }
+
+  goToStep(1);
+  revealWizard();
+}
+
+// ---------------------------------------------------------------
 // Step 4: reset
 // ---------------------------------------------------------------
 
@@ -2065,6 +2385,8 @@ function initStep4() {
       resetPackageWizard();
     } else if (State.wizardKind === "package-file") {
       resetPackageFileWizard();
+    } else if (State.wizardKind === "folder") {
+      resetFolderWizard();
     } else {
       resetWizard();
     }
@@ -2074,6 +2396,8 @@ function initStep4() {
       goToCreatedPackage();
     } else if (State.wizardKind === "package-file") {
       goToUpdatedPackage();
+    } else if (State.wizardKind === "folder") {
+      goHome();
     } else {
       goHome();
     }
@@ -2126,4 +2450,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initStep3();
   initStep4();
   initPackageStep1();
+  initFolderStep1();
 });

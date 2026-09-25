@@ -537,6 +537,54 @@
     color: var(--text);
   }
 }
+
+/* A DELETE button that's shown but not currently usable (Default, or a
+   folder that still has programs in it) — same faded look as :disabled
+   above, but a real (non-disabled) button underneath, so it still
+   receives the click and can explain why via the delete-confirm modal
+   instead of doing nothing. See openFolderDeleteModal() in script.js. */
+.action-btn.is-greyed {
+  opacity: 0.5;
+}
+
+@media (hover: hover) {
+  .action-btn.is-greyed:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    background: var(--surface);
+    color: var(--text);
+  }
+}
+
+/* The delete-confirm modal's CONFIRM button — .run-btn's green would
+   read as "safe to click"; this is the one destructive action in the
+   whole editor that isn't staged behind SAVE CHANGES, so it gets the
+   site's existing --danger accent instead. */
+.danger-btn {
+  background: var(--danger);
+  border-color: var(--border);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .danger-btn:hover {
+    background: var(--danger);
+    filter: brightness(1.08);
+    color: #fff;
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.danger-btn:active,
+.danger-btn.is-pressed {
+  transform: translate(3px, 3px) !important;
+  box-shadow: 0 0 0 0 var(--border) !important;
+}
+
+#folder-delete-actions-deletable,
+#folder-delete-actions-info {
+  margin-top: 4px;
+}
 /* ==========================================================
    Inline site editing (index.html) — the "+", per-card delete,
    drag-to-reorder handle, and the floating save bar. Hidden

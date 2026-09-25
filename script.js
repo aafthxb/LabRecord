@@ -342,21 +342,26 @@ function buildFolderPicker(container, languageFolder) {
             renameBtn.textContent = "RENAME";
             renameBtn.onclick = (e) => {
                 e.stopPropagation();
-                renameFolderPrompt(languageFolder, pf.slug, pf.name, pf.description);
+                goToFolderEditor(languageFolder, pf.slug);
             };
             actions.appendChild(renameBtn);
 
-            if (pf.slug !== "default") {
-                const deleteBtn = document.createElement("button");
-                deleteBtn.type = "button";
-                deleteBtn.className = "action-btn";
-                deleteBtn.textContent = "DELETE";
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteFolderPrompt(languageFolder, pf.slug, pf.name, pf.count);
-                };
-                actions.appendChild(deleteBtn);
-            }
+            // Always rendered — Default included, and non-empty folders
+            // too — so there's always a control to discover, not a gap
+            // where one used to be. Whether it's actually clickable to
+            // effect is decided at click time by openFolderDeleteModal(),
+            // which explains why when it isn't.
+            const deleteBtn = document.createElement("button");
+            deleteBtn.type = "button";
+            deleteBtn.className = "action-btn";
+            const notDeletable = pf.slug === "default" || pf.count > 0;
+            if (notDeletable) deleteBtn.classList.add("is-greyed");
+            deleteBtn.textContent = "DELETE";
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                openFolderDeleteModal(languageFolder, pf.slug, pf.name, pf.count);
+            };
+            actions.appendChild(deleteBtn);
 
             card.appendChild(actions);
         }
@@ -395,7 +400,7 @@ function buildFolderPicker(container, languageFolder) {
             { once: true }
         );
         newCard.onclick = (event) => {
-            runWithTactileDelay(event, () => createFolderPrompt(languageFolder));
+            runWithTactileDelay(event, () => goToFolderEditor(languageFolder));
         };
         newCard.innerHTML = `
             <h2 class="folder-card-title">+ NEW FOLDER</h2>
@@ -414,128 +419,72 @@ function openPackagesFromPicker(languageFolder, event) {
     });
 }
 
-// Renames a program-folder (Default included) in place — its slug
-// never changes, only the display name/description in folder.json.
-// Creates a new custom program-folder. A simple two-prompt flow (like
-// rename/delete below) rather than a full editor.html wizard step —
-// the server derives and owns the slug (see the createFolder() branch
-// in api/commit.js), so there's nothing here to validate beyond "got a name".
-async function createFolderPrompt(languageFolder) {
-    const name = window.prompt("New folder name:");
-    if (name === null) return;
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    const description = window.prompt("Description (optional):", "") || "";
-
-    if (!App.edit.code) {
-        alert("Editor session expired — unlock the editor again and retry.");
-        return;
-    }
-
-    try {
-        const res = await fetch("/api/commit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                accessCode: App.edit.code,
-                kind: "folder",
-                folder: languageFolder,
-                name: trimmed,
-                description: description.trim()
-            })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Unknown error");
-
-        if (!App.foldersIndex[languageFolder]) App.foldersIndex[languageFolder] = [];
-        App.foldersIndex[languageFolder].push({
-            slug: data.slug,
-            name: data.name,
-            description: data.description,
-            count: 0
-        });
-        App.foldersIndex[languageFolder].sort((a, b) => {
-            if (a.slug === "default") return -1;
-            if (b.slug === "default") return 1;
-            return a.name.localeCompare(b.name);
-        });
-
-        if (App.currentView === "picker" && App.currentLanguage === languageFolder) {
-            buildFolderPicker(
-                document.getElementById(`picker-${languageFolder}-container`),
-                languageFolder
-            );
-        }
-    } catch (err) {
-        alert("Couldn't create folder: " + err.message);
-    }
+// Navigates to the dedicated folder wizard in editor.html — create mode
+// when no slug is given, rename mode (form pre-filled, slug shown
+// read-only) when one is. Replaces the old window.prompt() flow: same
+// server calls underneath (/api/commit or /api/update with
+// kind: "folder"), just a real page instead of a browser-chrome dialog.
+// Reuses the same sessionStorage access-code key editor.js reads
+// (EDITOR_SESSION_KEY there / EDIT_SESSION_KEY here), so the gate is
+// skipped there too since we're already unlocked here.
+function goToFolderEditor(languageFolder, slug) {
+    const params = new URLSearchParams({ mode: "folder", folder: languageFolder });
+    if (slug) params.set("slug", slug);
+    window.location.href = `editor.html?${params.toString()}`;
 }
 
-async function renameFolderPrompt(languageFolder, slug, currentName, currentDescription) {
-    const name = window.prompt("Rename folder to:", currentName);
-    if (name === null) return;
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === currentName) return;
+// Opens the delete-confirm modal (same .modal-overlay/.modal-box shell
+// as the Editor Access gate) for a folder card's DELETE button.
+// Whether it's actually deletable right now — empty and not Default —
+// decides which button group shows: CONFIRM+CANCEL when it is, a
+// single CLOSE explaining why when it isn't. The server still
+// authoritatively re-checks both conditions when CONFIRM is pressed.
+function openFolderDeleteModal(languageFolder, slug, name, count) {
+    const isDefault = slug === "default";
+    const deletable = !isDefault && count === 0;
 
-    if (!App.edit.code) {
-        alert("Editor session expired — unlock the editor again and retry.");
-        return;
+    App.pendingFolderDelete = deletable ? { languageFolder, slug, name } : null;
+
+    const textEl = document.getElementById("folder-delete-text");
+    if (isDefault) {
+        textEl.textContent = `"${name}" can't be deleted.`;
+    } else if (!deletable) {
+        textEl.textContent = `"${name}" still has ${count} program${count === 1 ? "" : "s"} in it. Delete ${count === 1 ? "it" : "those"} first, then delete the folder.`;
+    } else {
+        textEl.textContent = `Delete "${name}"? This can't be undone.`;
     }
 
-    try {
-        const res = await fetch("/api/update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                accessCode: App.edit.code,
-                kind: "folder",
-                folder: languageFolder,
-                slug,
-                name: trimmed,
-                description: currentDescription || ""
-            })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Unknown error");
+    document.getElementById("folder-delete-actions-deletable").style.display = deletable ? "flex" : "none";
+    document.getElementById("folder-delete-actions-info").style.display = deletable ? "none" : "flex";
 
-        const list = App.foldersIndex[languageFolder] || [];
-        const entry = list.find(f => f.slug === slug);
-        if (entry) entry.name = trimmed;
-
-        if (App.currentView === "picker" && App.currentLanguage === languageFolder) {
-            buildFolderPicker(
-                document.getElementById(`picker-${languageFolder}-container`),
-                languageFolder
-            );
-        }
-        if (App.currentFolder === `${languageFolder}/${slug}`) {
-            document.getElementById("page-title").textContent =
-                slug === "default"
-                    ? document.getElementById("page-title").textContent
-                    : document.getElementById("page-title").textContent.replace(
-                          /· .+$/,
-                          `· ${trimmed.toUpperCase()}`
-                      );
-        }
-    } catch (err) {
-        alert("Couldn't rename folder: " + err.message);
-    }
+    showOverlay(document.getElementById("folder-delete-overlay"));
 }
 
-// Deletes an empty custom program-folder. Refuses (via the server) if
-// anything is still in it — the confirm below is just the first,
-// friendlier line of defense.
-async function deleteFolderPrompt(languageFolder, slug, name, count) {
-    if (count > 0) {
-        alert(`"${name}" still has ${count} program${count === 1 ? "" : "s"} in it. Delete those first, then delete the folder.`);
-        return;
-    }
+function closeFolderDeleteModal() {
+    hideOverlay(document.getElementById("folder-delete-overlay"));
+    App.pendingFolderDelete = null;
+}
 
-    if (!window.confirm(`Delete the folder "${name}"? This can't be undone.`)) return;
+// Deletes an empty custom program-folder. Only ever called with a
+// pending delete that openFolderDeleteModal() already confirmed was
+// deletable (Default and non-empty folders never populate it, so
+// there's never a CONFIRM button wired to fire this without one) —
+// the server independently re-checks both conditions regardless.
+async function confirmFolderDelete() {
+    const pending = App.pendingFolderDelete;
+    if (!pending) return;
+    const { languageFolder, slug, name } = pending;
+
+    const btn = document.getElementById("folder-delete-confirm");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "DELETING…";
 
     if (!App.edit.code) {
         alert("Editor session expired — unlock the editor again and retry.");
+        btn.disabled = false;
+        btn.textContent = originalText;
+        closeFolderDeleteModal();
         return;
     }
 
@@ -569,8 +518,12 @@ async function deleteFolderPrompt(languageFolder, slug, name, count) {
                 languageFolder
             );
         }
+
+        closeFolderDeleteModal();
     } catch (err) {
-        alert("Couldn't delete folder: " + err.message);
+        alert(`Couldn't delete "${name}": ` + err.message);
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 }
 
@@ -1002,6 +955,21 @@ function initEditorGate() {
 
     document.getElementById("edit-save-btn").addEventListener("click", saveChanges);
     document.getElementById("edit-discard-btn").addEventListener("click", discardChanges);
+}
+
+// Wires the delete-folder confirm modal's buttons — CONFIRM only ever
+// does anything when App.pendingFolderDelete was actually populated
+// (see openFolderDeleteModal()); CANCEL/CLOSE just dismiss either way.
+function initFolderDeleteModal() {
+    document.getElementById("folder-delete-confirm").addEventListener("click", (event) => {
+        runWithTactileDelay(event, confirmFolderDelete);
+    });
+    document.getElementById("folder-delete-cancel").addEventListener("click", (event) => {
+        runWithTactileDelay(event, closeFolderDeleteModal);
+    });
+    document.getElementById("folder-delete-close").addEventListener("click", (event) => {
+        runWithTactileDelay(event, closeFolderDeleteModal);
+    });
 }
 
 // Restores edit mode from this tab's session (set after a successful
@@ -1446,6 +1414,12 @@ const App = {
         code: "",
         pending: {} // "<lang>/<slug>" -> { order: [filenames], deletions: Set<filename> }
     },
+
+    // Set by openFolderDeleteModal() only when the folder card's DELETE
+    // button was actually clickable (empty, non-Default) — null
+    // otherwise, so confirmFolderDelete() has nothing to act on if it's
+    // somehow invoked without a real pending deletion.
+    pendingFolderDelete: null,
 
     codeIndex: null,
     codeIndexLoaded: false,
@@ -4270,6 +4244,7 @@ async function init() {
     // rendered upfront.
 
     initEditorGate();
+    initFolderDeleteModal();
     await restoreEditSession();
 
 }

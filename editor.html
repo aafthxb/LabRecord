@@ -61,6 +61,13 @@
                   document.getElementById("editor-title").textContent = "ADD FILE TO PACKAGE";
                   document.getElementById("editor-subtitle").textContent =
                     "Add another source file to an existing package.";
+                } else if (mode === "folder") {
+                  const isRename = !!new URLSearchParams(window.location.search).get("slug");
+                  document.title = isRename ? "LabRecord – Rename Folder" : "LabRecord – New Folder";
+                  document.getElementById("editor-title").textContent =
+                    isRename ? "RENAME FOLDER" : "NEW FOLDER";
+                  document.getElementById("editor-subtitle").textContent =
+                    isRename ? "Renaming a folder…" : "Creating a folder…";
                 }
               })();
             </script>
@@ -161,6 +168,32 @@
             <div class="btn-row">
               <button id="pkg-step1-back" class="action-btn">« BACK</button>
               <button id="pkg-step1-next" class="action-btn run-btn">NEXT »</button>
+            </div>
+          </div>
+
+          <!-- Add/Rename Folder mode only (?mode=folder&folder=<Language>[&slug=<slug>]).
+               Create and rename share this same form — rename mode is
+               detected via the ?slug= param (see enterFolderWizard() in
+               editor.js) and just pre-fills the fields and shows the
+               slug/path read-only underneath the name. -->
+          <div id="step1-folder" style="display:none;">
+            <h2 class="step-heading" id="folder-step-heading">Folder details</h2>
+
+            <label class="field-label">Folder name</label>
+            <input id="folder-name-input" type="text" class="editor-input" placeholder="e.g. Final Set" />
+            <div id="folder-name-status" class="banner" style="display:none;"></div>
+
+            <!-- Rename mode only: the folder's permanent directory name,
+                 shown for context but never editable — the path never
+                 changes once a folder is created. -->
+            <p class="field-hint" id="folder-slug-context" style="display:none;margin-top:6px;"></p>
+
+            <label class="field-label" style="margin-top:16px;">Description <span class="field-hint" style="display:inline;margin:0;">(optional)</span></label>
+            <input id="folder-description-input" type="text" class="editor-input" placeholder="One line describing what's in this folder" />
+
+            <div class="btn-row">
+              <button id="folder-step1-back" class="action-btn">« BACK</button>
+              <button id="folder-step1-next" class="action-btn run-btn">NEXT »</button>
             </div>
           </div>
 
@@ -274,7 +307,7 @@
 
         <!-- Step 3: Review -->
         <section class="step-panel" id="step-3">
-          <h2 class="step-heading">Review extracted code</h2>
+          <h2 class="step-heading" id="step3-heading">Review extracted code</h2>
 
           <div id="merge-notes"></div>
 
@@ -309,6 +342,17 @@
             <div id="batch-review-error" class="banner banner-error" style="display:none;"></div>
           </div>
 
+          <!-- Folder mode's review step — a static summary instead of
+               editable code, since there's nothing else to review. -->
+          <div id="folder-review" style="display:none;">
+            <div class="preview-box">
+              <div><strong>Language:</strong> <span id="folder-review-lang">—</span></div>
+              <div><strong>Name:</strong> <span id="folder-review-name">—</span></div>
+              <div><strong>Description:</strong> <span id="folder-review-desc">—</span></div>
+              <div><strong id="folder-review-path-label">Will be created at:</strong> <span id="folder-review-path">—</span></div>
+            </div>
+          </div>
+
           <div id="save-error" class="banner banner-error" style="display:none;"></div>
 
           <div class="btn-row">
@@ -319,7 +363,7 @@
 
         <!-- Step 4: Done -->
         <section class="step-panel" id="step-4">
-          <h2 class="step-heading">Saved ✓</h2>
+          <h2 class="step-heading" id="step4-heading">Saved ✓</h2>
           <p class="field-hint" id="done-text"></p>
           <p class="field-hint" id="done-subtext">Your program has been saved successfully. It should appear on the homepage in about a minute.</p>
           <div class="btn-row">

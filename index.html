@@ -204,6 +204,27 @@
     </div>
   </div>
 
+  <!-- Delete-folder confirm (same shell as the Editor Access modal above,
+       no input field). Two button groups are swapped in/out depending
+       on whether the folder is actually deletable right now — see
+       openFolderDeleteModal() in script.js:
+         - deletable (an empty, non-Default folder): CONFIRM + CANCEL
+         - not deletable (Default, or still has programs in it): a
+           single CLOSE button, just explaining why -->
+  <div id="folder-delete-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h2 class="modal-title">Delete Folder</h2>
+      <p class="modal-text" id="folder-delete-text"></p>
+      <div id="folder-delete-actions-deletable" style="display:none;">
+        <button id="folder-delete-confirm" type="button" class="action-btn run-btn danger-btn gate-submit-btn">CONFIRM</button>
+        <button id="folder-delete-cancel" type="button" class="action-btn gate-home-btn">CANCEL</button>
+      </div>
+      <div id="folder-delete-actions-info" style="display:none;">
+        <button id="folder-delete-close" type="button" class="action-btn gate-home-btn">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pending reorder/delete changes -->
   <div id="edit-save-bar" class="edit-save-bar" style="display:none;">
     <span id="edit-save-status" class="edit-save-status"></span>
